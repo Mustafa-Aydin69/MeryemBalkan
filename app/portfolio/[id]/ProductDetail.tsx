@@ -519,7 +519,7 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
                 {showSizeImage && (
                   <div className="mt-4">
                     <img
-                      src="/images/AnaSayfa/Beden.webp"
+                      src="/images/AnaSayfa/Beden.jpg"
                       alt="Beden Ölçme Tablosu"
                       className="rounded-lg shadow-md"
                     />
