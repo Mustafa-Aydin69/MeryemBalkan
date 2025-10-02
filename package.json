@@ -8,6 +8,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@netlify/plugin-nextjs": "^5.13.4",
     "@react-google-maps/api": "^2.19.3",
     "express-rate-limit": "^8.1.0",
     "framer-motion": "^12.23.22",
