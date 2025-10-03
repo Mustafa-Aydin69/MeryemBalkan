@@ -112,14 +112,20 @@ export default function LoginModal({ isOpen, onClose, isDarkMode }: LoginModalPr
 
       if (response.ok) {
         const data = await response.json();
-        // Kod doğru ise
-        alert(data.message || '✅ Kod doğru');
 
+        // Kullanıcı bilgilerini kaydet
+        localStorage.setItem('userEmail', email);
         localStorage.setItem('user', JSON.stringify({
           email,
           loginTime: new Date().toISOString(),
           isLoggedIn: true
         }));
+
+        // Modal'ı kapat
+        handleClose();
+
+        // Siparişler sayfasına yönlendir
+        router.push('/siparisler');
       } else {
         const data = await response.json();
         setError(data.error || 'Doğrulama kodu hatalı');
@@ -127,40 +133,19 @@ export default function LoginModal({ isOpen, onClose, isDarkMode }: LoginModalPr
     } catch (error) {
       // Demo için kod kontrolü (123456)
       if (verificationCode === '123456') {
-        const mockOrders: Order[] = [
-          {
-            id: '1',
-            productTitle: 'Siyah Gece Elbisesi',
-            productPrice: '18.000TL',
-            selectedSize: '38',
-            selectedColor: 'Siyah',
-            selectedDate: '2024-06-15',
-            eventType: 'dugun',
-            eventDate: '2024-06-15',
-            status: 'confirmed',
-            orderDate: '2024-05-01'
-          },
-          {
-            id: '2',
-            productTitle: 'Pudra Nişan Elbisesi',
-            productPrice: '25.000TL',
-            selectedSize: '36',
-            selectedColor: 'Pudra',
-            selectedDate: '2024-07-20',
-            eventType: 'nisan',
-            eventDate: '2024-07-20',
-            status: 'pending',
-            orderDate: '2024-05-10'
-          }
-        ];
-        setOrders(mockOrders);
-        setStep('orders');
-
+        // Kullanıcı bilgilerini kaydet
+        localStorage.setItem('userEmail', email);
         localStorage.setItem('user', JSON.stringify({
           email: email,
           loginTime: new Date().toISOString(),
           isLoggedIn: true
         }));
+
+        // Modal'ı kapat
+        handleClose();
+
+        // Siparişler sayfasına yönlendir
+        router.push('/siparisler');
       } else {
         setError('Doğrulama kodu hatalı');
       }
@@ -285,8 +270,8 @@ export default function LoginModal({ isOpen, onClose, isDarkMode }: LoginModalPr
                   <button
                     onClick={() => setStep('admin')}
                     className={`text-sm italic cursor-pointer transition-colors ${isDarkMode
-                        ? 'text-gray-300 hover:text-white'
-                        : 'text-gray-600 hover:text-black'
+                      ? 'text-gray-300 hover:text-white'
+                      : 'text-gray-600 hover:text-black'
                       }`}
                   >
                     Meryem Balkan
