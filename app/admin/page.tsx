@@ -46,7 +46,9 @@ export default function AdminPanel() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-
+  const [deleteMessageId, setDeleteMessageId] = useState<number | null>(null);
+  const [isDeleteMessageModalOpen, setIsDeleteMessageModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   useEffect(() => {
     async function getMessages() {
       const { data, error } = await supabase.from("mesajlar").select("*");
@@ -551,6 +553,34 @@ export default function AdminPanel() {
     });
   };
 
+  const confirmDeleteMessage = (id: number) => {
+    setDeleteMessageId(id);
+    setIsDeleteMessageModalOpen(true);
+  };
+
+  // Supabase'den gerçekten sil
+  const handleDeleteMessage = async () => {
+    if (!deleteMessageId) return;
+
+    setIsDeleting(true);
+    const { error } = await supabase
+      .from("mesajlar")
+      .delete()
+      .eq("id", deleteMessageId);
+
+    setIsDeleting(false);
+
+    if (error) {
+      console.error("Mesaj silinirken hata oluştu:", error.message);
+      alert("Mesaj silinemedi: " + error.message);
+      return;
+    }
+
+    // Başarılıysa state'i güncelle
+    setMessages((prev) => prev.filter((m) => m.id !== deleteMessageId));
+    setIsDeleteMessageModalOpen(false);
+    setDeleteMessageId(null);
+  };
   const removeImage = (index: number) => {
     setNewProduct((prev) => ({
       ...prev,
@@ -1495,6 +1525,14 @@ export default function AdminPanel() {
                           >
                             Görüntüle
                           </button>
+
+                          <button
+                            onClick={() => confirmDeleteMessage(msg.id)}
+                            className="w-8 h-8 flex items-center justify-center rounded-full transition-colors cursor-pointer hover:bg-red-50 text-red-600 hover:text-red-800"
+                            title="Mesajı Sil"
+                          >
+                            <i className="ri-delete-bin-line text-sm"></i>
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -2376,6 +2414,35 @@ export default function AdminPanel() {
                 className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
               >
                 Sil
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isDeleteMessageModalOpen && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl shadow-lg w-80 text-center">
+            <h2 className="text-lg font-semibold mb-3">Mesajı Sil</h2>
+            <p className="text-gray-600 mb-5">
+              Bu mesajı kalıcı olarak silmek istediğine emin misin?
+            </p>
+            <div className="flex justify-center gap-3">
+              <button
+                onClick={handleDeleteMessage}
+                disabled={isDeleting}
+                className={`px-4 py-2 rounded text-white ${isDeleting
+                    ? "bg-red-400 cursor-not-allowed"
+                    : "bg-red-600 hover:bg-red-700"
+                  }`}
+              >
+                {isDeleting ? "Siliniyor..." : "Evet, Sil"}
+              </button>
+              <button
+                onClick={() => setIsDeleteMessageModalOpen(false)}
+                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+              >
+                İptal
               </button>
             </div>
           </div>
