@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { createClient } from "@supabase/supabase-js"
+import { toast } from "sonner";
 
 const supabase = createClient(
   "https://orplwznpdpwnyflkbuoy.supabase.co",
@@ -49,6 +50,7 @@ export default function AdminPanel() {
   const [deleteMessageId, setDeleteMessageId] = useState<number | null>(null);
   const [isDeleteMessageModalOpen, setIsDeleteMessageModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
   useEffect(() => {
     async function getMessages() {
       const { data, error } = await supabase.from("mesajlar").select("*");
@@ -71,6 +73,34 @@ export default function AdminPanel() {
     getMessages();
   }, []);
 
+  useEffect(() => {
+    async function getOrders() {
+      const { data, error } = await supabase.from("siparisler").select("*");
+
+      if (error) {
+        console.error("Siparişler alınamadı:", error.message);
+      } else if (data) {
+        setOrders(
+          data.map((item) => ({
+            id: item.id,
+            customerName: item.customerName,
+            productName: item.productName,
+            size: item.size,
+            color: item.color,
+            eventDate: item.eventDate,
+            orderDate: item.orderDate,
+            status: item.status,
+            phone: item.phone,
+            email: item.email,
+            address: item.address,
+            price: item.price,
+          }))
+        );
+      }
+    }
+
+    getOrders();
+  }, []);
 
 
   const [newProduct, setNewProduct] = useState({
@@ -85,64 +115,8 @@ export default function AdminPanel() {
     imagePreviews: [] as string[],
   });
   const [uploadError, setUploadError] = useState('');
-  const [orders, setOrders] = useState([
-    {
-      id: 1,
-      customerName: 'Ayşe Demir',
-      productName: 'Siyah Gece Elbisesi',
-      size: '38',
-      color: 'Siyah',
-      eventDate: '2024-03-15',
-      orderDate: '2024-02-10',
-      status: 'Hazırlanıyor',
-      phone: '+90 532 123 45 67',
-      email: 'ayse.demir@email.com',
-      address: 'Bağdat Cad. No:123 Kadıköy/İstanbul',
-      price: '18.000TL',
-    },
-    {
-      id: 2,
-      customerName: 'Elif Yılmaz',
-      productName: 'Pudra Nişan Elbisesi',
-      size: '40',
-      color: 'Pudra',
-      eventDate: '2024-03-20',
-      orderDate: '2024-02-12',
-      status: 'Kargoya Verildi',
-      phone: '+90 535 987 65 43',
-      email: 'elif.yilmaz@email.com',
-      address: 'Atatürk Bulvarı No:456 Çankaya/Ankara',
-      price: '25.000TL',
-    },
-    {
-      id: 3,
-      customerName: 'Zeynep Kaya',
-      productName: 'Modern Gelinlik',
-      size: '36',
-      color: 'Beyaz',
-      eventDate: '2024-04-05',
-      orderDate: '2024-02-14',
-      status: 'Hazırlanıyor',
-      phone: '+90 538 456 78 90',
-      email: 'zeynep.kaya@email.com',
-      address: 'Kordon Boyu No:789 Alsancak/İzmir',
-      price: '50.000TL',
-    },
-    {
-      id: 4,
-      customerName: 'Merve Özkan',
-      productName: 'Kırmızı Kına Elbisesi',
-      size: '42',
-      color: 'Kırmızı',
-      eventDate: '2024-03-25',
-      orderDate: '2024-02-16',
-      status: 'Teslim Edildi',
-      phone: '+90 542 321 65 87',
-      email: 'merve.ozkan@email.com',
-      address: 'Cumhuriyet Mah. No:321 Muratpaşa/Antalya',
-      price: '15.000TL',
-    },
-  ]);
+  //Sipariş Listesi
+  const [orders, setOrders] = useState<any[]>([]);
 
   const [allProducts, setAllProducts] = useState([
     {
@@ -758,11 +732,33 @@ export default function AdminPanel() {
     });
   };
 
-  const handleUpdateOrder = () => {
+  const handleUpdateOrder = async () => {
+    if (!editingOrder) return;
+
+    // Supabase UPDATE işlemi
+    const { error } = await supabase
+      .from("siparisler")
+      .update({ status: editingOrder.status })
+      .eq("id", editingOrder.id);
+
+    if (error) {
+      console.error("Sipariş güncellenemedi:", error.message);
+      alert("Bir hata oluştu: " + error.message);
+      return;
+    }
+
+    // Frontend'deki listeyi güncelle
     setOrders((prev) =>
-      prev.map((order) => (order.id === editingOrder.id ? editingOrder : order)),
+      prev.map((order) =>
+        order.id === editingOrder.id
+          ? { ...order, status: editingOrder.status }
+          : order
+      )
     );
+
+    // Modalı kapat
     setEditingOrder(null);
+    toast.success("Sipariş durumu başarıyla güncellendi ✅");
   };
 
   const handleOrderInputChange = (field, value) => {
@@ -2382,6 +2378,7 @@ export default function AdminPanel() {
           </div>
         </div>
       )}
+
       {selectedImage && (
         <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
           <img src={selectedImage} alt="Tam ekran" className="max-h-[90vh] max-w-[90vw] rounded-lg shadow-lg" />
@@ -2393,6 +2390,7 @@ export default function AdminPanel() {
           </button>
         </div>
       )}
+
       {isDeleteModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md shadow-lg">
@@ -2432,8 +2430,8 @@ export default function AdminPanel() {
                 onClick={handleDeleteMessage}
                 disabled={isDeleting}
                 className={`px-4 py-2 rounded text-white ${isDeleting
-                    ? "bg-red-400 cursor-not-allowed"
-                    : "bg-red-600 hover:bg-red-700"
+                  ? "bg-red-400 cursor-not-allowed"
+                  : "bg-red-600 hover:bg-red-700"
                   }`}
               >
                 {isDeleting ? "Siliniyor..." : "Evet, Sil"}
@@ -2525,7 +2523,7 @@ export default function AdminPanel() {
                           )
                         );
 
-                        alert('Yanıt başarıyla gönderildi!');
+                        toast.success("Yanıt başarıyla gönderildi! ✅");
                         setReply('');
                         setSelectedMessage(null);
                       }
