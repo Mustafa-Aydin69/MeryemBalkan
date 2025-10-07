@@ -3,6 +3,12 @@
 import Link from 'next/link';
 import LoginModal from '../components/LoginModal';
 import { useState, useEffect } from 'react';
+import { createClient } from "@supabase/supabase-js"
+
+const supabase = createClient(
+  "https://orplwznpdpwnyflkbuoy.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ycGx3em5wZHB3bnlmbGtidW95Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3NzM5MzksImV4cCI6MjA3NTM0OTkzOX0.vjYN3-jHAJknRjOFv2V21MyQR8KrG6zFRmEJ6PoVW0c"
+)
 
 export default function Iletisim() {
   const [formData, setFormData] = useState({
@@ -73,24 +79,50 @@ export default function Iletisim() {
 
   const showNavBackground = isClient && scrollY > 200;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const form = new FormData();
-    form.append('name', formData.name);
-    form.append('email', formData.email);
-    form.append('phone', formData.phone);
-    form.append('service', formData.service);
-    form.append('message', formData.message);
+    try {
+      const { name, email, phone, service, message } = formData;
 
-    fetch('https://readdy.ai/api/form-data', {
-      method: 'POST',
-      body: form
-    });
+      // Boş alan kontrolü
+      if (!name || !email || !service || !message) {
+        alert("Lütfen tüm zorunlu alanları doldurun.");
+        return;
+      }
 
-    setIsSubmitted(true);
-    setFormData({ name: '', email: '', phone: '', service: '', message: '' });
+      // Supabase'e ekle
+      const { data, error } = await supabase
+        .from("mesajlar")
+        .insert([
+          {
+            name,
+            email,
+            phone,
+            hizmet: service,
+            mesaj: message,
+            cevap: "Bekliyor",
+            tarih: new Date().toISOString().split("T")[0], // YYYY-MM-DD
+          },
+        ]);
+
+      if (error) {
+        console.error("Supabase ekleme hatası:", error);
+        alert("Mesaj gönderilirken bir hata oluştu!");
+        return;
+      }
+
+      console.log("Supabase ekleme başarılı:", data);
+
+      // Formu sıfırla
+      setIsSubmitted(true);
+      setFormData({ name: "", email: "", phone: "", service: "", message: "" });
+    } catch (err) {
+      console.error("Beklenmedik hata:", err);
+      alert("Bir hata oluştu, lütfen tekrar deneyin.");
+    }
   };
+
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -210,11 +242,11 @@ export default function Iletisim() {
                     className={`w-full px-3 sm:px-4 py-2 sm:py-3 border focus:outline-none text-xs sm:text-sm pr-8 transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white focus:border-white' : 'bg-white border-gray-300 text-black focus:border-black'}`}
                   >
                     <option value="">Seçiniz</option>
-                    <option value="ozel-tasarim">Gelinlik</option>
+                    <option value="gelinlik">Gelinlik</option>
                     <option value="abiye-elbise">Abiye Elbise</option>
-                    <option value="is-kiyafetleri">Kınalık</option>
-                    <option value="gelinlik">Nişanlık</option>
-                    <option value="stil-danismanligi">After Party</option>
+                    <option value="kinalik">Kınalık</option>
+                    <option value="nisanlik">Nişanlık</option>
+                    <option value="after-party">After Party</option>
                     <option value="diger">Diğer</option>
                   </select>
                 </div>

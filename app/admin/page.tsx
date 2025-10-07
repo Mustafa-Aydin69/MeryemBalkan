@@ -2,7 +2,12 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import { createClient } from "@supabase/supabase-js"
 
+const supabase = createClient(
+  "https://orplwznpdpwnyflkbuoy.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ycGx3em5wZHB3bnlmbGtidW95Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3NzM5MzksImV4cCI6MjA3NTM0OTkzOX0.vjYN3-jHAJknRjOFv2V21MyQR8KrG6zFRmEJ6PoVW0c"
+)
 
 interface Message {
   id: number;
@@ -40,28 +45,32 @@ export default function AdminPanel() {
   const [reply, setReply] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      name: 'Ali Vural',
-      email: 'ali@example.com',
-      phone: '+90 532 111 22 33',
-      serviceType: 'Abiye Elbise',
-      message: 'Merhaba, ürün hakkında bilgi almak istiyorum.',
-      date: '2024-03-01',
-      status: 'Bekliyor',
-    },
-    {
-      id: 2,
-      name: 'Ayşe Yıldız',
-      email: 'ayse@example.com',
-      phone: '+90 534 444 55 66',
-      serviceType: 'Gelinlik',
-      message: 'Siparişim ne zaman kargoya verilir?',
-      date: '2024-03-02',
-      status: 'Verildi',
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
+
+  useEffect(() => {
+    async function getMessages() {
+      const { data, error } = await supabase.from("mesajlar").select("*");
+      if (error) console.error(error);
+      if (data) {
+        setMessages(
+          data.map((item) => ({
+            id: item.id,
+            name: item.name,
+            email: item.email,
+            phone: item.phone,
+            serviceType: item.hizmet,
+            message: item.mesaj,
+            date: item.tarih?.slice(0, 10),
+            status: item.cevap === "Verildi" ? "Verildi" : "Bekliyor",
+          }))
+        );
+      }
+    }
+    getMessages();
+  }, []);
+
+
+
   const [newProduct, setNewProduct] = useState({
     title: '',
     collection: '',
@@ -694,6 +703,9 @@ export default function AdminPanel() {
   const handleEditProduct = (product) => {
     setEditingProduct({
       ...product,
+      description: product.description ?? "",
+      images: product.images ?? [],
+      colors: product.colors ?? [],
       originalStatus: product.status,
     });
   };
@@ -1973,6 +1985,62 @@ export default function AdminPanel() {
                 />
               </div>
 
+              {/* Renkler */}
+              <div>
+                <label
+                  className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-black'}`}
+                >
+                  Renkler
+                </label>
+
+                {/* Renk ekleme inputu */}
+                <input
+                  type="text"
+                  placeholder="Renk ekle (örn. Kırmızı) ve Enter’a bas"
+                  className={`w-full px-4 py-2 border rounded text-sm transition-colors ${isDarkMode
+                    ? 'bg-gray-700 border-gray-600 text-white focus:border-white'
+                    : 'bg-white border-gray-300 text-black focus:border-black'
+                    }`}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      const val = (e.target as HTMLInputElement).value.trim();
+                      if (val && !(editingProduct.colors || []).includes(val)) {
+                        handleEditInputChange("colors", [...(editingProduct.colors || []), val]);
+                      }
+                      (e.target as HTMLInputElement).value = "";
+                    }
+                  }}
+                />
+
+                {/* Eklenen renkler rozetleri */}
+                {editingProduct.colors && editingProduct.colors.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {editingProduct.colors.map((color: string, i: number) => (
+                      <span
+                        key={`${color}-${i}`}
+                        className="px-3 py-1 rounded-full text-sm bg-gray-200 text-gray-800 flex items-center"
+                      >
+                        {color}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleEditInputChange(
+                              "colors",
+                              editingProduct.colors.filter((c: string) => c !== color)
+                            )
+                          }
+                          className="ml-2 text-red-500 hover:text-red-700"
+                          title="Sil"
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Açıklama */}
               <div>
                 <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-black'}`}>
@@ -2023,12 +2091,12 @@ export default function AdminPanel() {
                     }
                     disabled={editingProduct.images?.length >= 5}
                     className={`w-full h-32 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${editingProduct.images?.length >= 5
-                        ? isDarkMode
-                          ? 'border-gray-700 text-gray-600 cursor-not-allowed'
-                          : 'border-gray-200 text-gray-400 cursor-not-allowed'
-                        : isDarkMode
-                          ? 'border-gray-600 hover:border-gray-500 text-gray-400 hover:text-gray-300'
-                          : 'border-gray-300 hover:border-gray-400 text-gray-500 hover:text-gray-600'
+                      ? isDarkMode
+                        ? 'border-gray-700 text-gray-600 cursor-not-allowed'
+                        : 'border-gray-200 text-gray-400 cursor-not-allowed'
+                      : isDarkMode
+                        ? 'border-gray-600 hover:border-gray-500 text-gray-400 hover:text-gray-300'
+                        : 'border-gray-300 hover:border-gray-400 text-gray-500 hover:text-gray-600'
                       }`}
                   >
                     <i className="ri-image-add-line text-2xl mb-2"></i>
@@ -2084,8 +2152,8 @@ export default function AdminPanel() {
                                         )
                                       }
                                       className={`absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center cursor-pointer transition-all opacity-0 group-hover:opacity-100 shadow-md ${isDarkMode
-                                          ? 'bg-red-600 text-white hover:bg-red-700'
-                                          : 'bg-red-500 text-white hover:bg-red-600'
+                                        ? 'bg-red-600 text-white hover:bg-red-700'
+                                        : 'bg-red-500 text-white hover:bg-red-600'
                                         }`}
                                       title="Fotoğrafı Sil"
                                     >
@@ -2115,8 +2183,8 @@ export default function AdminPanel() {
                         type="button"
                         onClick={() => handleEditInputChange('images', [])}
                         className={`text-sm underline cursor-pointer ${isDarkMode
-                            ? 'text-red-400 hover:text-red-300'
-                            : 'text-red-500 hover:text-red-600'
+                          ? 'text-red-400 hover:text-red-300'
+                          : 'text-red-500 hover:text-red-600'
                           }`}
                       >
                         Tümünü Temizle
@@ -2347,17 +2415,60 @@ export default function AdminPanel() {
                 İptal
               </button>
               <button
-                onClick={() => {
-                  // ilgili mesajı güncelle
-                  setMessages((prev) =>
-                    prev.map((m) =>
-                      m.id === selectedMessage?.id ? { ...m, status: 'Verildi' } : m
-                    )
-                  );
+                onClick={async () => {
+                  if (!reply.trim()) {
+                    alert('Lütfen bir cevap yazın!');
+                    return;
+                  }
 
-                  console.log("Yanıt gönderildi:", reply);
-                  setReply('');
-                  setSelectedMessage(null); // modalı kapat
+                  try {
+                    // Mail gönder
+                    const mailResponse = await fetch('/api/send-reply', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        to: selectedMessage.email,
+                        customerName: selectedMessage.name,
+                        replyMessage: reply,
+                        originalMessage: selectedMessage.message,
+                        serviceType: selectedMessage.serviceType,
+                      }),
+                    });
+
+                    const mailResult = await mailResponse.json();
+
+                    if (mailResult.success) {
+                      // Supabase'de durumu güncelle
+                      const updateResult = await supabase
+                        .from('mesajlar')
+                        .update({ cevap: 'Verildi' })
+                        .eq('id', selectedMessage.id)
+                        .select();
+
+                      console.log('Supabase güncelleme sonucu:', updateResult);
+
+                      if (updateResult.error) {
+                        console.error('Supabase güncelleme hatası:', updateResult.error);
+                        alert('Mail gönderildi ancak durum güncellenemedi! Hata: ' + updateResult.error.message);
+                      } else {
+                        // State'i güncelle
+                        setMessages((prev) =>
+                          prev.map((m) =>
+                            m.id === selectedMessage.id ? { ...m, status: 'Verildi' } : m
+                          )
+                        );
+
+                        alert('Yanıt başarıyla gönderildi!');
+                        setReply('');
+                        setSelectedMessage(null);
+                      }
+                    } else {
+                      throw new Error(mailResult.error || 'Mail gönderilemedi');
+                    }
+                  } catch (err) {
+                    console.error('Hata:', err);
+                    alert('Mail gönderilirken bir hata oluştu: ' + err.message);
+                  }
                 }}
                 className="px-4 py-2 rounded bg-green-600 hover:bg-green-700 text-white"
               >
