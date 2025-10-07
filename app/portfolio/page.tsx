@@ -13,7 +13,7 @@ export default function Portfolio() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [hasCartItems, setHasCartItems] = useState(false);
   const observerRef = useRef<IntersectionObserver | null>(null);
-  const productObserverRef = useRef<IntersectionObserver | null>(null);
+  
 
   const portfolioItems = [
     // Abiye Koleksiyonu

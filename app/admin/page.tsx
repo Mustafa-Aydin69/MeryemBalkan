@@ -102,7 +102,9 @@ export default function AdminPanel() {
     getOrders();
   }, []);
 
-
+  const [uploadError, setUploadError] = useState('');
+  //Sipariş Listesi
+  const [orders, setOrders] = useState<any[]>([]);
   const [newProduct, setNewProduct] = useState({
     title: '',
     collection: '',
@@ -114,9 +116,7 @@ export default function AdminPanel() {
     features: [] as string[],
     imagePreviews: [] as string[],
   });
-  const [uploadError, setUploadError] = useState('');
-  //Sipariş Listesi
-  const [orders, setOrders] = useState<any[]>([]);
+
 
   const [allProducts, setAllProducts] = useState([
     {
