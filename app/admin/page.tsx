@@ -50,6 +50,10 @@ export default function AdminPanel() {
   const [deleteMessageId, setDeleteMessageId] = useState<number | null>(null);
   const [isDeleteMessageModalOpen, setIsDeleteMessageModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({
+    key: 'id',
+    direction: 'asc',
+  });
 
   useEffect(() => {
     async function getMessages() {
@@ -102,6 +106,36 @@ export default function AdminPanel() {
     getOrders();
   }, []);
 
+
+  useEffect(() => {
+    async function getProducts() {
+      const { data, error } = await supabase.from("urunler").select("*");
+
+      if (error) {
+        console.error("Ürünler alınamadı:", error.message);
+      } else if (data) {
+        setAllProducts(
+          data.map((item) => ({
+            id: item.id,
+            title: item.title,
+            collection: item.collection,
+            category: item.category,
+            price: item.price,
+            status: item.status,
+            createdDate: item.createdDate,
+            year: item.year,
+            features: item.features || '',
+            size: item.size || [],
+            colors: item.colors || [],
+            images: item.images || [],
+            description: item.description || '',
+          }))
+        );
+      }
+    }
+    getProducts();
+  }, []);
+
   const [uploadError, setUploadError] = useState('');
   //Sipariş Listesi
   const [orders, setOrders] = useState<any[]>([]);
@@ -111,261 +145,53 @@ export default function AdminPanel() {
     price: '',
     description: '',
     category: '',
-    sizes: [] as string[],
+    size: [] as string[],
     colors: [] as string[],
-    features: [] as string[],
+    features: '',
     imagePreviews: [] as string[],
   });
 
 
-  const [allProducts, setAllProducts] = useState([
-    {
-      id: 1,
-      title: 'Siyah Gece Elbisesi',
-      collection: 'Abiye Koleksiyonu',
-      category: 'abiye',
-      price: '18.000TL',
-      status: 'Yayında',
-      createdDate: '2024-02-01',
-    },
-    {
-      id: 2,
-      title: 'Pudra Nişan Elbisesi',
-      collection: 'Nişanlık Koleksiyonu',
-      category: 'nisanlik',
-      price: '25.000TL',
-      status: 'Yayında',
-      createdDate: '2024-02-03',
-    },
-    {
-      id: 3,
-      title: 'Modern Gelinlik',
-      collection: 'Gelinlik Koleksiyonu',
-      category: 'gelinlik',
-      price: '50.000TL',
-      status: 'Yayında',
-      createdDate: '2024-02-05',
-    },
-    {
-      id: 4,
-      title: 'Kırmızı Kına Elbisesi',
-      collection: 'Kınalık Koleksiyonu',
-      category: 'kinalik',
-      price: '15.000TL',
-      status: 'Yayında',
-      createdDate: '2024-02-07',
-    },
-    {
-      id: 5,
-      title: 'Beyaz A-line Gelinlik',
-      collection: 'Gelinlik Koleksiyonu',
-      category: 'gelinlik',
-      price: '65.000TL',
-      status: 'Yayında',
-      createdDate: '2024-02-10',
-    },
-    {
-      id: 6,
-      title: 'Lacivert Abiye Elbise',
-      collection: 'Abiye Koleksiyonu',
-      category: 'abiye',
-      price: '22.000TL',
-      status: 'Yayında',
-      createdDate: '2024-02-12',
-    },
-    {
-      id: 7,
-      title: 'Pembe Nişan Elbisesi',
-      collection: 'Nişanlık Koleksiyonu',
-      category: 'nisanlik',
-      price: '28.000TL',
-      status: 'Yayında',
-      createdDate: '2024-02-14',
-    },
-    {
-      id: 8,
-      title: 'Altın Rengi Abiye',
-      collection: 'Abiye Koleksiyonu',
-      category: 'abiye',
-      price: '35.000TL',
-      status: 'Yayında',
-      createdDate: '2024-02-16',
-    },
-    {
-      id: 9,
-      title: 'Prenses Gelinlik',
-      collection: 'Gelinlik Koleksiyonu',
-      category: 'gelinlik',
-      price: '75.000TL',
-      status: 'Yayında Değil',
-      createdDate: '2024-02-18',
-    },
-    {
-      id: 10,
-      title: 'Mavi Kına Elbisesi',
-      collection: 'Kınalık Koleksiyonu',
-      category: 'kinalik',
-      price: '18.000TL',
-      status: 'Yayında',
-      createdDate: '2024-02-20',
-    },
-    {
-      id: 11,
-      title: 'Bordo Abiye Elbise',
-      collection: 'Abiye Koleksiyonu',
-      category: 'abiye',
-      price: '32.000TL',
-      status: 'Yayında',
-      createdDate: '2024-02-22',
-    },
-    {
-      id: 12,
-      title: 'Mint Yeşili Nişan Elbisesi',
-      collection: 'Nişanlık Koleksiyonu',
-      category: 'nisanlik',
-      price: '26.000TL',
-      status: 'Yayında',
-      createdDate: '2024-02-24',
-    },
-    {
-      id: 13,
-      title: 'Vintage Gelinlik',
-      collection: 'Gelinlik Koleksiyonu',
-      category: 'gelinlik',
-      price: '45.000TL',
-      status: 'Yayında Değil',
-      createdDate: '2024-02-26',
-    },
-    {
-      id: 14,
-      title: 'Somon Rengi Abiye',
-      collection: 'Abiye Koleksiyonu',
-      category: 'abiye',
-      price: '29.000TL',
-      status: 'Yayında',
-      createdDate: '2024-02-28',
-    },
-    {
-      id: 15,
-      title: 'Yeşil Kına Elbisesi',
-      collection: 'Kınalık Koleksiyonu',
-      category: 'kinalik',
-      price: '17.000TL',
-      status: 'Yayında',
-      createdDate: '2024-03-01',
-    },
-    {
-      id: 16,
-      title: 'Bordo İşlemeli Kınalık',
-      collection: 'Kınalık Koleksiyonu',
-      category: 'kinalik',
-      price: '18.000TL',
-      status: 'Yayında',
-      createdDate: '2024-03-02',
-    },
-    {
-      id: 17,
-      title: 'Pembe Dantel Kınalık',
-      collection: 'Kınalık Koleksiyonu',
-      category: 'kinalik',
-      price: '16.500TL',
-      status: 'Yayında',
-      createdDate: '2024-03-03',
-    },
-    {
-      id: 18,
-      title: 'Yeşil Altın Detaylı Kınalık',
-      collection: 'Kınalık Koleksiyonu',
-      category: 'kinalik',
-      price: '17.000TL',
-      status: 'Yayında',
-      createdDate: '2024-03-04',
-    },
-    {
-      id: 19,
-      title: 'Mor Kadife Kınalık',
-      collection: 'Kınalık Koleksiyonu',
-      category: 'kinalik',
-      price: '19.500TL',
-      status: 'Yayında',
-      createdDate: '2024-03-05',
-    },
-    {
-      id: 20,
-      title: 'Lacivert Brokar Kınalık',
-      collection: 'Kınalık Koleksiyonu',
-      category: 'kinalik',
-      price: '20.000TL',
-      status: 'Yayında',
-      createdDate: '2024-03-06',
-    },
-    {
-      id: 21,
-      title: 'Altın Payetli Mini Elbise',
-      collection: 'After Party Koleksiyonu',
-      category: 'after-party',
-      price: '12.000TL',
-      status: 'Yayında',
-      createdDate: '2024-03-07',
-    },
-    {
-      id: 22,
-      title: 'Gümüş Metalik Elbise',
-      collection: 'After Party Koleksiyonu',
-      category: 'after-party',
-      price: '14.000TL',
-      status: 'Yayında',
-      createdDate: '2024-03-08',
-    },
-    {
-      id: 23,
-      title: 'Siyah Taşlı Kokteyl Elbisesi',
-      collection: 'After Party Koleksiyonu',
-      category: 'after-party',
-      price: '16.000TL',
-      status: 'Yayında',
-      createdDate: '2024-03-09',
-    },
-    {
-      id: 24,
-      title: 'Rose Gold Midi Elbise',
-      collection: 'After Party Koleksiyonu',
-      category: 'after-party',
-      price: '13.500TL',
-      status: 'Yayında',
-      createdDate: '2024-03-10',
-    },
-    {
-      id: 25,
-      title: 'Mavi İncili After Party Elbise',
-      collection: 'After Party Koleksiyonu',
-      category: 'after-party',
-      price: '15.500TL',
-      status: 'Yayında',
-      createdDate: '2024-03-11',
-    },
-    {
-      id: 26,
-      title: 'Bronz Asimetrik Elbise',
-      collection: 'After Party Koleksiyonu',
-      category: 'after-party',
-      price: '17.500TL',
-      status: 'Yayında Değil',
-      createdDate: '2024-03-12',
-    },
-  ]);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
 
-  // Products slice (arama + sayfalama)
+
+
+  // 1️⃣ Filtreleme
   const filteredProducts = allProducts.filter(
     (product) =>
       product.title.toLowerCase().includes(searchTermProducts.toLowerCase()) ||
       product.collection.toLowerCase().includes(searchTermProducts.toLowerCase()) ||
       product.category.toLowerCase().includes(searchTermProducts.toLowerCase())
   );
-  const totalProductsPages = Math.ceil(filteredProducts.length / productsPerPage);
+
+  // 2️⃣ Sıralama
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    const { key, direction } = sortConfig;
+
+    if (key === 'id') {
+      return direction === 'asc' ? a.id - b.id : b.id - a.id;
+    }
+
+    if (key === 'price') {
+      const priceA = parseFloat(a.price.toString().replace(/\./g, '').replace(',', '.'));
+      const priceB = parseFloat(b.price.toString().replace(/\./g, '').replace(',', '.'));
+      return direction === 'asc' ? priceA - priceB : priceB - priceA;
+    }
+
+    if (key === 'status') {
+      const statusA = a.status === 'Yayında' ? 1 : 0;
+      const statusB = b.status === 'Yayında' ? 1 : 0;
+      return direction === 'asc' ? statusA - statusB : statusB - statusA;
+    }
+
+    return 0;
+  });
+
+  // 3️⃣ Sayfalama (slicing)
+  const totalProductsPages = Math.ceil(sortedProducts.length / productsPerPage);
   const indexOfLastProduct = currentPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-  const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
+  const currentProducts = sortedProducts.slice(indexOfFirstProduct, indexOfLastProduct);
 
   // Orders slice (arama + sayfalama)
   const filteredOrders = orders.filter(
@@ -375,12 +201,11 @@ export default function AdminPanel() {
       order.email.toLowerCase().includes(searchTermOrders.toLowerCase()) ||
       order.phone.toLowerCase().includes(searchTermOrders.toLowerCase())
   );
+
   const totalOrdersPages = Math.ceil(filteredOrders.length / ordersPerPage);
   const indexOfLastOrder = ordersCurrentPage * ordersPerPage;
   const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
   const currentOrders = filteredOrders.slice(indexOfFirstOrder, indexOfLastOrder);
-
-
   //message slice(arama + sayfalama)
   const filteredMessages = messages.filter(
     (msg) =>
@@ -429,28 +254,45 @@ export default function AdminPanel() {
 
   const showNavBackground = isClient && scrollY > 100;
 
-  const handleProductSubmit = (e: React.FormEvent) => {
+  // Mevcut handleProductSubmit fonksiyonunu bulun ve değiştirin:
+  const handleProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Yeni ürün objesi oluştur
-    const newId = allProducts.length > 0 ? allProducts[allProducts.length - 1].id + 1 : 1;
-
+    // Supabase'e gönderilecek veriyi hazırla
     const productToAdd = {
-      id: newId,
       title: newProduct.title,
       collection: newProduct.category + " Koleksiyonu",
       category: newProduct.category,
-      price: newProduct.price + " TL",
-      status: 'Yayında Değil', // varsayılan olarak yayında
+      price: newProduct.price,
+      status: 'Yayında Değil',
       createdDate: new Date().toISOString().split('T')[0],
-      colors: newProduct.colors,
-      sizes: newProduct.sizes,
+      year: new Date().getFullYear(),
       features: newProduct.features,
+      size: newProduct.size,
+      colors: newProduct.colors,
       images: newProduct.imagePreviews,
+      description: newProduct.description,
     };
 
-    // Listeye ekle
-    setAllProducts((prev) => [...prev, productToAdd]);
+    // Supabase'e ekle
+    const { data, error } = await supabase
+      .from("urunler")
+      .insert([productToAdd])
+      .select();
+
+    if (error) {
+      console.error("Ürün eklenemedi:", error.message);
+      toast.error("Ürün eklenirken bir hata oluştu! ❌");
+      return;
+    }
+
+    // Başarılıysa frontend state'ini güncelle
+    if (data && data[0]) {
+      setAllProducts((prev) => [...prev, {
+        ...productToAdd,
+        id: data[0].id
+      }]);
+    }
 
     // Formu sıfırla
     setIsAddProductModalOpen(false);
@@ -459,13 +301,14 @@ export default function AdminPanel() {
       collection: '',
       price: '',
       description: '',
-      category: 'abiye',
-      sizes: [],
+      category: '',
+      size: [],
       colors: [],
-      features: [],
+      features: '',
       imagePreviews: [],
     });
     setUploadError('');
+    toast.success("Ürün başarıyla eklendi! ✅");
   };
 
   const handleInputChange = (e) => {
@@ -473,35 +316,16 @@ export default function AdminPanel() {
     setNewProduct((prev) => ({ ...prev, [name]: value }));
   };
 
-  const addSize = (size) => {
-    if (!newProduct.sizes.includes(size)) {
-      setNewProduct((prev) => ({ ...prev, sizes: [...prev.sizes, size] }));
+  const addSize = (size: string) => {
+    if (!newProduct.size.includes(size)) {
+      setNewProduct((prev) => ({ ...prev, size: [...prev.size, size] }));
     }
   };
 
-  const removeSize = (size) => {
-    setNewProduct((prev) => ({ ...prev, sizes: prev.sizes.filter((s) => s !== size) }));
+  const removeSize = (size: string) => {
+    setNewProduct((prev) => ({ ...prev, size: prev.size.filter((s) => s !== size) }));
   };
 
-  const addColor = (color) => {
-    if (color && !newProduct.colors.includes(color)) {
-      setNewProduct((prev) => ({ ...prev, colors: [...prev.colors, color] }));
-    }
-  };
-
-  const removeColor = (color) => {
-    setNewProduct((prev) => ({ ...prev, colors: prev.colors.filter((c) => c !== color) }));
-  };
-
-  const addFeature = (feature) => {
-    if (feature && !newProduct.features.includes(feature)) {
-      setNewProduct((prev) => ({ ...prev, features: [...prev.features, feature] }));
-    }
-  };
-
-  const removeFeature = (feature) => {
-    setNewProduct((prev) => ({ ...prev, features: prev.features.filter((f) => f !== feature) }));
-  };
 
   const addImage = (files: FileList) => {
     const fileArray = Array.from(files);
@@ -569,12 +393,26 @@ export default function AdminPanel() {
   };
 
   // gerçekten sil
-  const handleDeleteProduct = () => {
-    if (deleteProductId !== null) {
-      setAllProducts((prev) => prev.filter((p) => p.id !== deleteProductId));
-      setIsDeleteModalOpen(false);
-      setDeleteProductId(null);
+  const handleDeleteProduct = async () => {
+    if (deleteProductId === null) return;
+
+    // Supabase'den sil
+    const { error } = await supabase
+      .from("urunler")
+      .delete()
+      .eq("id", deleteProductId);
+
+    if (error) {
+      console.error("Ürün silinemedi:", error.message);
+      toast.error("Ürün silinirken bir hata oluştu! ❌");
+      return;
     }
+
+    // Başarılıysa frontend state'ini güncelle
+    setAllProducts((prev) => prev.filter((p) => p.id !== deleteProductId));
+    setIsDeleteModalOpen(false);
+    setDeleteProductId(null);
+    toast.success("Ürün başarıyla silindi! ✅");
   };
 
   const handleDragEnd = (result: any) => {
@@ -587,7 +425,7 @@ export default function AdminPanel() {
     setNewProduct((prev) => ({ ...prev, imagePreviews: reordered }));
   };
 
-  const getStatusColor = (status) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case 'Hazırlanıyor':
         return 'bg-blue-100 text-blue-700';
@@ -710,15 +548,54 @@ export default function AdminPanel() {
       description: product.description ?? "",
       images: product.images ?? [],
       colors: product.colors ?? [],
+      size: product.size ?? [],  // ← Boş array garantisi
+      features: product.features ?? "",
+      year: product.year ?? new Date().getFullYear(),
       originalStatus: product.status,
     });
   };
 
-  const handleUpdateProduct = () => {
+  // Mevcut handleUpdateProduct fonksiyonunu bulun ve değiştirin:
+  const handleUpdateProduct = async () => {
+    if (!editingProduct) return;
+
+    // Supabase'e gönderilecek veriyi hazırla
+    const updateData = {
+      title: editingProduct.title,
+      collection: editingProduct.collection,
+      category: editingProduct.category,
+      price: editingProduct.price,
+      status: editingProduct.status,
+      year: editingProduct.year || new Date().getFullYear(),
+      features: editingProduct.features || '',
+      size: editingProduct.size || [],
+      colors: editingProduct.colors || [],
+      images: editingProduct.images || [],
+      description: editingProduct.description || '',
+    };
+
+    // Supabase UPDATE işlemi
+    const { error } = await supabase
+      .from("urunler")
+      .update(updateData)
+      .eq("id", editingProduct.id);
+
+    if (error) {
+      console.error("Ürün güncellenemedi:", error.message);
+      toast.error("Ürün güncellenirken bir hata oluştu! ❌");
+      return;
+    }
+
+    // Başarılıysa frontend state'ini güncelle
     setAllProducts((prev) =>
-      prev.map((product) => (product.id === editingProduct.id ? editingProduct : product)),
+      prev.map((product) =>
+        product.id === editingProduct.id ? editingProduct : product
+      )
     );
+
+    // Modalı kapat
     setEditingProduct(null);
+    toast.success("Ürün başarıyla güncellendi! ✅");
   };
 
   const handleEditInputChange = (field, value) => {
@@ -1244,11 +1121,21 @@ export default function AdminPanel() {
                           }`}
                       >
                         <th
-                          className={`text-left p-3 sm:p-4 font-medium text-xs sm:text-sm ${isDarkMode ? 'text-white' : 'text-black'
+                          onClick={() =>
+                            setSortConfig((prev) => ({
+                              key: 'id',
+                              direction: prev.key === 'id' && prev.direction === 'asc' ? 'desc' : 'asc',
+                            }))
+                          }
+                          className={`text-left p-3 sm:p-4 font-medium text-xs sm:text-sm cursor-pointer select-none ${isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600'
                             }`}
                         >
                           ÜRÜN ADI
+                          {sortConfig.key === 'id' && (
+                            <i className={`ri-arrow-${sortConfig.direction === 'asc' ? 'up' : 'down'}-s-line ml-1`}></i>
+                          )}
                         </th>
+
                         <th
                           className={`text-left p-3 sm:p-4 font-medium text-xs sm:text-sm hidden md:table-cell ${isDarkMode ? 'text-white' : 'text-black'
                             }`}
@@ -1256,17 +1143,37 @@ export default function AdminPanel() {
                           KOLEKSİYON
                         </th>
                         <th
-                          className={`text-left p-3 sm:p-4 font-medium text-xs sm:text-sm ${isDarkMode ? 'text-white' : 'text-black'
+                          onClick={() =>
+                            setSortConfig((prev) => ({
+                              key: 'price',
+                              direction: prev.key === 'price' && prev.direction === 'asc' ? 'desc' : 'asc',
+                            }))
+                          }
+                          className={`text-left p-3 sm:p-4 font-medium text-xs sm:text-sm cursor-pointer select-none ${isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600'
                             }`}
                         >
                           FİYAT
+                          {sortConfig.key === 'price' && (
+                            <i className={`ri-arrow-${sortConfig.direction === 'asc' ? 'up' : 'down'}-s-line ml-1`}></i>
+                          )}
                         </th>
+
                         <th
-                          className={`text-left p-3 sm:p-4 font-medium text-xs sm:text-sm ${isDarkMode ? 'text-white' : 'text-black'
+                          onClick={() =>
+                            setSortConfig((prev) => ({
+                              key: 'status',
+                              direction: prev.key === 'status' && prev.direction === 'asc' ? 'desc' : 'asc',
+                            }))
+                          }
+                          className={`text-left p-3 sm:p-4 font-medium text-xs sm:text-sm cursor-pointer select-none ${isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600'
                             }`}
                         >
                           DURUM
+                          {sortConfig.key === 'status' && (
+                            <i className={`ri-arrow-${sortConfig.direction === 'asc' ? 'up' : 'down'}-s-line ml-1`}></i>
+                          )}
                         </th>
+
                         <th
                           className={`text-center p-3 sm:p-4 font-medium text-xs sm:text-sm ${isDarkMode ? 'text-white' : 'text-black'
                             }`}
@@ -1701,20 +1608,20 @@ export default function AdminPanel() {
                   />
                 </div>
 
+                {/* Bedenler - Düzenleme modalında */}
                 <div>
-                  <label
-                    className={`block text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'
-                      }`}
-                  >
+                  <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-black'}`}>
                     Bedenler
                   </label>
                   <div className="flex gap-2 mb-3">
                     <button
                       type="button"
                       onClick={() =>
-                        newProduct.sizes.includes('36-40') ? removeSize('36-40') : addSize('36-40')
+                        newProduct.size.includes('36-40')
+                          ? removeSize('36-40')
+                          : addSize('36-40')
                       }
-                      className={`px-4 py-2 text-sm rounded border cursor-pointer whitespace-nowrap transition-colors ${newProduct.sizes.includes('36-40')
+                      className={`px-4 py-2 text-sm rounded border cursor-pointer whitespace-nowrap transition-colors ${newProduct.size.includes('36-40')
                         ? isDarkMode
                           ? 'bg-white text-black border-white'
                           : 'bg-black text-white border-black'
@@ -1727,6 +1634,7 @@ export default function AdminPanel() {
                     </button>
                   </div>
                 </div>
+
 
                 <div>
                   <label
@@ -1793,16 +1701,38 @@ export default function AdminPanel() {
                   className={`block text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'
                     }`}
                 >
+                  Açıklama Başlığı
+                </label>
+                <input
+                  type="text"
+                  id="description"
+                  name="description"
+                  value={newProduct.description || ''}
+                  onChange={(e) =>
+                    setNewProduct((prev) => ({ ...prev, description: e.target.value }))
+                  }
+                  placeholder="Örn: Zarif siyah gece elbisesi."
+                  className={`w-full px-4 py-3 mb-4 border focus:outline-none text-sm transition-colors ${isDarkMode
+                    ? 'bg-gray-700 border-gray-600 text-white focus:border-white'
+                    : 'bg-white border-gray-300 text-black focus:border-black'
+                    }`}
+                />
+                <label
+                  htmlFor="feat"
+                  className={`block text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'
+                    }`}
+                >
                   Açıklama *
                 </label>
                 <textarea
-                  id="description"
-                  name="description"
-                  value={newProduct.description}
+                  id="features"
+                  name="features"
+                  value={newProduct.features}
                   onChange={handleInputChange}
                   rows={4}
                   maxLength={500}
                   required
+                  placeholder="Örn: Kumaş Özellikleri, Ürün Detayları vb."
                   className={`w-full px-4 py-3 border focus:outline-none text-sm resize-vertical transition-colors ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-white' : 'bg-white border-gray-300 text-black focus:border-black'
                     }`}
                 ></textarea>
@@ -1810,7 +1740,7 @@ export default function AdminPanel() {
                   className={`text-xs mt-1 transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
                     }`}
                 >
-                  {newProduct.description.length}/500 karakter
+                  {newProduct.features.length}/500 karakter
                 </div>
               </div>
 
@@ -2078,11 +2008,20 @@ export default function AdminPanel() {
               {/* Açıklama */}
               <div>
                 <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                  Açıklama Başlığı
+                </label>
+                <input
+                  type="text"
+                  value={editingProduct.description}
+                  onChange={(e) => handleEditInputChange('description', e.target.value)}
+                  className={`w-full px-4 py-3 border text-sm ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-black'}`}
+                />
+                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-black'}`}>
                   Açıklama
                 </label>
                 <textarea
-                  value={editingProduct.description || ""}
-                  onChange={(e) => handleEditInputChange('description', e.target.value)}
+                  value={editingProduct.features || ""}
+                  onChange={(e) => handleEditInputChange('features', e.target.value)}
                   rows={4}
                   maxLength={500}
                   className={`w-full px-4 py-3 border text-sm resize-vertical ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-black'}`}
