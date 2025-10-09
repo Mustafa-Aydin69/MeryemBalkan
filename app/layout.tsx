@@ -37,12 +37,10 @@ export default function RootLayout({
   return (
     <html lang="tr" suppressHydrationWarning={true}>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${pacifico.variable} antialiased bg-[#f7b0c7] min-h-screen`}
+        className={`${geistSans.variable} ${geistMono.variable} ${pacifico.variable} antialiased bg-[#ffc0cb] min-h-screen`}
       >
         <PageTransition />
         {children}
-
-        {/* 🔥 Toaster burada olmalı */}
         <Toaster position="top-right" richColors closeButton />
       </body>
     </html>

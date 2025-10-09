@@ -54,7 +54,7 @@ export default function Home() {
       description: "Nişan günü için özel tasarlanmış zarif ve romantik elbiselerle unutulmaz anlar yaşayın.",
       buttonText: "Hemen İncele",
       buttonLink: "/portfolio?category=nisanlik",
-      image: "images/Anasayfa/Nişanlık.jpg"
+      image: "images/Anasayfa/Nisanlik.jpg"
     },
     {
       id: 3,
@@ -62,7 +62,7 @@ export default function Home() {
       description: "Özel tasarımlar, zarif detaylarla birleşiyor. Kına gecenizde sizi yansıtan benzersiz parçalar.",
       buttonText: "Hemen İncele",
       buttonLink: "/portfolio?category=kinalik",
-      image: "images/Anasayfa/Kınalık.jpg"
+      image: "images/Anasayfa/Kinalik.jpg"
     },
     {
       id: 4,
