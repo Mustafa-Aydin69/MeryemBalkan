@@ -139,6 +139,7 @@ export default function AdminPanel() {
   const [uploadError, setUploadError] = useState('');
   //Sipariş Listesi
   const [orders, setOrders] = useState<any[]>([]);
+  //Yeni Ürün Ekle
   const [newProduct, setNewProduct] = useState({
     title: '',
     collection: '',
@@ -148,7 +149,8 @@ export default function AdminPanel() {
     size: [] as string[],
     colors: [] as string[],
     features: '',
-    imagePreviews: [] as string[],
+    imagePreviews: [] as string[], // public URL’ler
+    images: [] as string[],        // dosya adları
   });
 
 
@@ -254,62 +256,77 @@ export default function AdminPanel() {
 
   const showNavBackground = isClient && scrollY > 100;
 
-  // Mevcut handleProductSubmit fonksiyonunu bulun ve değiştirin:
+  // Mevcut handleProductSubmit fonksiyonu
   const handleProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setUploadError("");
 
-    // Supabase'e gönderilecek veriyi hazırla
-    const productToAdd = {
-      title: newProduct.title,
-      collection: newProduct.category + " Koleksiyonu",
-      category: newProduct.category,
-      price: newProduct.price,
-      status: 'Yayında Değil',
-      createdDate: new Date().toISOString().split('T')[0],
-      year: new Date().getFullYear(),
-      features: newProduct.features,
-      size: newProduct.size,
-      colors: newProduct.colors,
-      images: newProduct.imagePreviews,
-      description: newProduct.description,
-    };
+    const bucket = "urunler";
+    const uploadedNames: string[] = [];
 
-    // Supabase'e ekle
-    const { data, error } = await supabase
-      .from("urunler")
-      .insert([productToAdd])
-      .select();
+    // 1️⃣ Fotoğrafları yükle
+    for (const item of newProduct.images) {
+      if (item instanceof File) {
+        const uniqueName = `${Date.now()}_${item.name}`;
 
-    if (error) {
-      console.error("Ürün eklenemedi:", error.message);
-      toast.error("Ürün eklenirken bir hata oluştu! ❌");
+        const { error: uploadError } = await supabase.storage
+          .from(bucket)
+          .upload(uniqueName, item);
+
+        if (uploadError) {
+          console.error("Fotoğraf yüklenemedi:", uploadError.message);
+          setUploadError(`Fotoğraf yüklenemedi: ${uploadError.message}`);
+          continue;
+        }
+
+        uploadedNames.push(uniqueName);
+      } else if (typeof item === "string") {
+        uploadedNames.push(item); // varsa daha önce yüklenmiş isim
+      }
+    }
+
+    // 2️⃣ Ürünü veritabanına ekle
+    const { error: insertError } = await supabase.from("urunler").insert([
+      {
+        title: newProduct.title,
+        collection: newProduct.category + " Koleksiyonu",
+        category: newProduct.category,
+        price: newProduct.price,
+        size: newProduct.size,
+        colors: newProduct.colors,
+        features: newProduct.features,
+        description: newProduct.description,
+        images: uploadedNames, // ✅ sadece dosya adlarını kaydediyoruz
+        year: new Date().getFullYear(),
+        createdDate: new Date().toISOString(),
+      },
+    ]);
+
+    if (insertError) {
+      console.error("Ürün eklenemedi:", insertError.message);
+      toast.error("Ürün eklenemedi! ❌");
       return;
     }
 
-    // Başarılıysa frontend state'ini güncelle
-    if (data && data[0]) {
-      setAllProducts((prev) => [...prev, {
-        ...productToAdd,
-        id: data[0].id
-      }]);
-    }
+    toast.success("Ürün başarıyla eklendi! ✅");
 
-    // Formu sıfırla
-    setIsAddProductModalOpen(false);
+    // 3️⃣ Formu sıfırla
     setNewProduct({
-      title: '',
-      collection: '',
-      price: '',
-      description: '',
-      category: '',
+      title: "",
+      collection: "",
+      category: "",
+      price: "",
       size: [],
       colors: [],
-      features: '',
+      features: "",
+      description: "",
+      images: [],
       imagePreviews: [],
     });
-    setUploadError('');
-    toast.success("Ürün başarıyla eklendi! ✅");
+    setUploadError("");
+    setIsAddProductModalOpen(false);
   };
+
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -329,27 +346,59 @@ export default function AdminPanel() {
 
   const addImage = (files: FileList) => {
     const fileArray = Array.from(files);
-    const currentImageCount = newProduct.imagePreviews.length;
+    const currentCount = newProduct.imagePreviews.length;
 
-    if (currentImageCount + fileArray.length > 10) {
-      setUploadError('En fazla 10 fotoğraf yükleyebilirsiniz');
+    if (currentCount + fileArray.length > 5) {
+      setUploadError('En fazla 5 fotoğraf yükleyebilirsiniz');
       return;
     }
 
     setUploadError('');
-    fileArray.forEach((file) => {
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          setNewProduct((prev) => ({
-            ...prev,
-            imagePreviews: [...prev.imagePreviews, event.target?.result as string],
-          }));
-        };
-        reader.readAsDataURL(file);
-      }
-    });
+
+    const newPreviews = fileArray.map((file) => URL.createObjectURL(file));
+    const newFiles = fileArray;
+
+    setNewProduct((prev) => ({
+      ...prev,
+      imagePreviews: [...prev.imagePreviews, ...newPreviews],
+      images: [...prev.images, ...newFiles], // geçici olarak File objeleri tut
+    }));
   };
+
+
+  // --- ÜRÜN DÜZENLEME FOTOĞRAF YÜKLEME ---
+  const handleEditImageUpload = (files: FileList) => {
+    const fileArray = Array.from(files);
+    const currentCount = editingProduct.images?.length || 0;
+
+    if (currentCount + fileArray.length > 5) {
+      toast.error("En fazla 5 fotoğraf yükleyebilirsiniz");
+      return;
+    }
+
+    // Sadece tarayıcıda önizleme oluştur
+    const newPreviews = fileArray.map((file) => URL.createObjectURL(file));
+
+    setEditingProduct((prev: any) => ({
+      ...prev,
+      // Henüz upload etmeden File objelerini tutuyoruz
+      images: [...(prev.images || []), ...fileArray],
+      imagePreviews: [...(prev.imagePreviews || []), ...newPreviews],
+    }));
+  };
+
+
+  // --- ÜRÜN DÜZENLEME FOTOĞRAF GEÇİCİ SİLME ---
+  const handleEditImageRemove = (index: number) => {
+    setEditingProduct((prev: any) => ({
+      ...prev,
+      images: prev.images.filter((_: any, i: number) => i !== index),
+      imagePreviews: prev.imagePreviews.filter((_: any, i: number) => i !== index),
+    }));
+  };
+
+
+
 
   const confirmDeleteMessage = (id: number) => {
     setDeleteMessageId(id);
@@ -383,9 +432,11 @@ export default function AdminPanel() {
     setNewProduct((prev) => ({
       ...prev,
       imagePreviews: prev.imagePreviews.filter((_, i) => i !== index),
+      images: prev.images.filter((_, i) => i !== index),
     }));
     setUploadError('');
   };
+
   // silme butonuna basıldığında modal aç
   const confirmDeleteProduct = (id: number) => {
     setDeleteProductId(id);
@@ -393,10 +444,36 @@ export default function AdminPanel() {
   };
 
   // gerçekten sil
+  // gerçekten sil
   const handleDeleteProduct = async () => {
     if (deleteProductId === null) return;
 
-    // Supabase'den sil
+    // 1️⃣ Ürünü bul (fotoğraf isimlerini almak için)
+    const { data: productData, error: fetchError } = await supabase
+      .from("urunler")
+      .select("images")
+      .eq("id", deleteProductId)
+      .single();
+
+    if (fetchError) {
+      console.error("Ürün bilgisi alınamadı:", fetchError.message);
+      toast.error("Ürün bilgisi alınamadı! ❌");
+      return;
+    }
+
+    // 2️⃣ Eğer fotoğraf varsa Buckets'tan sil
+    if (productData?.images && Array.isArray(productData.images) && productData.images.length > 0) {
+      const { error: storageError } = await supabase.storage
+        .from("urunler")
+        .remove(productData.images);
+
+      if (storageError) {
+        console.warn("Bazı fotoğraflar silinemedi:", storageError.message);
+        toast.warning("Bazı fotoğraflar Buckets'tan silinemedi ⚠️");
+      }
+    }
+
+    // 3️⃣ Veritabanından sil
     const { error } = await supabase
       .from("urunler")
       .delete()
@@ -408,12 +485,13 @@ export default function AdminPanel() {
       return;
     }
 
-    // Başarılıysa frontend state'ini güncelle
+    // 4️⃣ Frontend state'i güncelle
     setAllProducts((prev) => prev.filter((p) => p.id !== deleteProductId));
     setIsDeleteModalOpen(false);
     setDeleteProductId(null);
-    toast.success("Ürün başarıyla silindi! ✅");
+    toast.success("Ürün ve fotoğrafları başarıyla silindi! ✅");
   };
+
 
   const handleDragEnd = (result: any) => {
     if (!result.destination) return;
@@ -543,23 +621,79 @@ export default function AdminPanel() {
 
 
   const handleEditProduct = (product) => {
+    const bucket = "urunler";
+
+    // Sadece string olan path'lerle işlem yap
+    const imagePreviews =
+      (product.images || [])
+        .filter((img) => typeof img === "string" && img.trim() !== "")
+        .map(
+          (img) => supabase.storage.from(bucket).getPublicUrl(img).data.publicUrl
+        );
+
     setEditingProduct({
       ...product,
       description: product.description ?? "",
       images: product.images ?? [],
       colors: product.colors ?? [],
-      size: product.size ?? [],  // ← Boş array garantisi
+      size: product.size ?? [],
       features: product.features ?? "",
       year: product.year ?? new Date().getFullYear(),
       originalStatus: product.status,
+      imagePreviews,
     });
   };
 
-  // Mevcut handleUpdateProduct fonksiyonunu bulun ve değiştirin:
+
+
+  // 🔥 GÜNCELLENMİŞ GÜNCELLE BUTONU
   const handleUpdateProduct = async () => {
     if (!editingProduct) return;
 
-    // Supabase'e gönderilecek veriyi hazırla
+    const bucket = "urunler";
+
+    // 1️⃣ Eski ürün verisini al (silinmesi gerekenleri tespit etmek için)
+    const { data: oldData, error: fetchError } = await supabase
+      .from("urunler")
+      .select("images")
+      .eq("id", editingProduct.id)
+      .single();
+
+    if (fetchError) {
+      console.error("Eski ürün alınamadı:", fetchError.message);
+      toast.error("Ürün bilgisi alınamadı.");
+      return;
+    }
+
+    const oldImages = oldData?.images || [];
+    const uploadedNames: string[] = [];
+
+    // 2️⃣ Yeni veya mevcut fotoğrafları işleyelim
+    for (const img of editingProduct.images) {
+      if (img instanceof File) {
+        // 🚫 Türkçe karakter kontrolü
+        const turkishPattern = /[ıİğĞüÜşŞöÖçÇ]/;
+        if (turkishPattern.test(img.name)) {
+          toast.error("Dosya adında Türkçe karakter bulunuyor. Lütfen İngilizce karakterler kullanın.");
+          continue;
+        }
+
+        const uniqueName = `${Date.now()}_${img.name}`;
+        const { error } = await supabase.storage.from(bucket).upload(uniqueName, img);
+        if (error) {
+          console.error("Fotoğraf yüklenemedi:", error.message);
+          continue;
+        }
+        uploadedNames.push(uniqueName);
+      } else {
+        uploadedNames.push(img);
+      }
+    }
+
+    // 3️⃣ Artık kullanılmayan eski dosyaları bul
+    const removedImages = oldImages.filter((img: string) => !uploadedNames.includes(img));
+
+    // 4️⃣ Veriyi güncelle
     const updateData = {
       title: editingProduct.title,
       collection: editingProduct.collection,
@@ -567,36 +701,50 @@ export default function AdminPanel() {
       price: editingProduct.price,
       status: editingProduct.status,
       year: editingProduct.year || new Date().getFullYear(),
-      features: editingProduct.features || '',
+      features: editingProduct.features || "",
       size: editingProduct.size || [],
       colors: editingProduct.colors || [],
-      images: editingProduct.images || [],
-      description: editingProduct.description || '',
+      images: uploadedNames,
+      description: editingProduct.description || "",
     };
 
-    // Supabase UPDATE işlemi
-    const { error } = await supabase
+    const { error: updateError } = await supabase
       .from("urunler")
       .update(updateData)
       .eq("id", editingProduct.id);
 
-    if (error) {
-      console.error("Ürün güncellenemedi:", error.message);
+    if (updateError) {
+      console.error("Ürün güncellenemedi:", updateError.message);
       toast.error("Ürün güncellenirken bir hata oluştu! ❌");
       return;
     }
 
-    // Başarılıysa frontend state'ini güncelle
+    // 5️⃣ Artık kullanılmayan görselleri Supabase Storage'tan sil
+    if (removedImages.length > 0) {
+      const { error: deleteError } = await supabase.storage
+        .from(bucket)
+        .remove(removedImages);
+
+      if (deleteError) {
+        console.error("Storage silme hatası:", deleteError.message);
+        toast.error("Bazı fotoğraflar storage'tan silinemedi.");
+      } else {
+        console.log("Silinen gereksiz dosyalar:", removedImages);
+      }
+    }
+
+    // 6️⃣ UI güncelle
     setAllProducts((prev) =>
       prev.map((product) =>
-        product.id === editingProduct.id ? editingProduct : product
+        product.id === editingProduct.id ? { ...editingProduct, images: uploadedNames } : product
       )
     );
 
-    // Modalı kapat
     setEditingProduct(null);
     toast.success("Ürün başarıyla güncellendi! ✅");
   };
+
+
 
   const handleEditInputChange = (field, value) => {
     setEditingProduct((prev) => ({ ...prev, [field]: value }));
@@ -1530,7 +1678,23 @@ export default function AdminPanel() {
                   Yeni Ürün Ekle
                 </h3>
                 <button
-                  onClick={() => setIsAddProductModalOpen(false)}
+                  onClick={() => {
+                    setIsAddProductModalOpen(false);
+                    // Modal kapandığında formu sıfırla
+                    setNewProduct({
+                      title: "",
+                      collection: "",
+                      category: "",
+                      price: "",
+                      size: [],
+                      colors: [],
+                      features: "",
+                      description: "",
+                      images: [],
+                      imagePreviews: [],
+                    });
+                    setUploadError("");
+                  }}
                   className={`w-8 h-8 flex items-center justify-center rounded cursor-pointer transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'
                     }`}
                 >
@@ -1851,7 +2015,7 @@ export default function AdminPanel() {
                       <button
                         type="button"
                         onClick={() => {
-                          setNewProduct((prev) => ({ ...prev, imagePreviews: [] }));
+                          setNewProduct((prev) => ({ ...prev, imagePreviews: [], images: [] }));
                           setUploadError('');
                           const input = document.getElementById('product-images') as HTMLInputElement;
                           if (input) input.value = '';
@@ -1873,7 +2037,7 @@ export default function AdminPanel() {
                   : 'bg-black text-white hover:bg-gray-800'
                   }`}
               >
-                ÜRÜN EKLE
+                ÜRÜNÜ EKLE
               </button>
             </form>
           </div>
@@ -2046,12 +2210,7 @@ export default function AdminPanel() {
                     className="hidden"
                     onChange={(e) => {
                       if (e.target.files) {
-                        handleEditInputChange('images', [
-                          ...(editingProduct.images || []),
-                          ...Array.from(e.target.files).map((file) =>
-                            URL.createObjectURL(file)
-                          ),
-                        ]);
+                        handleEditImageUpload(e.target.files);
                       }
                     }}
                   />
@@ -2088,10 +2247,22 @@ export default function AdminPanel() {
                     <DragDropContext
                       onDragEnd={(result) => {
                         if (!result.destination) return;
-                        const reordered = Array.from(editingProduct.images);
-                        const [moved] = reordered.splice(result.source.index, 1);
-                        reordered.splice(result.destination.index, 0, moved);
-                        handleEditInputChange('images', reordered);
+
+                        // Hem dosya adlarını hem public URL’leri sıralayalım
+                        const reorderedImages = Array.from(editingProduct.images);
+                        const reorderedPreviews = Array.from(editingProduct.imagePreviews || []);
+
+                        const [movedImage] = reorderedImages.splice(result.source.index, 1);
+                        const [movedPreview] = reorderedPreviews.splice(result.source.index, 1);
+
+                        reorderedImages.splice(result.destination.index, 0, movedImage);
+                        reorderedPreviews.splice(result.destination.index, 0, movedPreview);
+
+                        setEditingProduct({
+                          ...editingProduct,
+                          images: reorderedImages,
+                          imagePreviews: reorderedPreviews,
+                        });
                       }}
                     >
                       <Droppable droppableId="images" direction="horizontal">
@@ -2101,7 +2272,7 @@ export default function AdminPanel() {
                             {...provided.droppableProps}
                             ref={provided.innerRef}
                           >
-                            {editingProduct.images.map((preview, index) => (
+                            {editingProduct.imagePreviews?.map((preview, index) => (
                               <Draggable key={preview} draggableId={preview} index={index}>
                                 {(provided) => (
                                   <div
@@ -2118,12 +2289,7 @@ export default function AdminPanel() {
                                     {/* Silme butonu */}
                                     <button
                                       type="button"
-                                      onClick={() =>
-                                        handleEditInputChange(
-                                          'images',
-                                          editingProduct.images.filter((_, i) => i !== index)
-                                        )
-                                      }
+                                      onClick={() => handleEditImageRemove(index)}
                                       className={`absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center cursor-pointer transition-all opacity-0 group-hover:opacity-100 shadow-md ${isDarkMode
                                         ? 'bg-red-600 text-white hover:bg-red-700'
                                         : 'bg-red-500 text-white hover:bg-red-600'
@@ -2142,6 +2308,7 @@ export default function AdminPanel() {
                       </Droppable>
                     </DragDropContext>
                   )}
+
 
                   {/* Tümünü Temizle */}
                   {editingProduct.images?.length > 0 && (

@@ -37,7 +37,7 @@ export default function RootLayout({
   return (
     <html lang="tr" suppressHydrationWarning={true}>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${pacifico.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${pacifico.variable} antialiased bg-[#f7b0c7] min-h-screen`}
       >
         <PageTransition />
         {children}
