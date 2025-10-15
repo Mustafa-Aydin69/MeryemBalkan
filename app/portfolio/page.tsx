@@ -21,15 +21,15 @@ export default function Portfolio() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [hoveredProduct, setHoveredProduct] = useState<number | null>(null);
-  const [currentImageIndex, setCurrentImageIndex] = useState<{[key: number]: number}>({});
-  const imageIntervalRef = useRef<{[key: number]: NodeJS.Timeout}>({});
-  const hasCompletedCycle = useRef<{[key: number]: boolean}>({});
+  const [currentImageIndex, setCurrentImageIndex] = useState<{ [key: number]: number }>({});
+  const imageIntervalRef = useRef<{ [key: number]: NodeJS.Timeout }>({});
+  const hasCompletedCycle = useRef<{ [key: number]: boolean }>({});
 
   // Tek bir useEffect ile veri çekme
   useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
-      
+
       const { data, error } = await supabase
         .from("urunler")
         .select("*")
@@ -76,6 +76,21 @@ export default function Portfolio() {
 
     fetchProducts();
   }, []);
+
+  const createSlug = (id: number, title: string) => {
+    const slug = title
+      .toLowerCase()
+      .replace(/ş/g, 's')
+      .replace(/ğ/g, 'g')
+      .replace(/ü/g, 'u')
+      .replace(/ö/g, 'o')
+      .replace(/ç/g, 'c')
+      .replace(/ı/g, 'i')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    return `${id}-${slug}`;
+  };
 
   const filteredItems = activeFilter === 'all'
     ? products
@@ -174,16 +189,16 @@ export default function Portfolio() {
 
   const handleMouseEnter = (productId: number, images: string[]) => {
     if (!images || images.length <= 1) return;
-    
+
     setHoveredProduct(productId);
     setCurrentImageIndex(prev => ({ ...prev, [productId]: 0 }));
     hasCompletedCycle.current[productId] = false;
-    
+
     const interval = setInterval(() => {
       setCurrentImageIndex(prev => {
         const currentIndex = prev[productId] || 0;
         const nextIndex = (currentIndex + 1) % images.length;
-        
+
         // Eğer başa döndüyse (0'a geldiyse) ve daha önce döngü tamamlanmışsa
         if (nextIndex === 0 && hasCompletedCycle.current[productId]) {
           // Interval'i temizle ve ilk resimde kal
@@ -193,27 +208,27 @@ export default function Portfolio() {
           }
           return { ...prev, [productId]: 0 };
         }
-        
+
         // İlk kez başa dönüyorsa, döngüyü tamamlandı olarak işaretle
         if (nextIndex === 0) {
           hasCompletedCycle.current[productId] = true;
         }
-        
+
         return { ...prev, [productId]: nextIndex };
       });
     }, 1000);
-    
+
     imageIntervalRef.current[productId] = interval;
   };
 
   const handleMouseLeave = (productId: number) => {
     setHoveredProduct(null);
-    
+
     if (imageIntervalRef.current[productId]) {
       clearInterval(imageIntervalRef.current[productId]);
       delete imageIntervalRef.current[productId];
     }
-    
+
     setCurrentImageIndex(prev => ({ ...prev, [productId]: 0 }));
     hasCompletedCycle.current[productId] = false;
   };
@@ -246,18 +261,18 @@ export default function Portfolio() {
 
     const urlParams = new URLSearchParams(window.location.search);
     const category = urlParams.get('category');
-    if (category && ['gelinlik', 'nisanlik', 'kinalik', 'after-party'].includes(category)) {
+    if (category && ['Gelinlik', 'Nisanlik', 'Kinalik', 'After-Party'].includes(category)) {
       setActiveFilter(category);
     }
   }, [isClient]);
 
   const filterButtons = [
     { key: 'all', label: 'TÜM KOLEKSİYON' },
-    { key: 'abiye', label: 'ABİYE' },
-    { key: 'gelinlik', label: 'GELİNLİK' },
-    { key: 'nisanlik', label: 'NİŞANLIK' },
-    { key: 'kinalik', label: 'KINALIK' },
-    { key: 'after-party', label: 'AFTER PARTY' }
+    { key: 'Abiye', label: 'ABİYE' },
+    { key: 'Gelinlik', label: 'GELİNLİK' },
+    { key: 'Nisanlik', label: 'NİŞANLIK' },
+    { key: 'Kinalik', label: 'KINALIK' },
+    { key: 'After-Party', label: 'AFTER PARTY' }
   ];
 
   return (
@@ -272,7 +287,7 @@ export default function Portfolio() {
           }
         }
       `}</style>
-      
+
       {/* Navigation */}
       <nav className={`fixed top-0 left-0 right-0 z-20 transition-all duration-300 ${showNavBackground ? (isDarkMode ? 'bg-gray-900 shadow-lg' : 'bg-white shadow-lg') : 'bg-transparent'}`}>
         <div className="flex flex-col items-center px-4 sm:px-8 py-4 sm:py-6">
@@ -349,11 +364,11 @@ export default function Portfolio() {
                 const currentIndex = currentImageIndex[item.id] || 0;
                 const hasMultipleImages = item.images && item.images.length > 1;
                 const imageCount = item.images?.length || 1;
-                
+
                 return (
                   <Link
                     key={item.id}
-                    href={`/portfolio/${item.id}`}
+                    href={`/portfolio/${createSlug(item.id, item.title)}`}
                     className={`group cursor-pointer transition-all duration-1000 ease-out ${visibleProducts.has(item.id) ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-95'}`}
                     data-product-shop
                     data-product-id={item.id}
@@ -362,7 +377,7 @@ export default function Portfolio() {
                   >
                     <div className="relative overflow-hidden mb-4">
                       <div className={`absolute inset-0 bg-black transition-all duration-[3000ms] ease-out z-10 ${visibleProducts.has(item.id) ? 'opacity-0' : 'opacity-100'}`}></div>
-                      
+
                       {/* Image Container with Crossfade */}
                       <div className="relative w-full h-80 sm:h-96">
                         {item.images && item.images.length > 0 ? (
@@ -371,11 +386,10 @@ export default function Portfolio() {
                               key={imgIndex}
                               src={getImageUrl(item, imgIndex)}
                               alt={`${item.title} - ${imgIndex + 1}`}
-                              className={`absolute inset-0 w-full h-full object-cover object-top group-hover:scale-105 transition-all duration-[1500ms] ease-out ${
-                                imgIndex === currentIndex 
-                                  ? 'opacity-100 scale-100' 
+                              className={`absolute inset-0 w-full h-full object-cover object-top group-hover:scale-105 transition-all duration-[1500ms] ease-out ${imgIndex === currentIndex
+                                  ? 'opacity-100 scale-100'
                                   : 'opacity-0 scale-105'
-                              } ${visibleProducts.has(item.id) ? '' : 'scale-110'}`}
+                                } ${visibleProducts.has(item.id) ? '' : 'scale-110'}`}
                             />
                           ))
                         ) : (
@@ -386,20 +400,19 @@ export default function Portfolio() {
                           />
                         )}
                       </div>
-                      
+
                       {/* Segmented Progress Bar - Sadece birden fazla resim varsa göster */}
                       {hasMultipleImages && hoveredProduct === item.id && (
                         <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-800 bg-opacity-50 z-20 flex gap-[2px] px-2 py-[2px]">
                           {Array.from({ length: imageCount }).map((_, segmentIndex) => (
                             <div
                               key={segmentIndex}
-                              className={`flex-1 transition-all duration-300 ${
-                                segmentIndex < currentIndex 
-                                  ? 'bg-white' 
-                                  : segmentIndex === currentIndex 
-                                  ? 'bg-white animate-fill' 
-                                  : 'bg-gray-400 bg-opacity-30'
-                              }`}
+                              className={`flex-1 transition-all duration-300 ${segmentIndex < currentIndex
+                                  ? 'bg-white'
+                                  : segmentIndex === currentIndex
+                                    ? 'bg-white animate-fill'
+                                    : 'bg-gray-400 bg-opacity-30'
+                                }`}
                               style={{
                                 animation: segmentIndex === currentIndex ? 'fillSegment 1s linear forwards' : 'none'
                               }}

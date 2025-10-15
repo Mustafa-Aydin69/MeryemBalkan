@@ -2,14 +2,39 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { addToCart } from '../../utils/cartUtils';
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  "https://orplwznpdpwnyflkbuoy.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ycGx3em5wZHB3bnlmbGtidW95Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3NzM5MzksImV4cCI6MjA3NTM0OTkzOX0.vjYN3-jHAJknRjOFv2V21MyQR8KrG6zFRmEJ6PoVW0c"
+);
+
+const IMAGE_BASE_URL = "https://orplwznpdpwnyflkbuoy.supabase.co/storage/v1/object/public/urunler/";
+
 interface ProductDetailProps {
   productId: string;
 }
 
+interface Product {
+  id: number;
+  title: string;
+  collection: string;
+  year: string;
+  price: number;
+  description: string;
+  features: string[];
+  size: string[];
+  colors: string[];
+  images: string[];
+  category: string;
+}
+
 export default function ProductDetail({ productId }: ProductDetailProps) {
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
-  const [date, setDate] = useState(''); // 🔹 tek tarih
+  const [date, setDate] = useState('');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [scrollY, setScrollY] = useState(0);
   const [isClient, setIsClient] = useState(false);
@@ -22,6 +47,90 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
     message: string;
     type: 'success' | 'error' | 'warning';
   } | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
+
+  // Ürün verilerini Supabase'den çek
+  useEffect(() => {
+    const fetchProduct = async () => {
+      setLoading(true);
+
+      const { data, error } = await supabase
+        .from("urunler")
+        .select("*")
+        .eq("id", productId)
+        .eq("status", "Yayında")
+        .single();
+
+      if (error) {
+        console.error("Ürün alınamadı:", error);
+        setLoading(false);
+        return;
+      }
+
+      if (!data) {
+        console.log("Ürün bulunamadı");
+        setLoading(false);
+        return;
+      }
+
+      // Veriyi dönüştür
+      const mappedProduct: Product = {
+        id: data.id,
+        title: data.title,
+        collection: data.collection,
+        year: data.year,
+        price: data.price,
+        description: data.description || 'Size özel tasarlanmış zarif elbise.',
+        features: data.features && data.features.length > 0
+          ? data.features
+          : ['Özel tasarım', 'Kaliteli kumaş', 'Profesyonel işçilik'],
+        size: data.size && data.size.length > 0
+          ? data.size
+          : ['36', '38', '40', '42'],
+        colors: data.colors && data.colors.length > 0
+          ? data.colors
+          : ['Siyah', 'Lacivert'],
+        images: data.images && data.images.length > 0
+          ? data.images.map((img: string) => `${IMAGE_BASE_URL}${img}`)
+          : ['/images/AnaSayfa/Meryem_Balkan_Logo.jpg'],
+        category: data.category,
+      };
+
+
+      setProduct(mappedProduct);
+      setLoading(false);
+
+      // İlgili ürünleri çek
+      fetchRelatedProducts(data.category, data.id);
+    };
+
+    fetchProduct();
+  }, [productId]);
+
+  // İlgili ürünleri çek
+  const fetchRelatedProducts = async (category: string, currentId: number) => {
+    const { data, error } = await supabase
+      .from("urunler")
+      .select("*")
+      .eq("category", category)
+      .eq("status", "Yayında")
+      .neq("id", currentId)
+      .limit(4);
+
+    if (data) {
+      const mapped = data.map((item: any) => ({
+        id: item.id,
+        title: item.title,
+        collection: item.collection,
+        price: item.price,
+        images: item.images && Array.isArray(item.images) && item.images.length > 0
+          ? `${IMAGE_BASE_URL}${item.images[0]}`
+          : '/images/AnaSayfa/Meryem_Balkan_Logo.jpg',
+        slug: `${item.id}-${item.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`
+      }));
+      setRelatedProducts(mapped);
+    }
+  };
 
   useEffect(() => {
     setIsClient(true);
@@ -31,18 +140,13 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
       document.documentElement.classList.add('dark');
     }
 
-    // Sepet durumunu kontrol et
     const checkCartItems = () => {
       const cartItems = JSON.parse(localStorage.getItem('cartItems') || '[]');
       setCartItemCount(cartItems.length);
     };
 
     checkCartItems();
-
-    // Storage değişikliklerini dinle
     window.addEventListener('storage', checkCartItems);
-
-    // Custom event dinle
     window.addEventListener('cartUpdated', checkCartItems);
 
     return () => {
@@ -53,11 +157,7 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
 
   useEffect(() => {
     if (!isClient) return;
-
-    const handleScroll = () => {
-      setScrollY(window.scrollY);
-    };
-
+    const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, [isClient]);
@@ -65,7 +165,6 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
   const toggleTheme = () => {
     const newDarkMode = !isDarkMode;
     setIsDarkMode(newDarkMode);
-
     if (newDarkMode) {
       document.documentElement.classList.add('dark');
       localStorage.setItem('theme', 'dark');
@@ -75,179 +174,9 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
     }
   };
 
-  const showNavBackground = isClient && scrollY > 200;
-
-  const portfolioItems = [
-    // Abiye Koleksiyonu
-    {
-      id: '1',
-      title: 'Siyah Gece Elbisesi',
-      collection: 'Abiye Koleksiyonu',
-      year: '2024',
-      price: 18000,
-      description: 'Zarif siyah gece elbisesi. Modern kesim ve kaliteli kumaş ile özel anlarınızda size eşsiz bir görünüm kazandırır.',
-      features: [
-        'Premium saten kumaş',
-        'Zarif kesim',
-        'Ayarlanabilı bel kemeri',
-        'Astarlı ve rahat kesim',
-        'Profesyonel temizleme önerilir'
-      ],
-      sizes: ['36-42'],
-      colors: ['Siyah', 'Kahverengi'],
-
-      images: [
-        'https://readdy.ai/api/search-image?query=elegant%20black%20evening%20gown%20on%20fashion%20model%2C%20sophisticated%20haute%20couture%20design%2C%20luxury%20fashion%20photography%2C%20minimalist%20studio%20background%2C%20professional%20fashion%20shoot%2C%20dramatic%20lighting%2C%20modern%20elegance&width=600&height=800&seq=product-1-main&orientation=portrait',
-        'https://readdy.ai/api/search-image?query=elegant%20black%20evening%20gown%20back%20view%2C%20sophisticated%20haute%20couture%20design%2C%20luxury%20fashion%20photography%2C%20minimalist%20studio%20background%2C%20professional%20fashion%20shoot%2C%20dramatic%20lighting&width=600&height=800&seq=product-1-back&orientation=portrait',
-        'https://readdy.ai/api/search-image?query=elegant%20black%20evening%20gown%20detail%20shot%2C%20sophisticated%20haute%20couture%20design%2C%20luxury%20fashion%20photography%2C%20minimalist%20studio%20background%2C%20close%20up%20details&width=600&height=800&seq=product-1-detail&orientation=portrait',
-        'https://readdy.ai/api/search-image?query=elegant%20black%20evening%20gown%20full%20length%20view%2C%20sophisticated%20haute%20couture%20design%2C%20luxury%20fashion%20photography%2C%20minimalist%20studio%20background%2C%20professional%20fashion%20shoot&width=600&height=800&seq=product-1-full&orientation=portrait'
-      ]
-    },
-    {
-      id: '2',
-      title: 'Lacivert İş Takımı',
-      collection: 'İş Kıyafetleri',
-      year: '2024',
-      price: 12000,
-      description: 'Modern iş hayatının dinamik kadınları için tasarlanmış şık takım. Profesyonel görünüm ve konfor bir arada.',
-      features: [
-        'Premium yün karışımı kumaş',
-        'Slim fit kesim',
-        'İç cep detayları',
-        'Ütüsüz teknoloji',
-        '4 mevsim kullanım'
-      ],
-      sizes: ['36', '38', '40', '42', '44'],
-      colors: ['Lacivert', 'Antrasit', 'Siyah'],
-      images: [
-        'https://readdy.ai/api/search-image?query=professional%20navy%20blue%20business%20suit%20for%20women%2C%20elegant%20corporate%20fashion%2C%20modern%20workwear%20design%2C%20clean%20studio%20photography%2C%20sophisticated%20professional%20attire%2C%20minimalist%20background&width=600&height=800&seq=product-2-main&orientation=portrait',
-        'https://readdy.ai/api/search-image?query=professional%20navy%20blue%20business%20suit%20back%20view%2C%20elegant%20corporate%20fashion%2C%20modern%20workwear%20design%2C%20clean%20studio%20photography%2C%20sophisticated%20professional%20attire&width=600&height=800&seq=product-2-back&orientation=portrait',
-        'https://readdy.ai/api/search-image?query=professional%20navy%20blue%20business%20suit%20detail%20shot%2C%20elegant%20corporate%20fashion%2C%20modern%20workwear%20design%2C%20clean%20studio%20photography%2C%20close%20up%20fabric%20details&width=600&height=800&seq=product-2-detail&orientation=portrait',
-        'https://readdy.ai/api/search-image?query=professional%20navy%20blue%20business%20suit%20full%20body%2C%20elegant%20corporate%20fashion%2C%20modern%20workwear%20design%2C%20clean%20studio%20photography%2C%20sophisticated%20professional%20attire&width=600&height=800&seq=product-2-full&orientation=portrait'
-      ]
-    },
-    {
-      id: '4',
-      title: 'Modern Gelinlik',
-      collection: 'Gelinlik Koleksiyonu',
-      year: '2024',
-      price: 50000,
-      description: 'Modern gelinlik tasarımı. Zarif detaylar ve mükemmel kesim ile hayalinizdeki düğün günü için özel olarak tasarlandı.',
-      features: [
-        'İthal dantel detayları',
-        'El işçiliği inciler',
-        'Ayarlanabilir korse',
-        'Saten astar',
-        'Özel saklama çantası dahil'
-      ],
-      sizes: ['36', '38', '40', '42'],
-      colors: ['Beyaz', 'Ekru', 'Şampanya'],
-      images: [
-        'https://readdy.ai/api/search-image?query=luxurious%20wedding%20dress%20with%20modern%20design%2C%20elegant%20bridal%20fashion%2C%20sophisticated%20white%20gown%2C%20haute%20couture%20wedding%20attire%2C%20clean%20studio%20photography%2C%20minimal%20background&width=600&height=800&seq=product-4-main&orientation=portrait',
-        'https://readdy.ai/api/search-image?query=luxurious%20wedding%20dress%20back%20view%20with%20modern%20design%2C%20elegant%20bridal%20fashion%2C%20sophisticated%20white%20gown%2C%20haute%20couture%20wedding%20attire&width=600&height=800&seq=product-4-back&orientation=portrait',
-        'https://readdy.ai/api/search-image?query=luxurious%20wedding%20dress%20detail%20shot%20modern%20design%2C%20elegant%20bridal%20fashion%2C%20sophisticated%20white%20gown%2C%20close%20up%20lace%20details&width=600&height=800&seq=product-4-detail&orientation=portrait',
-        'https://readdy.ai/api/search-image?query=luxurious%20wedding%20dress%20full%20length%20modern%20design%2C%20elegant%20bridal%20fashion%2C%20sophisticated%20white%20gown%2C%20haute%20couture%20wedding%20attire&width=600&height=800&seq=product-4-full&orientation=portrait'
-      ]
-    },
-    {
-      id: '15',
-      title: 'Sparkle Mini Elbise',
-      collection: 'After Party Koleksiyonu',
-      year: '2024',
-      price: 12000,
-      description: 'Işıltılı after party elbisesi. Gecenin yıldızı olmak için tasarlanmış, modern ve çarpıcı bir tasarım.',
-      features: [
-        'Yüksek kaliteli payetler',
-        'Streç kumaş',
-        'Mini boy kesim',
-        'Rahat hareket imkanı',
-        'Özel saklama çantası'
-      ],
-      sizes: ['36', '38', '40', '42'],
-      colors: ['Altın', 'Gümüş', 'Rose Gold'],
-      images: [
-        'https://readdy.ai/api/search-image?query=sparkling%20mini%20dress%20with%20sequins%2C%20glamorous%20party%20wear%2C%20sophisticated%20after%20party%20fashion%2C%20shimmering%20fabric%20texture%2C%20professional%20fashion%20photography%2C%20dramatic%20lighting&width=600&height=800&seq=product-15-main&orientation=portrait',
-        'https://readdy.ai/api/search-image?query=sparkling%20mini%20dress%20back%20view%20with%20sequins%2C%20glamorous%20party%20wear%2C%20sophisticated%20after%20party%20fashion%2C%20shimmering%20fabric%20texture&width=600&height=800&seq=product-15-back&orientation=portrait',
-        'https://readdy.ai/api/search-image?query=sparkling%20mini%20dress%20detail%20shot%20sequins%2C%20glamorous%20party%20wear%2C%20sophisticated%20after%20party%20fashion%2C%20close%20up%20sequin%20details&width=600&height=800&seq=product-15-detail&orientation=portrait',
-        'https://readdy.ai/api/search-image?query=sparkling%20mini%20dress%20full%20length%20sequins%2C%20glamorous%20party%20wear%2C%20sophisticated%20after%20party%20fashion%2C%20shimmering%20fabric%20texture&width=600&height=800&seq=product-15-full&orientation=portrait'
-      ]
-    },
-    {
-      id: '19',
-      title: 'Pudra Nişan Elbisesi',
-      collection: 'Nişanlık Koleksiyonu',
-      year: '2024',
-      price: 25000,
-      description: 'Romantik pudra rengi nişan elbisesi. Zarif dantel detayları ve modern kesim ile nişan gününüzde unutulmaz anlar yaşatacak.',
-      features: [
-        'İthal fransız dantel',
-        'Pudra pembe renk',
-        'A-line kesim',
-        'El işi boncuk detayları',
-        'İpek astar'
-      ],
-      sizes: ['36', '38', '40', '42'],
-      colors: ['Pudra', 'Ekru', 'Şampanya'],
-      images: [
-        'https://readdy.ai/api/search-image?query=elegant%20powder%20pink%20engagement%20dress%20with%20delicate%20lace%20details%2C%20romantic%20special%20occasion%20wear%2C%20sophisticated%20bridal%20fashion%2C%20soft%20fabric%20textures%2C%20professional%20fashion%20photography%2C%20clean%20background&width=600&height=800&seq=product-19-main&orientation=portrait',
-        'https://readdy.ai/api/search-image?query=elegant%20powder%20pink%20engagement%20dress%20back%20view%2C%20romantic%20special%20occasion%20wear%2C%20sophisticated%20bridal%20fashion%2C%20soft%20fabric%20textures&width=600&height=800&seq=product-19-back&orientation=portrait',
-        'https://readdy.ai/api/search-image?query=elegant%20powder%20pink%20engagement%20dress%20detail%20shot%2C%20romantic%20special%20occasion%20wear%2C%20close%20up%20lace%20details&width=600&height=800&seq=product-19-detail&orientation=portrait',
-        'https://readdy.ai/api/search-image?query=elegant%20powder%20pink%20engagement%20dress%20full%20length%2C%20romantic%20special%20occasion%20wear%2C%20sophisticated%20bridal%20fashion&width=600&height=800&seq=product-19-full&orientation=portrait'
-      ]
-    },
-    {
-      id: '22',
-      title: 'Kırmızı Kına Elbisesi',
-      collection: 'Kınalık Koleksiyonu',
-      year: '2024',
-      price: 15000,
-      description: 'Geleneksel kına geceniz için özel tasarlanmış kırmızı elbise. Modern çizgiler ve geleneksel renk uyumu ile unutulmaz anlar.',
-      features: [
-        'Kırmızı saten kumaş',
-        'Altın işleme detayları',
-        'Kına gecelerine özel tasarım',
-        'Rahat hareket imkanı',
-        'Özel saklama çantası dahil'
-      ],
-      sizes: ['36', '38', '40', '42'],
-      colors: ['Kırmızı', 'Bordo', 'Pembe'],
-      images: [
-        'https://readdy.ai/api/search-image?query=traditional%20red%20henna%20night%20dress%20with%20modern%20elegant%20design%2C%20cultural%20celebration%20fashion%2C%20sophisticated%20traditional%20wear%2C%20embroidered%20details%2C%20professional%20fashion%20photography&width=600&height=800&seq=product-22-main&orientation=portrait',
-        'https://readdy.ai/api/search-image?query=traditional%20red%20henna%20night%20dress%20back%20view%2C%20cultural%20celebration%20fashion%2C%20sophisticated%20traditional%20wear&width=600&height=800&seq=product-22-back&orientation=portrait',
-        'https://readdy.ai/api/search-image?query=traditional%20red%20henna%20night%20dress%20detail%20shot%2C%20cultural%20celebration%20fashion%2C%20close%20up%20embroidery%20details&width=600&height=800&seq=product-22-detail&orientation=portrait',
-        'https://readdy.ai/api/search-image?query=traditional%20red%20henna%20night%20dress%20full%20length%2C%20cultural%20celebration%20fashion%2C%20sophisticated%20traditional%20wear&width=600&height=800&seq=product-22-full&orientation=portrait'
-      ]
-    }
-  ];
-
-  const defaultProduct = {
-    id: productId,
-    title: 'Özel Tasarım Elbise',
-    collection: 'Özel Koleksiyon',
-    year: '2024',
-    price: 15000,
-    description: 'Size özel tasarlanmış zarif elbise. Modern kesim ve kaliteli kumaş ile özel anlarınızda size eşsiz bir görünüm kazandırır.',
-    features: [
-      'Özel tasarım',
-      'Kaliteli kumaş',
-      'Profesyonel işçilik',
-      'Mükemmel kesim',
-      'Bakım kolaylığı'
-    ],
-    sizes: ['36', '38', '40', '42'],
-    colors: ['Siyah', 'Lacivert', 'Bordo'],
-    images: [
-      'https://readdy.ai/api/search-image?query=elegant%20evening%20dress%20with%20sophisticated%20design%2C%20luxury%20fashion%20photography%2C%20professional%20fashion%20model%2C%20haute%20couture%20styling%2C%20minimalist%20studio%20background&width=600&height=800&seq=product-default-1&orientation=portrait',
-      'https://readdy.ai/api/search-image?query=elegant%20evening%20dress%20back%20view%2C%20luxury%20fashion%20photography%2C%20professional%20fashion%20model%2C%20haute%20couture%20styling%2C%20minimalist%20studio%20background&width=600&height=800&seq=product-default-2&orientation=portrait',
-      'https://readdy.ai/api/search-image?query=elegant%20evening%20dress%20detail%20shot%2C%20luxury%20fashion%20photography%2C%20close%20up%20fabric%20details%2C%20haute%20couture%20styling&width=600&height=800&seq=product-default-3&orientation=portrait',
-      'https://readdy.ai/api/search-image?query=elegant%20evening%20dress%20full%20length%2C%20luxury%20fashion%20photography%2C%20professional%20fashion%20model%2C%20haute%20couture%20styling&width=600&height=800&seq=product-default-4&orientation=portrait'
-    ]
-  };
-
-  const product = portfolioItems.find(item => item.id === productId) || defaultProduct;
-
   const handleAddToCart = () => {
-    // Form validation
+    if (!product) return;
+
     if (!selectedSize || !selectedColor || !date) {
       setNotification({
         message: 'Lütfen tüm alanları doldurun.',
@@ -256,7 +185,6 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
       return;
     }
 
-    // Tarih validation
     const selected = new Date(date);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -269,10 +197,8 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
       return;
     }
 
-
-    // Sepete ekleme işlemi
     const result = addToCart(
-      product.id,
+      product.id.toString(),
       product.title,
       product.price,
       selectedColor,
@@ -281,36 +207,51 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
       product.images[0]
     );
 
-    // Sonucu göster
     setNotification({
       message: result.message,
       type: result.type
     });
 
-    // Başarılı ise formu temizle
     if (result.success) {
       setTimeout(() => {
         setSelectedColor('');
         setSelectedSize('');
-        setDate(''),
-          setNotification(null);
+        setDate('');
+        setNotification(null);
       }, 3000);
     }
 
-    // Notification'ı 5 saniye sonra gizle
-    setTimeout(() => {
-      setNotification(null);
-    }, 5000);
+    setTimeout(() => setNotification(null), 5000);
   };
 
-  const relatedProducts = portfolioItems.filter(item => item.id !== productId).slice(0, 4);
+  const showNavBackground = isClient && scrollY > 200;
+
+  if (loading) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-black'}`}>
+        <p>Yükleniyor...</p>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-black'}`}>
+        <div className="text-center">
+          <p className="mb-4">Ürün bulunamadı</p>
+          <Link href="/portfolio" className="text-blue-500 hover:underline">
+            Elbise koleksiyonuna dön
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'dark bg-gray-900' : 'bg-white'}`}>
       {/* Navigation */}
       <nav className={`fixed top-0 left-0 right-0 z-20 transition-all duration-300 ${showNavBackground ? (isDarkMode ? 'bg-gray-900 shadow-lg' : 'bg-white shadow-lg') : 'bg-transparent'}`}>
         <div className="flex flex-col items-center px-8 py-6">
-          {/* Üst Satır: Dark Mode Toggle - Meryem Balkan - Sepet + Giriş */}
           <div className="flex justify-between items-center w-full mb-4">
             <button
               onClick={toggleTheme}
@@ -336,7 +277,6 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
             </div>
           </div>
 
-          {/* Alt Satır: Menü Öğeleri */}
           <div className="flex space-x-8 text-sm font-medium tracking-wide">
             <Link href="/" className={`cursor-pointer transition-colors duration-300 font-light ${showNavBackground ? (isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600') : 'text-white hover:text-gray-300'}`}>ANASAYFA</Link>
             <Link href="/portfolio" className={`cursor-pointer transition-colors duration-300 font-light ${showNavBackground ? (isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600') : 'text-white hover:text-gray-300'}`}>ELBİSELER</Link>
@@ -348,17 +288,13 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
 
       {/* Notification */}
       {notification && (
-        <div className={`fixed top-24 left-1/2 transform -translate-x-1/2 z-30 p-4 rounded-lg border max-w-md w-full mx-4 ${notification.type === 'success'
-          ? 'bg-green-50 border-green-200 text-green-800'
-          : notification.type === 'error'
-            ? 'bg-red-50 border-red-200 text-red-800'
+        <div className={`fixed top-24 left-1/2 transform -translate-x-1/2 z-30 p-4 rounded-lg border max-w-md w-full mx-4 ${notification.type === 'success' ? 'bg-green-50 border-green-200 text-green-800'
+          : notification.type === 'error' ? 'bg-red-50 border-red-200 text-red-800'
             : 'bg-yellow-50 border-yellow-200 text-yellow-800'
           }`}>
           <div className="flex items-center space-x-3">
-            <i className={`${notification.type === 'success'
-              ? 'ri-check-circle-line'
-              : notification.type === 'error'
-                ? 'ri-error-warning-line'
+            <i className={`${notification.type === 'success' ? 'ri-check-circle-line'
+              : notification.type === 'error' ? 'ri-error-warning-line'
                 : 'ri-information-line'
               } text-lg`}></i>
             <span>{notification.message}</span>
@@ -383,10 +319,8 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
       <section className={`py-8 px-8 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-
             {/* Images */}
             <div className="flex gap-4">
-              {/* Thumbnail Images */}
               <div className="flex flex-col gap-4 w-24">
                 {product.images.map((image, index) => (
                   <button
@@ -403,7 +337,6 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
                 ))}
               </div>
 
-              {/* Main Image */}
               <div className="flex-1">
                 <img
                   src={product.images[currentImageIndex]}
@@ -418,13 +351,13 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
               <div>
                 <h1 className={`text-3xl font-light tracking-wide mb-2 ${isDarkMode ? 'text-white' : 'text-black'}`}>{product.title}</h1>
                 <p className={`text-lg mb-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>{product.collection}</p>
-                <p className={`text-2xl font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>{product.price.toLocaleString('tr-TR')}TL</p>
+                <p className={`text-2xl font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>{product.price.toLocaleString('tr-TR')} ₺</p>
                 <p className={`text-sm mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Vergi dahil. Kargo ücreti ödeme sırasında hesaplanır.</p>
               </div>
 
               {/* Color Selection */}
               <div>
-                <h3 className={`font-medium mb-3 ${isDarkMode ? 'text-white' : 'text-black'}`}>Renk — {selectedColor || 'Seçiniz'}</h3>
+                <h3 className={`font-medium mb-3 ${isDarkMode ? 'text-white' : 'text-black'}`}>Renk:  {selectedColor || 'Seçiniz'}</h3>
                 <div className="flex gap-3">
                   {product.colors.map((color) => (
                     <button
@@ -445,7 +378,7 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
               <div>
                 <h3 className={`font-medium mb-3 ${isDarkMode ? 'text-white' : 'text-black'}`}>Beden</h3>
                 <div className="grid grid-cols-4 gap-3">
-                  {product.sizes.map((size) => (
+                  {product.size.map((size) => (
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}
@@ -462,18 +395,15 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
 
               {/* Date Selection */}
               <div>
-                <h3 className={`font-medium mb-3 ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                  Tarih
-                </h3>
+                <h3 className={`font-medium mb-3 ${isDarkMode ? 'text-white' : 'text-black'}`}>Tarih</h3>
                 <input
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]} // bugünden önce seçilemez
-                  className={`w-full px-4 py-3 rounded-lg border text-sm focus:outline-none
-                    ${isDarkMode
-                      ? 'bg-gray-800 border-gray-600 text-white focus:border-white'
-                      : 'bg-white border-gray-300 text-black focus:border-black'
+                  min={new Date().toISOString().split('T')[0]}
+                  className={`w-full px-4 py-3 rounded-lg border text-sm focus:outline-none ${isDarkMode
+                    ? 'bg-gray-800 border-gray-600 text-white focus:border-white'
+                    : 'bg-white border-gray-300 text-black focus:border-black'
                     }`}
                 />
               </div>
@@ -515,14 +445,9 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
                   <span className="font-medium">Bedenimi Nasıl Ölçerim?</span>
                   <i className={`ri-arrow-${showSizeImage ? 'up' : 'down'}-s-line`}></i>
                 </button>
-
                 {showSizeImage && (
                   <div className="mt-4">
-                    <img
-                      src="/images/AnaSayfa/Beden.jpg"
-                      alt="Beden Ölçme Tablosu"
-                      className="rounded-lg shadow-md"
-                    />
+                    <img src="/images/AnaSayfa/Beden.jpg" alt="Beden Ölçme Tablosu" className="rounded-lg shadow-md" />
                   </div>
                 )}
               </div>
@@ -536,7 +461,6 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
                   <span className="font-medium">Takvimde Hangi Tarihi Seçmeliyim?</span>
                   <i className={`ri-arrow-${showCalendarInfo ? 'up' : 'down'}-s-line`}></i>
                 </button>
-
                 {showCalendarInfo && (
                   <div className={`mt-4 leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                     <p>
@@ -557,7 +481,6 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
                   <span className="font-medium">Teslimat ve iade bilgileri</span>
                   <i className={`ri-arrow-${showDeliveryInfo ? 'up' : 'down'}-s-line`}></i>
                 </button>
-
                 {showDeliveryInfo && (
                   <div className={`mt-4 leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                     <p>
@@ -576,7 +499,32 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
         </div>
       </section>
 
-
+      {/* Related Products */}
+      {relatedProducts.length > 0 && (
+        <section className={`py-12 px-8 border-t ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'}`}>
+          <div className="max-w-7xl mx-auto">
+            <h2 className={`text-2xl font-light tracking-wide mb-8 text-center ${isDarkMode ? 'text-white' : 'text-black'}`}>
+              Benzer Ürünler
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {relatedProducts.map((item) => (
+                <Link key={item.id} href={`/portfolio/${item.slug}`} className="group cursor-pointer">
+                  <div className="relative overflow-hidden mb-4">
+                    <img
+                      src={item.images}
+                      alt={item.title}
+                      className="w-full h-80 object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                    />
+                  </div>
+                  <h3 className={`text-lg font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-black'}`}>{item.title}</h3>
+                  <p className={`text-sm mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>{item.collection}</p>
+                  <p className={`text-lg font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>{item.price.toLocaleString('tr-TR')} ₺</p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Footer */}
       <footer className={`py-16 px-8 border-t transition-colors duration-300 ${isDarkMode ? 'bg-gray-900 text-white border-gray-700' : 'bg-white border-gray-200'}`}>
