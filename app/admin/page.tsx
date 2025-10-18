@@ -922,8 +922,8 @@ export default function AdminPanel() {
                       setSearchOpenOrders(!searchOpenOrders);
                     }}
                     className={`p-2 rounded-full transition-colors ${isDarkMode
-                      ? 'bg-gray-700 text-white hover:bg-gray-600'
-                      : 'bg-gray-200 text-black hover:bg-gray-300'
+                        ? 'bg-gray-700 text-white hover:bg-gray-600'
+                        : 'bg-gray-200 text-black hover:bg-gray-300'
                       }`}
                   >
                     <i className="ri-search-line"></i>
@@ -937,8 +937,8 @@ export default function AdminPanel() {
                       onChange={(e) => setSearchTermOrders(e.target.value)}
                       placeholder="Siparişlerde ara..."
                       className={`px-3 py-2 rounded transition-colors ${isDarkMode
-                        ? 'bg-gray-700 text-white border border-gray-600'
-                        : 'bg-gray-100 text-black border border-gray-300'
+                          ? 'bg-gray-700 text-white border border-gray-600'
+                          : 'bg-gray-100 text-black border border-gray-300'
                         }`}
                     />
                   )}
@@ -952,8 +952,8 @@ export default function AdminPanel() {
                 </div>
               </div>
 
-              {/* TABLO */}
-              <div className="overflow-x-auto">
+              {/* 🧱 Masaüstü Tablo */}
+              <div className="overflow-x-auto hidden sm:block">
                 <table
                   className={`w-full border-collapse ${isDarkMode ? 'bg-gray-800' : 'bg-white'
                     }`}
@@ -961,26 +961,21 @@ export default function AdminPanel() {
                   <thead>
                     <tr
                       className={`border-b ${isDarkMode
-                        ? 'border-gray-700 bg-gray-800'
-                        : 'border-gray-200 bg-gray-50'
+                          ? 'border-gray-700 bg-gray-800'
+                          : 'border-gray-200 bg-gray-50'
                         }`}
                     >
-                      {[
-                        'SİPARİŞ NO',
-                        'MÜŞTERİ',
-                        'DURUM',
-                        'ETKİNLİK TARİHİ',
-                        'FİYAT',
-                        'İŞLEM',
-                      ].map((header) => (
-                        <th
-                          key={header}
-                          className={`text-left p-3 sm:p-4 font-medium text-xs sm:text-sm ${isDarkMode ? 'text-white' : 'text-black'
-                            }`}
-                        >
-                          {header}
-                        </th>
-                      ))}
+                      {['SİPARİŞ NO', 'MÜŞTERİ', 'DURUM', 'ETKİNLİK TARİHİ', 'FİYAT', 'İŞLEM'].map(
+                        (header) => (
+                          <th
+                            key={header}
+                            className={`text-left p-3 sm:p-4 font-medium text-xs sm:text-sm ${isDarkMode ? 'text-white' : 'text-black'
+                              }`}
+                          >
+                            {header}
+                          </th>
+                        )
+                      )}
                     </tr>
                   </thead>
 
@@ -989,8 +984,8 @@ export default function AdminPanel() {
                       <tr
                         key={order.id}
                         className={`border-b transition-colors ${isDarkMode
-                          ? 'border-gray-700 hover:bg-gray-700'
-                          : 'border-gray-200 hover:bg-gray-50'
+                            ? 'border-gray-700 hover:bg-gray-700'
+                            : 'border-gray-200 hover:bg-gray-50'
                           }`}
                       >
                         {/* SİPARİŞ NO */}
@@ -1047,24 +1042,22 @@ export default function AdminPanel() {
                         {/* İŞLEMLER */}
                         <td className="p-3 sm:p-4">
                           <div className="flex justify-center gap-2">
-                            {/* Düzenle Butonu */}
                             <button
                               onClick={() => handleEditOrder(order)}
                               className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors cursor-pointer ${isDarkMode
-                                ? 'hover:bg-gray-600 text-gray-300 hover:text-white'
-                                : 'hover:bg-gray-100 text-gray-600 hover:text-black'
+                                  ? 'hover:bg-gray-600 text-gray-300 hover:text-white'
+                                  : 'hover:bg-gray-100 text-gray-600 hover:text-black'
                                 }`}
                               title="Siparişi Düzenle"
                             >
                               <i className="ri-edit-line text-sm"></i>
                             </button>
 
-                            {/* Detaylar Butonu */}
                             <button
                               onClick={() => setViewingOrder(order)}
                               className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors cursor-pointer ${isDarkMode
-                                ? 'hover:bg-gray-600 text-gray-300 hover:text-white'
-                                : 'hover:bg-gray-100 text-gray-600 hover:text-black'
+                                  ? 'hover:bg-gray-600 text-gray-300 hover:text-white'
+                                  : 'hover:bg-gray-100 text-gray-600 hover:text-black'
                                 }`}
                               title="Detayları Gör"
                             >
@@ -1078,10 +1071,69 @@ export default function AdminPanel() {
                 </table>
               </div>
 
-              {/* SAYFALAMA */}
+              {/* 📱 Mobil Kart Görünümü */}
+              <div className="sm:hidden space-y-4">
+                {currentOrders.map((order) => (
+                  <div
+                    key={order.id}
+                    className={`p-4 rounded-lg shadow ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-black'
+                      }`}
+                  >
+                    <div className="flex justify-between mb-2">
+                      <h3 className="font-semibold">
+                        Sipariş #{order.id.toString().padStart(4, '0')}
+                      </h3>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                          order.status
+                        )}`}
+                      >
+                        {order.status}
+                      </span>
+                    </div>
+
+                    <div className="text-sm mb-1">
+                      <span className="font-medium">Müşteri:</span> {order.customerName}
+                      <br />
+                      <a
+                        href={`tel:${order.phone}`}
+                        className="text-indigo-500 hover:underline"
+                      >
+                        {order.phone}
+                      </a>
+                    </div>
+
+                    <p className="text-sm mb-1">
+                      <span className="font-medium">Etkinlik Tarihi:</span>{' '}
+                      {order.eventDate}
+                    </p>
+
+                    <p className="text-sm mb-1">
+                      <span className="font-medium">Fiyat:</span> {order.price}
+                    </p>
+
+                    <div className="flex justify-end mt-3 space-x-2">
+                      <button
+                        onClick={() => handleEditOrder(order)}
+                        className="px-3 py-1 text-xs rounded bg-indigo-500 text-white hover:bg-indigo-600"
+                      >
+                        Düzenle
+                      </button>
+                      <button
+                        onClick={() => setViewingOrder(order)}
+                        className="px-3 py-1 text-xs rounded bg-gray-500 text-white hover:bg-gray-600"
+                      >
+                        Detay
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* 🔢 SAYFALAMA */}
               {totalOrdersPages > 1 && (
                 <div className="flex justify-center items-center mt-8 space-x-2">
-                  {/* ... mevcut pagination kodun ... */}
+                  {/* mevcut pagination kodun */}
                 </div>
               )}
             </div>
@@ -1432,8 +1484,8 @@ export default function AdminPanel() {
                       setSearchOpen(!searchOpen);
                     }}
                     className={`p-2 rounded-full transition-colors ${isDarkMode
-                        ? 'bg-gray-700 text-white hover:bg-gray-600'
-                        : 'bg-gray-200 text-black hover:bg-gray-300'
+                      ? 'bg-gray-700 text-white hover:bg-gray-600'
+                      : 'bg-gray-200 text-black hover:bg-gray-300'
                       }`}
                   >
                     <i className="ri-search-line"></i>
@@ -1447,8 +1499,8 @@ export default function AdminPanel() {
                       onChange={(e) => setSearchTerm(e.target.value)}
                       placeholder="Ara..."
                       className={`px-3 py-2 rounded transition-colors ${isDarkMode
-                          ? 'bg-gray-700 text-white border border-gray-600'
-                          : 'bg-gray-100 text-black border border-gray-300'
+                        ? 'bg-gray-700 text-white border border-gray-600'
+                        : 'bg-gray-100 text-black border border-gray-300'
                         }`}
                     />
                   )}
@@ -1471,8 +1523,8 @@ export default function AdminPanel() {
                   <thead>
                     <tr
                       className={`border-b ${isDarkMode
-                          ? 'border-gray-700 bg-gray-800'
-                          : 'border-gray-200 bg-gray-50'
+                        ? 'border-gray-700 bg-gray-800'
+                        : 'border-gray-200 bg-gray-50'
                         }`}
                     >
                       <th className="text-left p-3">GÖNDEREN</th>
@@ -1490,8 +1542,8 @@ export default function AdminPanel() {
                       <tr
                         key={msg.id}
                         className={`border-b transition-colors ${isDarkMode
-                            ? 'border-gray-700 hover:bg-gray-700'
-                            : 'border-gray-200 hover:bg-gray-50'
+                          ? 'border-gray-700 hover:bg-gray-700'
+                          : 'border-gray-200 hover:bg-gray-50'
                           }`}
                       >
                         <td className="p-3">{msg.name}</td>
@@ -1522,8 +1574,8 @@ export default function AdminPanel() {
                         <td className="p-3">
                           <span
                             className={`px-2 py-1 rounded-full text-xs font-medium ${msg.status === 'Verildi'
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-red-100 text-red-700'
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-red-100 text-red-700'
                               }`}
                           >
                             {msg.status}
@@ -1565,8 +1617,8 @@ export default function AdminPanel() {
                       <h3 className="font-semibold">{msg.name}</h3>
                       <span
                         className={`px-2 py-1 rounded-full text-xs font-medium ${msg.status === 'Verildi'
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-red-100 text-red-700'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-red-100 text-red-700'
                           }`}
                       >
                         {msg.status}
@@ -1626,12 +1678,12 @@ export default function AdminPanel() {
                     onClick={() => handleMessagesPageChange(messagesCurrentPage - 1)}
                     disabled={messagesCurrentPage === 1}
                     className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors cursor-pointer ${messagesCurrentPage === 1
-                        ? isDarkMode
-                          ? 'bg-gray-800 text-gray-600'
-                          : 'bg-gray-100 text-gray-400'
-                        : isDarkMode
-                          ? 'bg-gray-700 text-white hover:bg-gray-600'
-                          : 'bg-white text-black hover:bg-gray-50 border border-gray-200'
+                      ? isDarkMode
+                        ? 'bg-gray-800 text-gray-600'
+                        : 'bg-gray-100 text-gray-400'
+                      : isDarkMode
+                        ? 'bg-gray-700 text-white hover:bg-gray-600'
+                        : 'bg-white text-black hover:bg-gray-50 border border-gray-200'
                       }`}
                   >
                     <i className="ri-arrow-left-s-line"></i>
@@ -1650,12 +1702,12 @@ export default function AdminPanel() {
                         <button
                           onClick={() => handleMessagesPageChange(number as number)}
                           className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors cursor-pointer ${messagesCurrentPage === number
-                              ? isDarkMode
-                                ? 'bg-white text-black'
-                                : 'bg-black text-white'
-                              : isDarkMode
-                                ? 'bg-gray-700 text-white hover:bg-gray-600'
-                                : 'bg-white text-black hover:bg-gray-50 border border-gray-200'
+                            ? isDarkMode
+                              ? 'bg-white text-black'
+                              : 'bg-black text-white'
+                            : isDarkMode
+                              ? 'bg-gray-700 text-white hover:bg-gray-600'
+                              : 'bg-white text-black hover:bg-gray-50 border border-gray-200'
                             }`}
                         >
                           {number}
@@ -1668,12 +1720,12 @@ export default function AdminPanel() {
                     onClick={() => handleMessagesPageChange(messagesCurrentPage + 1)}
                     disabled={messagesCurrentPage === totalMessagesPages}
                     className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors cursor-pointer ${messagesCurrentPage === totalMessagesPages
-                        ? isDarkMode
-                          ? 'bg-gray-800 text-gray-600'
-                          : 'bg-gray-100 text-gray-400'
-                        : isDarkMode
-                          ? 'bg-gray-700 text-white hover:bg-gray-600'
-                          : 'bg-white text-black hover:bg-gray-50 border border-gray-200'
+                      ? isDarkMode
+                        ? 'bg-gray-800 text-gray-600'
+                        : 'bg-gray-100 text-gray-400'
+                      : isDarkMode
+                        ? 'bg-gray-700 text-white hover:bg-gray-600'
+                        : 'bg-white text-black hover:bg-gray-50 border border-gray-200'
                       }`}
                   >
                     <i className="ri-arrow-right-s-line"></i>
