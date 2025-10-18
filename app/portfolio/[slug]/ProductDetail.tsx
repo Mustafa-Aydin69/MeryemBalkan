@@ -1,8 +1,9 @@
 'use client';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { addToCart } from '../../utils/cartUtils';
 import { createClient } from "@supabase/supabase-js";
+import { motion } from "framer-motion";
 
 const supabase = createClient(
   "https://orplwznpdpwnyflkbuoy.supabase.co",
@@ -48,7 +49,9 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
     type: 'success' | 'error' | 'warning';
   } | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
-
+  const [fullscreen, setFullscreen] = useState(false);
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
   // Ürün verilerini Supabase'den çek
   useEffect(() => {
     const fetchProduct = async () => {
@@ -302,6 +305,25 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
         </div>
       )}
 
+      {fullscreen && (
+        <div
+          className="fixed inset-0 z-50 bg-black flex items-center justify-center"
+          onClick={() => setFullscreen(false)}
+        >
+          <img
+            src={product.images[currentImageIndex]}
+            alt={product.title}
+            className="max-h-screen w-auto object-contain"
+          />
+          <button
+            onClick={() => setFullscreen(false)}
+            className="absolute top-6 right-6 text-white text-3xl"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       {/* Breadcrumb */}
       <section className={`px-8 py-4 border-b pt-32 transition-colors duration-300 ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'}`}>
         <div className="max-w-7xl mx-auto">
@@ -318,35 +340,83 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
       {/* Product Detail */}
       <section className={`py-8 px-8 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            {/* Images */}
-            <div className="flex gap-4">
-              <div className="flex flex-col gap-4 w-24">
+          {/* GRID: sol = görsel, sağ = detaylar */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+
+            {/* Images Section */}
+            <div className="flex flex-col lg:flex-row gap-4 relative">
+
+              {/* 🖥️ Desktop görünüm - Sol tarafta thumbnails */}
+              <div className="hidden lg:flex flex-col gap-3 w-24">
                 {product.images.map((image, index) => (
                   <button
                     key={index}
                     onClick={() => setCurrentImageIndex(index)}
-                    className={`w-20 h-24 border-2 ${currentImageIndex === index ? (isDarkMode ? 'border-white' : 'border-black') : (isDarkMode ? 'border-gray-600' : 'border-gray-200')} hover:border-gray-400 cursor-pointer`}
+                    className={`border-2 ${currentImageIndex === index
+                      ? isDarkMode
+                        ? "border-white"
+                        : "border-black"
+                      : isDarkMode
+                        ? "border-gray-600"
+                        : "border-gray-200"
+                      } hover:border-gray-400 transition-all rounded-md overflow-hidden`}
                   >
                     <img
                       src={image}
                       alt={`${product.title} ${index + 1}`}
-                      className="w-full h-full object-cover object-top"
+                      className="w-full h-32 object-cover object-top"
                     />
                   </button>
                 ))}
               </div>
 
-              <div className="flex-1">
+              {/* Ana resim (desktop) */}
+              <div className="hidden lg:block flex-1">
                 <img
                   src={product.images[currentImageIndex]}
                   alt={product.title}
-                  className="w-full h-96 lg:h-[600px] object-cover object-top"
+                  className="w-full h-[600px] object-cover object-top rounded-md cursor-pointer"
+                  onClick={() => setFullscreen(true)}
                 />
+              </div>
+
+              {/* 📱 Mobil görünüm */}
+              <div
+                className="block lg:hidden relative overflow-hidden w-full"
+                onTouchStart={(e) => (touchStartX.current = e.touches[0].clientX)}
+                onTouchMove={(e) => (touchEndX.current = e.touches[0].clientX)}
+                onTouchEnd={() => {
+                  const distance = touchStartX.current - touchEndX.current;
+                  if (distance > 50 && currentImageIndex < product.images.length - 1) {
+                    setCurrentImageIndex((prev) => prev + 1);
+                  } else if (distance < -50 && currentImageIndex > 0) {
+                    setCurrentImageIndex((prev) => prev - 1);
+                  }
+                }}
+              >
+                <img
+                  src={product.images[currentImageIndex]}
+                  alt={product.title}
+                  className="w-full h-[70vh] object-cover object-top cursor-pointer transition-all duration-500 ease-out"
+                  onClick={() => setFullscreen(true)}
+                />
+
+                {/* Noktalar (dots) */}
+                <div className="absolute bottom-4 left-0 right-0 flex justify-center space-x-2">
+                  {product.images.map((_, i) => (
+                    <span
+                      key={i}
+                      className={`w-2.5 h-2.5 rounded-full transition-all ${i === currentImageIndex
+                        ? "bg-black dark:bg-white scale-110"
+                        : "bg-gray-400 dark:bg-gray-600"
+                        }`}
+                    ></span>
+                  ))}
+                </div>
               </div>
             </div>
 
-            {/* Product Info */}
+            {/* Product Info (sağ sütun) */}
             <div className="space-y-6">
               <div>
                 <h1 className={`text-3xl font-light tracking-wide mb-2 ${isDarkMode ? 'text-white' : 'text-black'}`}>{product.title}</h1>
@@ -497,34 +567,71 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
             </div>
           </div>
         </div>
-      </section>
+      </section >
 
       {/* Related Products */}
       {relatedProducts.length > 0 && (
-        <section className={`py-12 px-8 border-t ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'}`}>
+        <section
+          className={`py-12 px-8 border-t ${isDarkMode ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"
+            }`}
+        >
           <div className="max-w-7xl mx-auto">
-            <h2 className={`text-2xl font-light tracking-wide mb-8 text-center ${isDarkMode ? 'text-white' : 'text-black'}`}>
+            <motion.h2
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              viewport={{ once: true }}
+              className={`text-2xl font-light tracking-wide mb-8 text-center ${isDarkMode ? "text-white" : "text-black"
+                }`}
+            >
               Benzer Ürünler
-            </h2>
+            </motion.h2>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {relatedProducts.map((item) => (
-                <Link key={item.id} href={`/portfolio/${item.slug}`} className="group cursor-pointer">
-                  <div className="relative overflow-hidden mb-4">
-                    <img
-                      src={item.images}
-                      alt={item.title}
-                      className="w-full h-80 object-cover object-top group-hover:scale-105 transition-transform duration-500"
-                    />
-                  </div>
-                  <h3 className={`text-lg font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-black'}`}>{item.title}</h3>
-                  <p className={`text-sm mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>{item.collection}</p>
-                  <p className={`text-lg font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>{item.price.toLocaleString('tr-TR')} ₺</p>
-                </Link>
+              {relatedProducts.map((item, index) => (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, y: 40, scale: 0.95 }}
+                  whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{
+                    duration: 0.6,
+                    delay: index * 0.15,
+                    ease: "easeOut",
+                  }}
+                  viewport={{ once: true }}
+                >
+                  <Link
+                    href={`/portfolio/${item.slug}`}
+                    className="group cursor-pointer flex flex-col items-center text-center"
+                  >
+                    <div className="relative overflow-hidden mb-3 w-full">
+                      <img
+                        src={item.images}
+                        alt={item.title}
+                        className="w-full h-80 object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                      />
+                    </div>
+
+                    <h3
+                      className={`text-base font-normal tracking-wide mb-1 ${isDarkMode ? "text-white" : "text-black"
+                        }`}
+                    >
+                      {item.title}
+                    </h3>
+                    <p
+                      className={`text-sm font-light ${isDarkMode ? "text-gray-300" : "text-gray-700"
+                        }`}
+                    >
+                      {item.price.toLocaleString("tr-TR")} ₺
+                    </p>
+                  </Link>
+                </motion.div>
               ))}
             </div>
           </div>
         </section>
       )}
+
 
       {/* Footer */}
       <footer className={`py-16 px-8 border-t transition-colors duration-300 ${isDarkMode ? 'bg-gray-900 text-white border-gray-700' : 'bg-white border-gray-200'}`}>
@@ -568,6 +675,6 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
           </div>
         </div>
       </footer>
-    </div>
+    </div >
   );
 }

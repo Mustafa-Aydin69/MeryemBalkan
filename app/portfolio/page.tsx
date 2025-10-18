@@ -407,16 +407,16 @@ export default function Portfolio() {
                       <div className={`absolute inset-0 bg-black transition-all duration-[3000ms] ease-out z-10 ${visibleProducts.has(item.id) ? 'opacity-0' : 'opacity-100'}`}></div>
 
                       {/* Image Container with Crossfade */}
-                      <div className="relative w-full h-80 sm:h-96">
+                      <div className="relative w-full aspect-[3/4] overflow-hidden">
                         {item.images && item.images.length > 0 ? (
                           item.images.map((img: string, imgIndex: number) => (
                             <img
                               key={imgIndex}
                               src={getImageUrl(item, imgIndex)}
                               alt={`${item.title} - ${imgIndex + 1}`}
-                              className={`absolute inset-0 w-full h-full object-cover object-top group-hover:scale-105 transition-all duration-[1500ms] ease-out ${imgIndex === currentIndex
-                                ? 'opacity-100 scale-100'
-                                : 'opacity-0 scale-105'
+                              className={`absolute inset-0 w-full h-full object-contain object-center transition-all duration-[1500ms] ease-out ${imgIndex === currentIndex
+                                  ? 'opacity-100 scale-100'
+                                  : 'opacity-0 scale-105'
                                 } ${visibleProducts.has(item.id) ? '' : 'scale-110'}`}
                             />
                           ))
@@ -424,7 +424,10 @@ export default function Portfolio() {
                           <img
                             src="/images/AnaSayfa/Meryem_Balkan_Logo.jpg"
                             alt={item.title}
-                            className={`absolute inset-0 w-full h-full object-cover object-top group-hover:scale-105 transition-all duration-[3000ms] ease-out ${visibleProducts.has(item.id) ? 'opacity-100 scale-100' : 'opacity-0 scale-110'}`}
+                            className={`absolute inset-0 w-full h-full object-contain object-center transition-all duration-[3000ms] ease-out ${visibleProducts.has(item.id)
+                                ? 'opacity-100 scale-100'
+                                : 'opacity-0 scale-110'
+                              }`}
                           />
                         )}
                       </div>
@@ -449,11 +452,19 @@ export default function Portfolio() {
                         </div>
                       )}
                     </div>
-                    <h3 className={`text-base sm:text-lg font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>{item.title}</h3>
-                    <p className={`text-xs sm:text-sm mb-2 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>{item.collection}</p>
-                    <div className="flex justify-between items-center">
-                      <p className={`text-xs transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{item.year}</p>
-                      <p className={`text-base sm:text-lg font-medium transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>{item.price}</p>
+                    <div className="text-center mt-4">
+                      <h3
+                        className={`text-lg sm:text-xl font-semibold tracking-wide mb-1 transition-colors ${isDarkMode ? "text-white" : "text-gray-900"
+                          }`}
+                      >
+                        {item.title}
+                      </h3>
+                      <p
+                        className={`text-base sm:text-lg font-medium transition-colors ${isDarkMode ? "text-gray-300" : "text-gray-700"
+                          }`}
+                      >
+                        {item.price}
+                      </p>
                     </div>
                   </Link>
                 );
