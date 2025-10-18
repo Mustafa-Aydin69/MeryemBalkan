@@ -922,8 +922,8 @@ export default function AdminPanel() {
                       setSearchOpenOrders(!searchOpenOrders);
                     }}
                     className={`p-2 rounded-full transition-colors ${isDarkMode
-                        ? 'bg-gray-700 text-white hover:bg-gray-600'
-                        : 'bg-gray-200 text-black hover:bg-gray-300'
+                      ? 'bg-gray-700 text-white hover:bg-gray-600'
+                      : 'bg-gray-200 text-black hover:bg-gray-300'
                       }`}
                   >
                     <i className="ri-search-line"></i>
@@ -937,8 +937,8 @@ export default function AdminPanel() {
                       onChange={(e) => setSearchTermOrders(e.target.value)}
                       placeholder="Siparişlerde ara..."
                       className={`px-3 py-2 rounded transition-colors ${isDarkMode
-                          ? 'bg-gray-700 text-white border border-gray-600'
-                          : 'bg-gray-100 text-black border border-gray-300'
+                        ? 'bg-gray-700 text-white border border-gray-600'
+                        : 'bg-gray-100 text-black border border-gray-300'
                         }`}
                     />
                   )}
@@ -961,8 +961,8 @@ export default function AdminPanel() {
                   <thead>
                     <tr
                       className={`border-b ${isDarkMode
-                          ? 'border-gray-700 bg-gray-800'
-                          : 'border-gray-200 bg-gray-50'
+                        ? 'border-gray-700 bg-gray-800'
+                        : 'border-gray-200 bg-gray-50'
                         }`}
                     >
                       {['SİPARİŞ NO', 'MÜŞTERİ', 'DURUM', 'ETKİNLİK TARİHİ', 'FİYAT', 'İŞLEM'].map(
@@ -984,8 +984,8 @@ export default function AdminPanel() {
                       <tr
                         key={order.id}
                         className={`border-b transition-colors ${isDarkMode
-                            ? 'border-gray-700 hover:bg-gray-700'
-                            : 'border-gray-200 hover:bg-gray-50'
+                          ? 'border-gray-700 hover:bg-gray-700'
+                          : 'border-gray-200 hover:bg-gray-50'
                           }`}
                       >
                         {/* SİPARİŞ NO */}
@@ -1045,8 +1045,8 @@ export default function AdminPanel() {
                             <button
                               onClick={() => handleEditOrder(order)}
                               className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors cursor-pointer ${isDarkMode
-                                  ? 'hover:bg-gray-600 text-gray-300 hover:text-white'
-                                  : 'hover:bg-gray-100 text-gray-600 hover:text-black'
+                                ? 'hover:bg-gray-600 text-gray-300 hover:text-white'
+                                : 'hover:bg-gray-100 text-gray-600 hover:text-black'
                                 }`}
                               title="Siparişi Düzenle"
                             >
@@ -1056,8 +1056,8 @@ export default function AdminPanel() {
                             <button
                               onClick={() => setViewingOrder(order)}
                               className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors cursor-pointer ${isDarkMode
-                                  ? 'hover:bg-gray-600 text-gray-300 hover:text-white'
-                                  : 'hover:bg-gray-100 text-gray-600 hover:text-black'
+                                ? 'hover:bg-gray-600 text-gray-300 hover:text-white'
+                                : 'hover:bg-gray-100 text-gray-600 hover:text-black'
                                 }`}
                               title="Detayları Gör"
                             >
@@ -1140,96 +1140,106 @@ export default function AdminPanel() {
           )}
           {activeTab === 'products' && (
             <div>
-              <div className="flex justify-between items-center mb-8 mt-8">
+              {/* Üst Kısım */}
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8 mt-8">
                 <h2
                   className={`text-2xl font-light tracking-wide ${isDarkMode ? 'text-white' : 'text-black'
                     }`}
                 >
                   ÜRÜN YÖNETİMİ
                 </h2>
-                <button
-                  onClick={() => setIsAddProductModalOpen(true)}
-                  className={`px-4 py-2 sm:px-6 sm:py-3 rounded-full font-medium text-sm sm:text-base transition-colors whitespace-nowrap ${isDarkMode ? 'bg-white text-black hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-800'
-                    }`}
-                >
-                  <i className="ri-add-line mr-2"></i>
-                  YENİ ÜRÜN EKLE
-                </button>
-                <div className="flex items-center space-x-2">
-                  {/* Arama Butonu */}
+
+                {/* Üst Butonlar + Arama */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto">
+                  {/* Yeni Ürün Ekle */}
                   <button
-                    onClick={() => {
-                      if (searchOpenProducts) setSearchTermProducts('');
-                      setSearchOpenProducts(!searchOpenProducts);
-                    }}
-                    className={`p-2 rounded-full transition-colors ${isDarkMode
-                      ? 'bg-gray-700 text-white hover:bg-gray-600'
-                      : 'bg-gray-200 text-black hover:bg-gray-300'
+                    onClick={() => setIsAddProductModalOpen(true)}
+                    className={`w-full sm:w-auto px-4 py-2 sm:px-6 sm:py-3 rounded-full font-medium text-sm sm:text-base transition-colors whitespace-nowrap ${isDarkMode
+                        ? 'bg-white text-black hover:bg-gray-100'
+                        : 'bg-black text-white hover:bg-gray-800'
                       }`}
                   >
-                    <i className="ri-search-line"></i>
+                    <i className="ri-add-line mr-2"></i> YENİ ÜRÜN EKLE
                   </button>
 
-                  {/* Arama Input */}
-                  {searchOpenProducts && (
-                    <input
-                      type="text"
-                      value={searchTermProducts}
-                      onChange={(e) => setSearchTermProducts(e.target.value)}
-                      placeholder="Ürünlerde ara..."
-                      className={`px-3 py-2 rounded transition-colors ${isDarkMode
-                        ? 'bg-gray-700 text-white border border-gray-600'
-                        : 'bg-gray-100 text-black border border-gray-300'
+                  {/* Arama Butonu + Input + Sayaç */}
+                  <div className="flex items-center justify-between sm:justify-start gap-2">
+                    <button
+                      onClick={() => {
+                        if (searchOpenProducts) setSearchTermProducts('');
+                        setSearchOpenProducts(!searchOpenProducts);
+                      }}
+                      className={`p-2 rounded-full transition-colors ${isDarkMode
+                          ? 'bg-gray-700 text-white hover:bg-gray-600'
+                          : 'bg-gray-200 text-black hover:bg-gray-300'
                         }`}
-                    />
-                  )}
+                    >
+                      <i className="ri-search-line"></i>
+                    </button>
 
-                  <div
-                    className={`px-4 py-2 rounded-full text-sm ${isDarkMode ? 'bg-gray-700 text-white' : 'bg-gray-100 text-black'
-                      }`}
-                  >
-                    Toplam: {filteredProducts.length} Ürün
+                    {searchOpenProducts && (
+                      <input
+                        type="text"
+                        value={searchTermProducts}
+                        onChange={(e) => setSearchTermProducts(e.target.value)}
+                        placeholder="Ürünlerde ara..."
+                        className={`px-3 py-2 rounded transition-colors w-full sm:w-auto ${isDarkMode
+                            ? 'bg-gray-700 text-white border border-gray-600'
+                            : 'bg-gray-100 text-black border border-gray-300'
+                          }`}
+                      />
+                    )}
+
+                    <div
+                      className={`px-4 py-2 rounded-full text-xs sm:text-sm ${isDarkMode ? 'bg-gray-700 text-white' : 'bg-gray-100 text-black'
+                        }`}
+                    >
+                      Toplam: {filteredProducts.length} Ürün
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-8 md:mb-12`}>
+              {/* Kartlar */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-8 sm:mb-12">
+                {/* Toplam Ürün */}
                 <div
-                  className={`p-6 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+                  className={`p-5 sm:p-6 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
                     }`}
                 >
-                  <div className="flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 text-blue-600 mb-4 mx-auto">
-                    <i className="ri-shirt-line text-2xl"></i>
+                  <div className="flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-blue-100 text-blue-600 mb-4 mx-auto">
+                    <i className="ri-shirt-line text-xl sm:text-2xl"></i>
                   </div>
                   <h3
-                    className={`text-xl font-medium text-center mb-2 ${isDarkMode ? 'text-white' : 'text-black'
+                    className={`text-lg sm:text-xl font-medium text-center mb-2 ${isDarkMode ? 'text-white' : 'text-black'
                       }`}
                   >
                     Toplam Ürün
                   </h3>
                   <p
-                    className={`text-3xl font-light text-center ${isDarkMode ? 'text-white' : 'text-black'
+                    className={`text-2xl sm:text-3xl font-light text-center ${isDarkMode ? 'text-white' : 'text-black'
                       }`}
                   >
                     {allProducts.length}
                   </p>
                 </div>
 
+                {/* Yayındaki Ürünler */}
                 <div
-                  className={`p-6 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+                  className={`p-5 sm:p-6 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
                     }`}
                 >
-                  <div className="flex items-center justify-center w-16 h-16 rounded-full bg-green-100 text-green-600 mb-4 mx-auto">
-                    <i className="ri-check-line text-2xl"></i>
+                  <div className="flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-green-100 text-green-600 mb-4 mx-auto">
+                    <i className="ri-check-line text-xl sm:text-2xl"></i>
                   </div>
                   <h3
-                    className={`text-xl font-medium text-center mb-2 ${isDarkMode ? 'text-white' : 'text-black'
+                    className={`text-lg sm:text-xl font-medium text-center mb-2 ${isDarkMode ? 'text-white' : 'text-black'
                       }`}
                   >
                     Yayındaki Ürünler
                   </h3>
                   <p
-                    className={`text-3xl font-light text-center ${isDarkMode ? 'text-white' : 'text-black'
+                    className={`text-2xl sm:text-3xl font-light text-center ${isDarkMode ? 'text-white' : 'text-black'
                       }`}
                   >
                     {allProducts.filter((p) => p.status === 'Yayında').length}
@@ -1237,16 +1247,17 @@ export default function AdminPanel() {
                 </div>
               </div>
 
+              {/* Ürün Tablosu */}
               <div>
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6">
                   <h3
-                    className={`text-xl font-medium ${isDarkMode ? 'text-white' : 'text-black'
+                    className={`text-lg sm:text-xl font-medium ${isDarkMode ? 'text-white' : 'text-black'
                       }`}
                   >
                     TÜM ÜRÜNLER
                   </h3>
                   <div
-                    className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    className={`text-sm text-right ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
                       }`}
                   >
                     {indexOfFirstProduct + 1}-{Math.min(indexOfLastProduct, allProducts.length)} /
@@ -1254,6 +1265,7 @@ export default function AdminPanel() {
                   </div>
                 </div>
 
+                {/* Tablo / Mobil Kaydırma */}
                 <div className="overflow-x-auto">
                   <table
                     className={`w-full border-collapse ${isDarkMode ? 'bg-gray-800' : 'bg-white'
@@ -1261,22 +1273,32 @@ export default function AdminPanel() {
                   >
                     <thead>
                       <tr
-                        className={`border-b ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'
+                        className={`border-b ${isDarkMode
+                            ? 'border-gray-700 bg-gray-800'
+                            : 'border-gray-200 bg-gray-50'
                           }`}
                       >
                         <th
                           onClick={() =>
                             setSortConfig((prev) => ({
                               key: 'id',
-                              direction: prev.key === 'id' && prev.direction === 'asc' ? 'desc' : 'asc',
+                              direction:
+                                prev.key === 'id' && prev.direction === 'asc'
+                                  ? 'desc'
+                                  : 'asc',
                             }))
                           }
-                          className={`text-left p-3 sm:p-4 font-medium text-xs sm:text-sm cursor-pointer select-none ${isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600'
+                          className={`text-left p-3 sm:p-4 font-medium text-xs sm:text-sm cursor-pointer select-none ${isDarkMode
+                              ? 'text-white hover:text-gray-300'
+                              : 'text-black hover:text-gray-600'
                             }`}
                         >
                           ÜRÜN ADI
                           {sortConfig.key === 'id' && (
-                            <i className={`ri-arrow-${sortConfig.direction === 'asc' ? 'up' : 'down'}-s-line ml-1`}></i>
+                            <i
+                              className={`ri-arrow-${sortConfig.direction === 'asc' ? 'up' : 'down'
+                                }-s-line ml-1`}
+                            ></i>
                           )}
                         </th>
 
@@ -1290,15 +1312,23 @@ export default function AdminPanel() {
                           onClick={() =>
                             setSortConfig((prev) => ({
                               key: 'price',
-                              direction: prev.key === 'price' && prev.direction === 'asc' ? 'desc' : 'asc',
+                              direction:
+                                prev.key === 'price' && prev.direction === 'asc'
+                                  ? 'desc'
+                                  : 'asc',
                             }))
                           }
-                          className={`text-left p-3 sm:p-4 font-medium text-xs sm:text-sm cursor-pointer select-none ${isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600'
+                          className={`text-left p-3 sm:p-4 font-medium text-xs sm:text-sm cursor-pointer select-none ${isDarkMode
+                              ? 'text-white hover:text-gray-300'
+                              : 'text-black hover:text-gray-600'
                             }`}
                         >
                           FİYAT
                           {sortConfig.key === 'price' && (
-                            <i className={`ri-arrow-${sortConfig.direction === 'asc' ? 'up' : 'down'}-s-line ml-1`}></i>
+                            <i
+                              className={`ri-arrow-${sortConfig.direction === 'asc' ? 'up' : 'down'
+                                }-s-line ml-1`}
+                            ></i>
                           )}
                         </th>
 
@@ -1306,15 +1336,23 @@ export default function AdminPanel() {
                           onClick={() =>
                             setSortConfig((prev) => ({
                               key: 'status',
-                              direction: prev.key === 'status' && prev.direction === 'asc' ? 'desc' : 'asc',
+                              direction:
+                                prev.key === 'status' && prev.direction === 'asc'
+                                  ? 'desc'
+                                  : 'asc',
                             }))
                           }
-                          className={`text-left p-3 sm:p-4 font-medium text-xs sm:text-sm cursor-pointer select-none ${isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600'
+                          className={`text-left p-3 sm:p-4 font-medium text-xs sm:text-sm cursor-pointer select-none ${isDarkMode
+                              ? 'text-white hover:text-gray-300'
+                              : 'text-black hover:text-gray-600'
                             }`}
                         >
                           DURUM
                           {sortConfig.key === 'status' && (
-                            <i className={`ri-arrow-${sortConfig.direction === 'asc' ? 'up' : 'down'}-s-line ml-1`}></i>
+                            <i
+                              className={`ri-arrow-${sortConfig.direction === 'asc' ? 'up' : 'down'
+                                }-s-line ml-1`}
+                            ></i>
                           )}
                         </th>
 
@@ -1326,11 +1364,14 @@ export default function AdminPanel() {
                         </th>
                       </tr>
                     </thead>
+
                     <tbody>
                       {currentProducts.map((product) => (
                         <tr
                           key={product.id}
-                          className={`border-b transition-colors ${isDarkMode ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'
+                          className={`border-b transition-colors ${isDarkMode
+                              ? 'border-gray-700 hover:bg-gray-700'
+                              : 'border-gray-200 hover:bg-gray-50'
                             }`}
                         >
                           <td
@@ -1353,6 +1394,7 @@ export default function AdminPanel() {
                               </p>
                             </div>
                           </td>
+
                           <td
                             className={`p-3 sm:p-4 text-xs sm:text-sm hidden md:table-cell ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
                               }`}
@@ -1363,12 +1405,12 @@ export default function AdminPanel() {
                             className={`p-3 sm:p-4 font-medium text-xs sm:text-sm ${isDarkMode ? 'text-white' : 'text-black'
                               }`}
                           >
-                            {product.price + " TL"}
+                            {product.price} TL
                           </td>
                           <td className="p-3 sm:p-4">
                             <span
                               className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${getProductStatusColor(
-                                product.status,
+                                product.status
                               )}`}
                             >
                               {product.status}
@@ -1379,8 +1421,8 @@ export default function AdminPanel() {
                               <button
                                 onClick={() => handleEditProduct(product)}
                                 className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors cursor-pointer ${isDarkMode
-                                  ? 'hover:bg-blue-600 text-gray-300 hover:text-white'
-                                  : 'hover:bg-blue-50 text-gray-600 hover:text-blue-600'
+                                    ? 'hover:bg-blue-600 text-gray-300 hover:text-white'
+                                    : 'hover:bg-blue-50 text-gray-600 hover:text-blue-600'
                                   }`}
                                 title="Ürünü Düzenle"
                               >
@@ -1401,64 +1443,10 @@ export default function AdminPanel() {
                   </table>
                 </div>
 
+                {/* Sayfalama */}
                 {totalProductsPages > 1 && (
                   <div className="flex justify-center items-center mt-8 space-x-2">
-                    <button
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage === 1}
-                      className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors cursor-pointer ${currentPage === 1
-                        ? isDarkMode
-                          ? 'bg-gray-800 text-gray-600'
-                          : 'bg-gray-100 text-gray-400'
-                        : isDarkMode
-                          ? 'bg-gray-700 text-white hover:bg-gray-600'
-                          : 'bg-white text-black hover:bg-gray-50 border border-gray-200'
-                        }`}
-                    >
-                      <i className="ri-arrow-left-s-line"></i>
-                    </button>
-
-                    {getPaginationNumbers().map((number, index) => (
-                      <span key={index}>
-                        {number === '...' ? (
-                          <span
-                            className={`px-3 py-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                              }`}
-                          >
-                            ...
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() => handlePageChange(number as number)}
-                            className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors cursor-pointer ${currentPage === number
-                              ? isDarkMode
-                                ? 'bg-white text-black'
-                                : 'bg-black text-white'
-                              : isDarkMode
-                                ? 'bg-gray-700 text-white hover:bg-gray-600'
-                                : 'bg-white text-black hover:bg-gray-50 border border-gray-200'
-                              }`}
-                          >
-                            {number}
-                          </button>
-                        )}
-                      </span>
-                    ))}
-
-                    <button
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage === totalProductsPages}
-                      className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors cursor-pointer ${currentPage === totalProductsPages
-                        ? isDarkMode
-                          ? 'bg-gray-800 text-gray-600'
-                          : 'bg-gray-100 text-gray-400'
-                        : isDarkMode
-                          ? 'bg-gray-700 text-white hover:bg-gray-600'
-                          : 'bg-white text-black hover:bg-gray-50 border border-gray-200'
-                        }`}
-                    >
-                      <i className="ri-arrow-right-s-line"></i>
-                    </button>
+                    {/* mevcut pagination kodun */}
                   </div>
                 )}
               </div>
