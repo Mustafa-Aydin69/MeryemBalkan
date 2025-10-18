@@ -338,11 +338,10 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
       </section>
 
       {/* Product Detail */}
-      <section className={`py-8 px-8 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
+      <section className={`py-6 px-4 sm:px-6 md:px-8 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
         <div className="max-w-7xl mx-auto">
           {/* GRID: sol = görsel, sağ = detaylar */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
             {/* Images Section */}
             <div className="flex flex-col lg:flex-row gap-4 relative">
 
@@ -375,7 +374,7 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
                 <img
                   src={product.images[currentImageIndex]}
                   alt={product.title}
-                  className="w-full h-[600px] object-cover object-top rounded-md cursor-pointer"
+                  className="w-full h-[400px] sm:h-[500px] lg:h-[600px] object-cover object-top rounded-md cursor-pointer"
                   onClick={() => setFullscreen(true)}
                 />
               </div>
@@ -397,7 +396,7 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
                 <img
                   src={product.images[currentImageIndex]}
                   alt={product.title}
-                  className="w-full h-[70vh] object-cover object-top cursor-pointer transition-all duration-500 ease-out"
+                  className="w-full h-[60vh] sm:h-[70vh] object-cover object-top cursor-pointer transition-all duration-500 ease-out"
                   onClick={() => setFullscreen(true)}
                 />
 
@@ -489,7 +488,6 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
               >
                 Sepete ekle
               </button>
-
               {/* Description */}
               <div className={`border-t pt-6 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                 <button className={`flex justify-between items-center w-full text-left ${isDarkMode ? 'text-white' : 'text-black'}`}>
@@ -505,7 +503,6 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
                   </ul>
                 </div>
               </div>
-
               {/* Beden Ölçme */}
               <div className={`border-t pt-6 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                 <button
@@ -521,7 +518,6 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
                   </div>
                 )}
               </div>
-
               {/* Takvim Bilgisi */}
               <div className={`border-t pt-6 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                 <button
@@ -541,7 +537,6 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
                   </div>
                 )}
               </div>
-
               {/* Teslimat ve İade */}
               <div className={`border-t pt-6 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                 <button
@@ -568,7 +563,6 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
           </div>
         </div>
       </section >
-
       {/* Related Products */}
       {relatedProducts.length > 0 && (
         <section
@@ -586,8 +580,7 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
             >
               Benzer Ürünler
             </motion.h2>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 px-2 sm:px-0">
               {relatedProducts.map((item, index) => (
                 <motion.div
                   key={item.id}
@@ -631,12 +624,10 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
           </div>
         </section>
       )}
-
-
       {/* Footer */}
       <footer className={`py-16 px-8 border-t transition-colors duration-300 ${isDarkMode ? 'bg-gray-900 text-white border-gray-700' : 'bg-white border-gray-200'}`}>
         <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
             <div className="col-span-2">
               <h4 className="text-2xl font-light tracking-wide mb-4 font-serif italic">MERYEM BALKAN</h4>
               <p className={`mb-6 leading-relaxed transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
@@ -648,7 +639,6 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
                 </a>
               </div>
             </div>
-
             <div>
               <h5 className="font-medium mb-4 tracking-wide">KURUMSAL</h5>
               <ul className={`space-y-2 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
@@ -669,7 +659,6 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
               </ul>
             </div>
           </div>
-
           <div className={`border-t mt-12 pt-8 text-center text-sm transition-colors ${isDarkMode ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-500'}`}>
             <p>&copy; 2025 Meryem Balkan.</p>
           </div>
