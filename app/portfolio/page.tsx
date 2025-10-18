@@ -24,6 +24,8 @@ export default function Portfolio() {
   const [currentImageIndex, setCurrentImageIndex] = useState<{ [key: number]: number }>({});
   const imageIntervalRef = useRef<{ [key: number]: NodeJS.Timeout }>({});
   const hasCompletedCycle = useRef<{ [key: number]: boolean }>({});
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   // Tek bir useEffect ile veri çekme
   useEffect(() => {
@@ -337,21 +339,32 @@ export default function Portfolio() {
       <section className={`pb-8 sm:pb-12 px-4 sm:px-8 pt-28 sm:pt-32 transition-colors duration-300 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
         <div className="max-w-6xl mx-auto">
           <div
-            className="flex sm:flex-wrap items-center justify-start sm:justify-center gap-3 sm:gap-6 overflow-x-auto scrollbar-hide whitespace-nowrap px-2 sm:px-0 pb-1"
+            ref={scrollContainerRef}
+            className="flex items-center gap-3 sm:gap-6 overflow-x-auto scrollbar-hide whitespace-nowrap px-2 sm:px-0 pb-1 justify-start sm:justify-center scroll-smooth"
           >
             {filterButtons.map((filter) => (
               <button
                 key={filter.key}
-                onClick={() => setActiveFilter(filter.key)}
+                ref={(el: HTMLButtonElement | null) => {
+                  buttonRefs.current[filter.key] = el;
+                }}
+                onClick={() => {
+                  setActiveFilter(filter.key);
+                  buttonRefs.current[filter.key]?.scrollIntoView({
+                    behavior: "smooth",
+                    inline: "center",
+                    block: "nearest",
+                  });
+                }}
                 className={`pb-2 cursor-pointer whitespace-nowrap transition-colors ${activeFilter === filter.key
-                    ? `border-b-2 ${isDarkMode
-                      ? 'border-white text-white'
-                      : 'border-black text-black'
-                    }`
-                    : `${isDarkMode
-                      ? 'text-gray-400 hover:text-white'
-                      : 'text-gray-600 hover:text-black'
-                    }`
+                  ? `border-b-2 ${isDarkMode
+                    ? "border-white text-white"
+                    : "border-black text-black"
+                  }`
+                  : `${isDarkMode
+                    ? "text-gray-400 hover:text-white"
+                    : "text-gray-600 hover:text-black"
+                  }`
                   }`}
               >
                 {filter.label}
