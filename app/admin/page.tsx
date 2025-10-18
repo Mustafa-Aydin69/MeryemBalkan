@@ -1133,11 +1133,70 @@ export default function AdminPanel() {
               {/* 🔢 SAYFALAMA */}
               {totalOrdersPages > 1 && (
                 <div className="flex justify-center items-center mt-8 space-x-2">
-                  {/* mevcut pagination kodun */}
+                  {/* ◀️ Geri Butonu */}
+                  <button
+                    onClick={() => handleOrdersPageChange(ordersCurrentPage - 1)}
+                    disabled={ordersCurrentPage === 1}
+                    className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors cursor-pointer ${ordersCurrentPage === 1
+                      ? isDarkMode
+                        ? 'bg-gray-800 text-gray-600'
+                        : 'bg-gray-100 text-gray-400'
+                      : isDarkMode
+                        ? 'bg-gray-700 text-white hover:bg-gray-600'
+                        : 'bg-white text-black hover:bg-gray-50 border border-gray-200'
+                      }`}
+                  >
+                    <i className="ri-arrow-left-s-line"></i>
+                  </button>
+
+                  {/* Sayfa Numaraları */}
+                  {getOrdersPaginationNumbers().map((number, index) => (
+                    <span key={index}>
+                      {number === '...' ? (
+                        <span
+                          className={`px-3 py-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                            }`}
+                        >
+                          ...
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleOrdersPageChange(number as number)}
+                          className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors cursor-pointer ${ordersCurrentPage === number
+                            ? isDarkMode
+                              ? 'bg-white text-black'
+                              : 'bg-black text-white'
+                            : isDarkMode
+                              ? 'bg-gray-700 text-white hover:bg-gray-600'
+                              : 'bg-white text-black hover:bg-gray-50 border border-gray-200'
+                            }`}
+                        >
+                          {number}
+                        </button>
+                      )}
+                    </span>
+                  ))}
+
+                  {/* ▶️ İleri Butonu */}
+                  <button
+                    onClick={() => handleOrdersPageChange(ordersCurrentPage + 1)}
+                    disabled={ordersCurrentPage === totalOrdersPages}
+                    className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors cursor-pointer ${ordersCurrentPage === totalOrdersPages
+                      ? isDarkMode
+                        ? 'bg-gray-800 text-gray-600'
+                        : 'bg-gray-100 text-gray-400'
+                      : isDarkMode
+                        ? 'bg-gray-700 text-white hover:bg-gray-600'
+                        : 'bg-white text-black hover:bg-gray-50 border border-gray-200'
+                      }`}
+                  >
+                    <i className="ri-arrow-right-s-line"></i>
+                  </button>
                 </div>
               )}
             </div>
           )}
+
           {activeTab === 'products' && (
             <div>
               {/* Üst Kısım */}
@@ -1260,13 +1319,13 @@ export default function AdminPanel() {
                     className={`text-sm text-right ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
                       }`}
                   >
-                    {indexOfFirstProduct + 1}-{Math.min(indexOfLastProduct, allProducts.length)} /
+                    {indexOfFirstProduct + 1}-{Math.min(indexOfLastProduct, allProducts.length)} /{' '}
                     {allProducts.length} ürün
                   </div>
                 </div>
 
-                {/* Tablo / Mobil Kaydırma */}
-                <div className="overflow-x-auto">
+                {/* 💻 Masaüstü Tablo */}
+                <div className="overflow-x-auto hidden sm:block">
                   <table
                     className={`w-full border-collapse ${isDarkMode ? 'bg-gray-800' : 'bg-white'
                       }`}
@@ -1278,90 +1337,13 @@ export default function AdminPanel() {
                             : 'border-gray-200 bg-gray-50'
                           }`}
                       >
-                        <th
-                          onClick={() =>
-                            setSortConfig((prev) => ({
-                              key: 'id',
-                              direction:
-                                prev.key === 'id' && prev.direction === 'asc'
-                                  ? 'desc'
-                                  : 'asc',
-                            }))
-                          }
-                          className={`text-left p-3 sm:p-4 font-medium text-xs sm:text-sm cursor-pointer select-none ${isDarkMode
-                              ? 'text-white hover:text-gray-300'
-                              : 'text-black hover:text-gray-600'
-                            }`}
-                        >
-                          ÜRÜN ADI
-                          {sortConfig.key === 'id' && (
-                            <i
-                              className={`ri-arrow-${sortConfig.direction === 'asc' ? 'up' : 'down'
-                                }-s-line ml-1`}
-                            ></i>
-                          )}
-                        </th>
-
-                        <th
-                          className={`text-left p-3 sm:p-4 font-medium text-xs sm:text-sm hidden md:table-cell ${isDarkMode ? 'text-white' : 'text-black'
-                            }`}
-                        >
+                        <th className="text-left p-3 sm:p-4 text-sm font-medium">ÜRÜN ADI</th>
+                        <th className="text-left p-3 sm:p-4 text-sm font-medium hidden md:table-cell">
                           KOLEKSİYON
                         </th>
-                        <th
-                          onClick={() =>
-                            setSortConfig((prev) => ({
-                              key: 'price',
-                              direction:
-                                prev.key === 'price' && prev.direction === 'asc'
-                                  ? 'desc'
-                                  : 'asc',
-                            }))
-                          }
-                          className={`text-left p-3 sm:p-4 font-medium text-xs sm:text-sm cursor-pointer select-none ${isDarkMode
-                              ? 'text-white hover:text-gray-300'
-                              : 'text-black hover:text-gray-600'
-                            }`}
-                        >
-                          FİYAT
-                          {sortConfig.key === 'price' && (
-                            <i
-                              className={`ri-arrow-${sortConfig.direction === 'asc' ? 'up' : 'down'
-                                }-s-line ml-1`}
-                            ></i>
-                          )}
-                        </th>
-
-                        <th
-                          onClick={() =>
-                            setSortConfig((prev) => ({
-                              key: 'status',
-                              direction:
-                                prev.key === 'status' && prev.direction === 'asc'
-                                  ? 'desc'
-                                  : 'asc',
-                            }))
-                          }
-                          className={`text-left p-3 sm:p-4 font-medium text-xs sm:text-sm cursor-pointer select-none ${isDarkMode
-                              ? 'text-white hover:text-gray-300'
-                              : 'text-black hover:text-gray-600'
-                            }`}
-                        >
-                          DURUM
-                          {sortConfig.key === 'status' && (
-                            <i
-                              className={`ri-arrow-${sortConfig.direction === 'asc' ? 'up' : 'down'
-                                }-s-line ml-1`}
-                            ></i>
-                          )}
-                        </th>
-
-                        <th
-                          className={`text-center p-3 sm:p-4 font-medium text-xs sm:text-sm ${isDarkMode ? 'text-white' : 'text-black'
-                            }`}
-                        >
-                          İŞLEMLER
-                        </th>
+                        <th className="text-left p-3 sm:p-4 text-sm font-medium">FİYAT</th>
+                        <th className="text-left p-3 sm:p-4 text-sm font-medium">DURUM</th>
+                        <th className="text-center p-3 sm:p-4 text-sm font-medium">İŞLEMLER</th>
                       </tr>
                     </thead>
 
@@ -1374,42 +1356,29 @@ export default function AdminPanel() {
                               : 'border-gray-200 hover:bg-gray-50'
                             }`}
                         >
-                          <td
-                            className={`p-3 sm:p-4 text-xs sm:text-sm ${isDarkMode ? 'text-white' : 'text-black'
-                              }`}
-                          >
+                          <td className={`p-3 sm:p-4 text-sm ${isDarkMode ? 'text-white' : 'text-black'}`}>
                             <div>
                               <p className="font-medium">{product.title}</p>
-                              <p
-                                className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                                  }`}
-                              >
+                              <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                                 ID: #{product.id}
-                              </p>
-                              <p
-                                className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                                  } md:hidden`}
-                              >
-                                {product.collection}
                               </p>
                             </div>
                           </td>
-
                           <td
-                            className={`p-3 sm:p-4 text-xs sm:text-sm hidden md:table-cell ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                            className={`p-3 sm:p-4 text-sm hidden md:table-cell ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
                               }`}
                           >
                             {product.collection}
                           </td>
                           <td
-                            className={`p-3 sm:p-4 font-medium text-xs sm:text-sm ${isDarkMode ? 'text-white' : 'text-black'
+                            className={`p-3 sm:p-4 font-medium ${isDarkMode ? 'text-white' : 'text-black'
                               }`}
                           >
                             {product.price} TL
                           </td>
                           <td className="p-3 sm:p-4">
                             <span
-                              className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${getProductStatusColor(
+                              className={`px-3 py-1 rounded-full text-xs font-medium ${getProductStatusColor(
                                 product.status
                               )}`}
                             >
@@ -1443,15 +1412,120 @@ export default function AdminPanel() {
                   </table>
                 </div>
 
-                {/* Sayfalama */}
+                {/* 📱 Mobil Kart Görünümü */}
+                <div className="sm:hidden space-y-4">
+                  {currentProducts.map((product) => (
+                    <div
+                      key={product.id}
+                      className={`p-4 rounded-lg shadow ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-black'
+                        }`}
+                    >
+                      <div className="flex justify-between mb-2">
+                        <h4 className="font-semibold text-base">{product.title}</h4>
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${getProductStatusColor(
+                            product.status
+                          )}`}
+                        >
+                          {product.status}
+                        </span>
+                      </div>
+                      <p className={`text-xs mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        ID: #{product.id}
+                      </p>
+                      <p className={`text-sm mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                        <span className="font-medium">Koleksiyon:</span> {product.collection}
+                      </p>
+                      <p className={`text-sm mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                        <span className="font-medium">Fiyat:</span> {product.price} TL
+                      </p>
+
+                      <div className="flex justify-end gap-2 mt-3">
+                        <button
+                          onClick={() => handleEditProduct(product)}
+                          className="px-3 py-1 text-xs rounded bg-indigo-500 text-white hover:bg-indigo-600"
+                        >
+                          Düzenle
+                        </button>
+                        <button
+                          onClick={() => confirmDeleteProduct(product.id)}
+                          className="px-3 py-1 text-xs rounded bg-red-500 text-white hover:bg-red-600"
+                        >
+                          Sil
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* 🔢 Sayfalama */}
                 {totalProductsPages > 1 && (
                   <div className="flex justify-center items-center mt-8 space-x-2">
-                    {/* mevcut pagination kodun */}
+                    {/* Geri Butonu */}
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors cursor-pointer ${currentPage === 1
+                          ? isDarkMode
+                            ? 'bg-gray-800 text-gray-600'
+                            : 'bg-gray-100 text-gray-400'
+                          : isDarkMode
+                            ? 'bg-gray-700 text-white hover:bg-gray-600'
+                            : 'bg-white text-black hover:bg-gray-50 border border-gray-200'
+                        }`}
+                    >
+                      <i className="ri-arrow-left-s-line"></i>
+                    </button>
+
+                    {/* Sayfa Numaraları */}
+                    {getPaginationNumbers().map((number, index) => (
+                      <span key={index}>
+                        {number === '...' ? (
+                          <span
+                            className={`px-3 py-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                              }`}
+                          >
+                            ...
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => handlePageChange(number as number)}
+                            className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors cursor-pointer ${currentPage === number
+                                ? isDarkMode
+                                  ? 'bg-white text-black'
+                                  : 'bg-black text-white'
+                                : isDarkMode
+                                  ? 'bg-gray-700 text-white hover:bg-gray-600'
+                                  : 'bg-white text-black hover:bg-gray-50 border border-gray-200'
+                              }`}
+                          >
+                            {number}
+                          </button>
+                        )}
+                      </span>
+                    ))}
+
+                    {/* İleri Butonu */}
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalProductsPages}
+                      className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors cursor-pointer ${currentPage === totalProductsPages
+                          ? isDarkMode
+                            ? 'bg-gray-800 text-gray-600'
+                            : 'bg-gray-100 text-gray-400'
+                          : isDarkMode
+                            ? 'bg-gray-700 text-white hover:bg-gray-600'
+                            : 'bg-white text-black hover:bg-gray-50 border border-gray-200'
+                        }`}
+                    >
+                      <i className="ri-arrow-right-s-line"></i>
+                    </button>
                   </div>
                 )}
               </div>
             </div>
           )}
+          
           {activeTab === 'messages' && (
             <div>
               <div className="flex justify-between items-center mb-8 mt-8">
