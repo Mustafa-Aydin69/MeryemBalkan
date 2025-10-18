@@ -815,81 +815,104 @@ export default function AdminPanel() {
     >
       <nav
         className={`fixed top-0 left-0 right-0 z-20 transition-all duration-300 ${showNavBackground
-          ? isDarkMode
-            ? 'bg-gray-900 shadow-lg'
-            : 'bg-white shadow-lg'
-          : isDarkMode
-            ? 'bg-gray-900'
-            : 'bg-white'
+            ? isDarkMode
+              ? 'bg-gray-900 shadow-lg'
+              : 'bg-white shadow-lg'
+            : isDarkMode
+              ? 'bg-gray-900'
+              : 'bg-white'
           }`}
       >
-        <div className="flex flex-col md:flex-row items-center justify-between px-4 md:px-8 py-4 md:py-6 gap-4">
-          <div className="flex justify-between items-center w-full mb-4">
+        <div className="flex flex-col items-center px-4 md:px-8 py-4 md:py-5">
+          {/* Üst Satır: Tema Butonu - Başlık - Home */}
+          <div className="flex justify-between items-center w-full mb-2">
+            {/* Tema Butonu */}
             <button
               onClick={toggleTheme}
               className={`w-6 h-6 flex items-center justify-center cursor-pointer transition-colors ${isDarkMode
-                ? "text-white hover:text-gray-300"
-                : "text-black hover:text-gray-600"
+                  ? 'text-white hover:text-gray-300'
+                  : 'text-black hover:text-gray-600'
                 }`}
             >
-              <i className={`${isDarkMode ? "ri-sun-line" : "ri-moon-line"} text-lg`}></i>
+              <i
+                className={`${isDarkMode ? 'ri-sun-line' : 'ri-moon-line'
+                  } text-lg`}
+              ></i>
             </button>
 
             {/* Orta: Başlık */}
             <div className="flex-1 text-center">
               <h1
-                className={`text-xl font-light tracking-[0.3em] font-serif transition-colors italic ${isDarkMode ? "text-white" : "text-black"
+                className={`text-xl font-light tracking-[0.3em] font-serif italic transition-colors ${isDarkMode ? 'text-white' : 'text-black'
                   }`}
               >
                 MERYEM BALKAN
               </h1>
               <p
-                className={`text-xs tracking-wider ${isDarkMode ? "text-gray-400" : "text-gray-600"
+                className={`text-xs tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
                   }`}
               >
                 YÖNETİCİ PANELİ
               </p>
             </div>
 
+            {/* Ana Sayfa Butonu */}
             <Link
               href="/"
               className={`w-6 h-6 flex items-center justify-center cursor-pointer transition-colors ${isDarkMode
-                ? "text-white hover:text-gray-300"
-                : "text-black hover:text-gray-600"
+                  ? 'text-white hover:text-gray-300'
+                  : 'text-black hover:text-gray-600'
                 }`}
             >
               <i className="ri-home-line text-lg"></i>
             </Link>
           </div>
 
-          <div className="flex space-x-2 sm:space-x-4 md:space-x-8 text-xs sm:text-sm font-medium tracking-wide overflow-x-auto w-full">
+          {/* Alt Satır: Sekmeler */}
+          <div className="flex justify-center space-x-4 sm:space-x-6 md:space-x-8 text-xs sm:text-sm font-medium tracking-wide overflow-x-auto w-full md:w-auto mt-2">
             <button
               onClick={() => setActiveTab('orders')}
               className={`cursor-pointer transition-colors font-light pb-2 ${activeTab === 'orders'
-                ? `border-b-2 ${isDarkMode ? 'border-white text-white' : 'border-black text-black'
-                }`
-                : `${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}`
+                  ? `border-b-2 ${isDarkMode
+                    ? 'border-white text-white'
+                    : 'border-black text-black'
+                  }`
+                  : `${isDarkMode
+                    ? 'text-gray-400 hover:text-white'
+                    : 'text-gray-600 hover:text-black'
+                  }`
                 }`}
             >
               SİPARİŞLER
             </button>
+
             <button
               onClick={() => setActiveTab('products')}
               className={`cursor-pointer transition-colors font-light pb-2 ${activeTab === 'products'
-                ? `border-b-2 ${isDarkMode ? 'border-white text-white' : 'border-black text-black'
-                }`
-                : `${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}`
+                  ? `border-b-2 ${isDarkMode
+                    ? 'border-white text-white'
+                    : 'border-black text-black'
+                  }`
+                  : `${isDarkMode
+                    ? 'text-gray-400 hover:text-white'
+                    : 'text-gray-600 hover:text-black'
+                  }`
                 }`}
             >
               ÜRÜN YÖNETİMİ
             </button>
-            {/* MESAJLAR */}
+
             <button
               onClick={() => setActiveTab('messages')}
               className={`cursor-pointer transition-colors font-light pb-2 ${activeTab === 'messages'
-                ? `border-b-2 ${isDarkMode ? 'border-white text-white' : 'border-black text-black'
-                }`
-                : `${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}`
+                  ? `border-b-2 ${isDarkMode
+                    ? 'border-white text-white'
+                    : 'border-black text-black'
+                  }`
+                  : `${isDarkMode
+                    ? 'text-gray-400 hover:text-white'
+                    : 'text-gray-600 hover:text-black'
+                  }`
                 }`}
             >
               MESAJLAR
@@ -897,6 +920,7 @@ export default function AdminPanel() {
           </div>
         </div>
       </nav>
+
 
       <main
         className={`pt-32 pb-16 px-8 transition-colors duration-300 ${isDarkMode ? 'bg-gray-900' : 'bg-white'
@@ -1214,8 +1238,8 @@ export default function AdminPanel() {
                   <button
                     onClick={() => setIsAddProductModalOpen(true)}
                     className={`w-full sm:w-auto px-4 py-2 sm:px-6 sm:py-3 rounded-full font-medium text-sm sm:text-base transition-colors whitespace-nowrap ${isDarkMode
-                        ? 'bg-white text-black hover:bg-gray-100'
-                        : 'bg-black text-white hover:bg-gray-800'
+                      ? 'bg-white text-black hover:bg-gray-100'
+                      : 'bg-black text-white hover:bg-gray-800'
                       }`}
                   >
                     <i className="ri-add-line mr-2"></i> YENİ ÜRÜN EKLE
@@ -1229,8 +1253,8 @@ export default function AdminPanel() {
                         setSearchOpenProducts(!searchOpenProducts);
                       }}
                       className={`p-2 rounded-full transition-colors ${isDarkMode
-                          ? 'bg-gray-700 text-white hover:bg-gray-600'
-                          : 'bg-gray-200 text-black hover:bg-gray-300'
+                        ? 'bg-gray-700 text-white hover:bg-gray-600'
+                        : 'bg-gray-200 text-black hover:bg-gray-300'
                         }`}
                     >
                       <i className="ri-search-line"></i>
@@ -1243,8 +1267,8 @@ export default function AdminPanel() {
                         onChange={(e) => setSearchTermProducts(e.target.value)}
                         placeholder="Ürünlerde ara..."
                         className={`px-3 py-2 rounded transition-colors w-full sm:w-auto ${isDarkMode
-                            ? 'bg-gray-700 text-white border border-gray-600'
-                            : 'bg-gray-100 text-black border border-gray-300'
+                          ? 'bg-gray-700 text-white border border-gray-600'
+                          : 'bg-gray-100 text-black border border-gray-300'
                           }`}
                       />
                     )}
@@ -1333,8 +1357,8 @@ export default function AdminPanel() {
                     <thead>
                       <tr
                         className={`border-b ${isDarkMode
-                            ? 'border-gray-700 bg-gray-800'
-                            : 'border-gray-200 bg-gray-50'
+                          ? 'border-gray-700 bg-gray-800'
+                          : 'border-gray-200 bg-gray-50'
                           }`}
                       >
                         <th className="text-left p-3 sm:p-4 text-sm font-medium">ÜRÜN ADI</th>
@@ -1352,8 +1376,8 @@ export default function AdminPanel() {
                         <tr
                           key={product.id}
                           className={`border-b transition-colors ${isDarkMode
-                              ? 'border-gray-700 hover:bg-gray-700'
-                              : 'border-gray-200 hover:bg-gray-50'
+                            ? 'border-gray-700 hover:bg-gray-700'
+                            : 'border-gray-200 hover:bg-gray-50'
                             }`}
                         >
                           <td className={`p-3 sm:p-4 text-sm ${isDarkMode ? 'text-white' : 'text-black'}`}>
@@ -1390,8 +1414,8 @@ export default function AdminPanel() {
                               <button
                                 onClick={() => handleEditProduct(product)}
                                 className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors cursor-pointer ${isDarkMode
-                                    ? 'hover:bg-blue-600 text-gray-300 hover:text-white'
-                                    : 'hover:bg-blue-50 text-gray-600 hover:text-blue-600'
+                                  ? 'hover:bg-blue-600 text-gray-300 hover:text-white'
+                                  : 'hover:bg-blue-50 text-gray-600 hover:text-blue-600'
                                   }`}
                                 title="Ürünü Düzenle"
                               >
@@ -1466,12 +1490,12 @@ export default function AdminPanel() {
                       onClick={() => handlePageChange(currentPage - 1)}
                       disabled={currentPage === 1}
                       className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors cursor-pointer ${currentPage === 1
-                          ? isDarkMode
-                            ? 'bg-gray-800 text-gray-600'
-                            : 'bg-gray-100 text-gray-400'
-                          : isDarkMode
-                            ? 'bg-gray-700 text-white hover:bg-gray-600'
-                            : 'bg-white text-black hover:bg-gray-50 border border-gray-200'
+                        ? isDarkMode
+                          ? 'bg-gray-800 text-gray-600'
+                          : 'bg-gray-100 text-gray-400'
+                        : isDarkMode
+                          ? 'bg-gray-700 text-white hover:bg-gray-600'
+                          : 'bg-white text-black hover:bg-gray-50 border border-gray-200'
                         }`}
                     >
                       <i className="ri-arrow-left-s-line"></i>
@@ -1491,12 +1515,12 @@ export default function AdminPanel() {
                           <button
                             onClick={() => handlePageChange(number as number)}
                             className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors cursor-pointer ${currentPage === number
-                                ? isDarkMode
-                                  ? 'bg-white text-black'
-                                  : 'bg-black text-white'
-                                : isDarkMode
-                                  ? 'bg-gray-700 text-white hover:bg-gray-600'
-                                  : 'bg-white text-black hover:bg-gray-50 border border-gray-200'
+                              ? isDarkMode
+                                ? 'bg-white text-black'
+                                : 'bg-black text-white'
+                              : isDarkMode
+                                ? 'bg-gray-700 text-white hover:bg-gray-600'
+                                : 'bg-white text-black hover:bg-gray-50 border border-gray-200'
                               }`}
                           >
                             {number}
@@ -1510,12 +1534,12 @@ export default function AdminPanel() {
                       onClick={() => handlePageChange(currentPage + 1)}
                       disabled={currentPage === totalProductsPages}
                       className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors cursor-pointer ${currentPage === totalProductsPages
-                          ? isDarkMode
-                            ? 'bg-gray-800 text-gray-600'
-                            : 'bg-gray-100 text-gray-400'
-                          : isDarkMode
-                            ? 'bg-gray-700 text-white hover:bg-gray-600'
-                            : 'bg-white text-black hover:bg-gray-50 border border-gray-200'
+                        ? isDarkMode
+                          ? 'bg-gray-800 text-gray-600'
+                          : 'bg-gray-100 text-gray-400'
+                        : isDarkMode
+                          ? 'bg-gray-700 text-white hover:bg-gray-600'
+                          : 'bg-white text-black hover:bg-gray-50 border border-gray-200'
                         }`}
                     >
                       <i className="ri-arrow-right-s-line"></i>
@@ -1525,7 +1549,7 @@ export default function AdminPanel() {
               </div>
             </div>
           )}
-          
+
           {activeTab === 'messages' && (
             <div>
               <div className="flex justify-between items-center mb-8 mt-8">
