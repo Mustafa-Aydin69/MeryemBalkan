@@ -339,9 +339,9 @@ export default function Iletisim() {
           <h3 className={`text-xl sm:text-2xl font-light tracking-wide mb-6 sm:mb-8 text-center transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>KONUM</h3>
           <div className="relative h-64 sm:h-80 lg:h-96 bg-gray-200">
             <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d12234.656789!2d39.4856!3d39.7421!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x407625b1d5b5c5c5%3A0xabcdef1234567890!2sAtat%C3%BCrk%20Mahallesi%2C%20Muhsin%20Yaz%C4%B1c%C4%B1o%C4%9Flu%20Caddesi%20No%3A15%2FB%2C%20Merkez%2C%20Erzincan!5e0!3m2!1str!2str!4v1700000000000"
+              src="https://www.google.com/maps?q=Atatürk+Mahallesi+Muhsin+Yazıcıoğlu+Caddesi+No:+15/B+Merkez+Erzincan&output=embed"
               width="100%"
-              height="100%"
+              height="450"
               style={{ border: 0 }}
               allowFullScreen={true}
               loading="lazy"
