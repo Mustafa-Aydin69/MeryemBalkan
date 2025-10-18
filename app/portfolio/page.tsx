@@ -289,43 +289,46 @@ export default function Portfolio() {
       `}</style>
 
       {/* Navigation */}
-      <nav className={`fixed top-0 left-0 right-0 z-20 transition-all duration-300 ${showNavBackground ? (isDarkMode ? 'bg-gray-900 shadow-lg' : 'bg-white shadow-lg') : 'bg-transparent'}`}>
-        <div className="flex flex-col items-center px-4 sm:px-8 py-4 sm:py-6">
+      <nav className={`fixed top-0 left-0 right-0 z-20 transition-all duration-200 ${showNavBackground ? (isDarkMode ? 'bg-gray-900/90 backdrop-blur border-b border-gray-700' : 'bg-white/90 backdrop-blur border-b border-gray-200') : 'bg-transparent'}`}>
+        <div className="flex flex-col items-center px-4 sm:px-6 md:px-8 py-3 sm:py-4 md:py-6 w-full max-w-7xl mx-auto">
           {/* Üst Satır: Dark Mode Toggle - Meryem Balkan - Sepet + Giriş */}
-          <div className="flex justify-between items-center w-full mb-3 sm:mb-4">
+          <div className="flex justify-between items-center w-full mb-2 sm:mb-3 md:mb-4 gap-3">
             <button
               onClick={toggleTheme}
-              className={`w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center cursor-pointer transition-colors duration-300 ${showNavBackground ? (isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600') : 'text-white hover:text-gray-300'}`}
+              className={`w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center cursor-pointer transition-colors ${showNavBackground ? (isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600') : 'text-white hover:text-gray-300'}`}
+              aria-label="Tema Değiştir"
             >
-              <i className={`${isDarkMode ? 'ri-sun-line' : 'ri-moon-line'} text-sm sm:text-lg`}></i>
+              <i className={`${isDarkMode ? 'ri-sun-line' : 'ri-moon-line'} text-base sm:text-lg`}></i>
             </button>
 
-            <div className="text-center">
-              <h1 className={`text-lg sm:text-xl font-light tracking-[0.2em] sm:tracking-[0.3em] font-serif italic transition-colors duration-300 ${showNavBackground ? (isDarkMode ? 'text-white' : 'text-black') : 'text-white'}`}>MERYEM BALKAN</h1>
+            <div className="text-center flex-1">
+              <h1 className={`text-base sm:text-lg md:text-xl font-light tracking-[0.2em] sm:tracking-[0.3em] font-serif transition-colors italic break-words ${showNavBackground ? (isDarkMode ? 'text-white' : 'text-black') : 'text-white'}`}>MERYEM BALKAN</h1>
             </div>
 
             <div className="flex items-center space-x-3 sm:space-x-4">
               <Link
                 href="/sepet"
-                className={`relative w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center cursor-pointer transition-colors duration-300 ${showNavBackground ? (isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600') : 'text-white hover:text-gray-300'}`}
+                className={`w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center cursor-pointer transition-colors ${showNavBackground ? (isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600') : 'text-white hover:text-gray-300'}`}
+                aria-label="Sepet"
               >
-                <i className={`ri-shopping-bag-line text-sm sm:text-lg ${hasCartItems ? 'animate-bounce' : ''}`}></i>
+                <i className={`ri-shopping-bag-line text-base sm:text-lg ${hasCartItems ? 'animate-bounce' : ''}`}></i>
               </Link>
               <button
                 onClick={() => setIsLoginModalOpen(true)}
-                className={`w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center cursor-pointer transition-colors duration-300 ${showNavBackground ? (isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600') : 'text-white hover:text-gray-300'}`}
+                className={`w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center cursor-pointer transition-colors ${showNavBackground ? (isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600') : 'text-white hover:text-gray-300'}`}
+                aria-label="Giriş"
               >
-                <i className="ri-user-line text-sm sm:text-lg"></i>
+                <i className="ri-user-line text-base sm:text-lg"></i>
               </button>
             </div>
           </div>
 
           {/* Alt Satır: Menü Öğeleri */}
-          <div className="flex space-x-4 sm:space-x-8 text-xs sm:text-sm font-medium tracking-wide">
-            <Link href="/" className={`cursor-pointer transition-colors duration-300 font-light whitespace-nowrap ${showNavBackground ? (isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600') : 'text-white hover:text-gray-300'}`}>ANASAYFA</Link>
-            <Link href="/portfolio" className={`cursor-pointer transition-colors duration-300 font-light whitespace-nowrap ${showNavBackground ? (isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600') : 'text-white hover:text-gray-300'}`}>ELBİSELER</Link>
-            <Link href="/hakkimda" className={`cursor-pointer transition-colors duration-300 font-light whitespace-nowrap ${showNavBackground ? (isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600') : 'text-white hover:text-gray-300'}`}>HAKKIMDA</Link>
-            <Link href="/iletisim" className={`cursor-pointer transition-colors duration-300 font-light whitespace-nowrap ${showNavBackground ? (isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600') : 'text-white hover:text-gray-300'}`}>İLETİŞİM</Link>
+          <div className="flex flex-wrap justify-center gap-x-4 sm:gap-x-6 md:gap-x-8 gap-y-2 text-xs sm:text-sm font-medium tracking-wide">
+            <Link href="/" className={`cursor-pointer transition-colors font-light whitespace-nowrap ${showNavBackground ? (isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600') : 'text-white hover:text-gray-300'}`}>ANASAYFA</Link>
+            <Link href="/portfolio" className={`cursor-pointer transition-colors font-light whitespace-nowrap ${showNavBackground ? (isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600') : 'text-white hover:text-gray-300'}`}>ELBİSELER</Link>
+            <Link href="/hakkimda" className={`cursor-pointer transition-colors font-light whitespace-nowrap ${showNavBackground ? (isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600') : 'text-white hover:text-gray-300'}`}>HAKKIMDA</Link>
+            <Link href="/iletisim" className={`cursor-pointer transition-colors font-light whitespace-nowrap ${showNavBackground ? (isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600') : 'text-white hover:text-gray-300'}`}>İLETİŞİM</Link>
           </div>
         </div>
       </nav>
@@ -333,17 +336,29 @@ export default function Portfolio() {
       {/* Filter Menu */}
       <section className={`pb-8 sm:pb-12 px-4 sm:px-8 pt-28 sm:pt-32 transition-colors duration-300 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
         <div className="max-w-6xl mx-auto">
-          <div className="flex justify-center flex-wrap gap-3 sm:gap-4 lg:gap-8 text-xs sm:text-sm font-medium tracking-wide">
+          <div
+            className="flex sm:flex-wrap items-center justify-start sm:justify-center gap-3 sm:gap-6 overflow-x-auto scrollbar-hide whitespace-nowrap px-2 sm:px-0 pb-1"
+          >
             {filterButtons.map((filter) => (
               <button
                 key={filter.key}
                 onClick={() => setActiveFilter(filter.key)}
-                className={`pb-2 cursor-pointer whitespace-nowrap transition-colors ${activeFilter === filter.key ? `border-b-2 ${isDarkMode ? 'border-white text-white' : 'border-black text-black'}` : `${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}`}`}
+                className={`pb-2 cursor-pointer whitespace-nowrap transition-colors ${activeFilter === filter.key
+                    ? `border-b-2 ${isDarkMode
+                      ? 'border-white text-white'
+                      : 'border-black text-black'
+                    }`
+                    : `${isDarkMode
+                      ? 'text-gray-400 hover:text-white'
+                      : 'text-gray-600 hover:text-black'
+                    }`
+                  }`}
               >
                 {filter.label}
               </button>
             ))}
           </div>
+
         </div>
       </section>
 
@@ -387,8 +402,8 @@ export default function Portfolio() {
                               src={getImageUrl(item, imgIndex)}
                               alt={`${item.title} - ${imgIndex + 1}`}
                               className={`absolute inset-0 w-full h-full object-cover object-top group-hover:scale-105 transition-all duration-[1500ms] ease-out ${imgIndex === currentIndex
-                                  ? 'opacity-100 scale-100'
-                                  : 'opacity-0 scale-105'
+                                ? 'opacity-100 scale-100'
+                                : 'opacity-0 scale-105'
                                 } ${visibleProducts.has(item.id) ? '' : 'scale-110'}`}
                             />
                           ))
@@ -408,10 +423,10 @@ export default function Portfolio() {
                             <div
                               key={segmentIndex}
                               className={`flex-1 transition-all duration-300 ${segmentIndex < currentIndex
-                                  ? 'bg-white'
-                                  : segmentIndex === currentIndex
-                                    ? 'bg-white animate-fill'
-                                    : 'bg-gray-400 bg-opacity-30'
+                                ? 'bg-white'
+                                : segmentIndex === currentIndex
+                                  ? 'bg-white animate-fill'
+                                  : 'bg-gray-400 bg-opacity-30'
                                 }`}
                               style={{
                                 animation: segmentIndex === currentIndex ? 'fillSegment 1s linear forwards' : 'none'

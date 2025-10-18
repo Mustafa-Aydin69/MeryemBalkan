@@ -143,51 +143,94 @@ export default function Sepet() {
     }
   };
 
-  const totalPrice = cartItems.reduce((sum, item) => sum + item.price, 0);
+  // ✅ Güvenli toplam hesaplama (string veya noktalı değerleri de destekler)
+  const totalPrice = cartItems.reduce((sum, item) => {
+    const cleanPrice = Number(String(item.price).replace(/\./g, '').replace(',', '.'));
+    return sum + (isNaN(cleanPrice) ? 0 : cleanPrice);
+  }, 0);
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'dark bg-gray-900' : 'bg-white'}`} suppressHydrationWarning={true}>
+    <div
+      className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'dark bg-gray-900' : 'bg-white'
+        }`}
+      suppressHydrationWarning={true}
+    >
       {/* Navigation */}
-      <nav className={`fixed top-0 left-0 right-0 z-20 transition-all duration-200 ${showNavBackground ? (isDarkMode ? 'bg-gray-900 shadow-sm' : 'bg-white shadow-sm') : isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
-        <div className="flex flex-col items-center px-4 sm:px-8 py-6">
-          {/* Üst Satır: Dark Mode Toggle - Meryem Balkan - Sepet + Giriş */}
-          <div className="flex justify-between items-center w-full mb-4">
+      <nav
+        className={`fixed top-0 left-0 right-0 z-20 transition-all duration-200 ${showNavBackground
+            ? isDarkMode
+              ? 'bg-gray-900/90 backdrop-blur border-b border-gray-700'
+              : 'bg-white/90 backdrop-blur border-b border-gray-200'
+            : 'bg-transparent'
+          }`}
+      >
+        <div className="flex flex-col items-center px-4 sm:px-6 md:px-8 py-3 sm:py-4 md:py-6 w-full max-w-7xl mx-auto">
+          <div className="flex justify-between items-center w-full mb-2 sm:mb-3 md:mb-4 gap-3">
             <button
               onClick={toggleTheme}
-              className={`w-6 h-6 flex items-center justify-center cursor-pointer transition-colors ${isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600'}`}
+              className={`w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center cursor-pointer transition-colors ${showNavBackground
+                  ? isDarkMode
+                    ? 'text-white hover:text-gray-300'
+                    : 'text-black hover:text-gray-600'
+                  : 'text-white hover:text-gray-300'
+                }`}
+              aria-label="Tema Değiştir"
             >
-              <i className={`${isDarkMode ? 'ri-sun-line' : 'ri-moon-line'} text-lg`}></i>
+              <i
+                className={`${isDarkMode ? 'ri-sun-line' : 'ri-moon-line'
+                  } text-base sm:text-lg`}
+              ></i>
             </button>
 
-            <div className="text-center">
-              <h1 className={`text-lg sm:text-xl font-light tracking-[0.3em] font-serif transition-colors italic ${isDarkMode ? 'text-white' : 'text-black'}`}>MERYEM BALKAN</h1>
+            <div className="text-center flex-1">
+              <h1
+                className={`text-base sm:text-lg md:text-xl font-light tracking-[0.2em] sm:tracking-[0.3em] font-serif transition-colors italic break-words ${showNavBackground
+                    ? isDarkMode
+                      ? 'text-white'
+                      : 'text-black'
+                    : 'text-white'
+                  }`}
+              >
+                MERYEM BALKAN
+              </h1>
             </div>
 
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3 sm:space-x-4">
               <Link
                 href="/sepet"
-                className={`relative w-6 h-6 flex items-center justify-center cursor-pointer transition-colors ${isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600'}`}
-              >
-                <i className={`ri-shopping-bag-line text-lg ${cartItems.length > 0 ? 'animate-bounce' : ''}`}></i>
-              </Link>
+                className={`w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center cursor-pointer transition-colors ${showNavBackground
+                    ? isDarkMode
+                      ? 'text-white hover:text-gray-300'
+                      : 'text-black hover:text-gray-600'
+                    : 'text-white hover:text-gray-300'
+                  }`}
+                aria-label="Sepet"
+              ></Link>
               <button
                 onClick={() => setIsLoginModalOpen(true)}
-                className={`w-6 h-6 flex items-center justify-center cursor-pointer transition-colors ${isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600'}`}
+                className={`w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center cursor-pointer transition-colors ${showNavBackground
+                    ? isDarkMode
+                      ? 'text-white hover:text-gray-300'
+                      : 'text-black hover:text-gray-600'
+                    : 'text-white hover:text-gray-300'
+                  }`}
+                aria-label="Giriş"
               >
-                <i className="ri-user-line text-lg"></i>
+                <i className="ri-user-line text-base sm:text-lg"></i>
               </button>
             </div>
           </div>
 
           {/* Alt Satır: Menü Öğeleri */}
-          <div className="flex flex-wrap justify-center space-x-4 sm:space-x-8 text-xs sm:text-sm font-medium tracking-wide">
-            <Link href="/" className={`cursor-pointer transition-colors font-light ${isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600'}`}>ANASAYFA</Link>
-            <Link href="/portfolio" className={`cursor-pointer transition-colors font-light ${isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600'}`}>ELBİSELER</Link>
-            <Link href="/hakkimda" className={`cursor-pointer transition-colors font-light ${isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600'}`}>HAKKIMDA</Link>
-            <Link href="/iletisim" className={`cursor-pointer transition-colors font-light ${isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600'}`}>İLETİŞİM</Link>
+          <div className="flex flex-wrap justify-center gap-x-4 sm:gap-x-6 md:gap-x-8 gap-y-2 text-xs sm:text-sm font-medium tracking-wide">
+            <Link href="/" className={`cursor-pointer transition-colors font-light whitespace-nowrap ${showNavBackground ? (isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600') : 'text-white hover:text-gray-300'}`}>ANASAYFA</Link>
+            <Link href="/portfolio" className={`cursor-pointer transition-colors font-light whitespace-nowrap ${showNavBackground ? (isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600') : 'text-white hover:text-gray-300'}`}>ELBİSELER</Link>
+            <Link href="/hakkimda" className={`cursor-pointer transition-colors font-light whitespace-nowrap ${showNavBackground ? (isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600') : 'text-white hover:text-gray-300'}`}>HAKKIMDA</Link>
+            <Link href="/iletisim" className={`cursor-pointer transition-colors font-light whitespace-nowrap ${showNavBackground ? (isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600') : 'text-white hover:text-gray-300'}`}>İLETİŞİM</Link>
           </div>
         </div>
       </nav>
+
 
       {/* Main Content */}
       <div className="pt-32 pb-16 px-4 sm:px-8">
