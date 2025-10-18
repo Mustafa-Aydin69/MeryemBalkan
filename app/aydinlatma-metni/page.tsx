@@ -105,7 +105,7 @@ export default function AydinlatmaMetni() {
               <br />
               <strong>Adres:</strong> Atatürk Mahallesi, Muhis Yazıcıoğlu Caddesi No: 15/B, Merkez / Erzincan
               <br />
-              <strong>E-posta:</strong> meryembalkantasarımatölyesi@gmail.com
+              <strong>E-posta:</strong> meryembalkantasarimatölye@gmail.com
               
             </p>
           </section>
@@ -219,7 +219,7 @@ export default function AydinlatmaMetni() {
             </p>
             <ul className="list-disc pl-6 text-gray-700">
               <li>Yazılı başvuru: Atatürk Mahallesi, Muhis Yazıcıoğlu Caddesi No: 15/B, Merkez / Erzincan</li>
-              <li>Kayıtlı elektronik posta: meryembalkantasarımatölyesi@gmail.com</li>
+              <li>Kayıtlı elektronik posta: meryembalkantasarimatölye@gmail.com</li>
               <li>Web sitesi iletişim formu</li>
             </ul>
           </section>
@@ -236,7 +236,7 @@ export default function AydinlatmaMetni() {
             <p className="text-gray-700 leading-relaxed">
               Bu aydınlatma metni ile ilgili sorularınız için:
               <br />
-              E-posta: meryembalkantasarımatölyesi@gmail.com
+              E-posta: meryembalkantasarimatölye@gmail.com
             </p>
           </section>
         </div>
@@ -274,7 +274,7 @@ export default function AydinlatmaMetni() {
               <h5 className="font-medium mb-4 tracking-wide text-sm sm:text-base">İLETİŞİM</h5>
               <ul className={`space-y-2 text-sm transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                 <li>Erzincan, Türkiye</li>
-                <li>meryembalkantasarımatölyesi@gmail.com</li>
+                <li>meryembalkantasarimatölye@gmail.com</li>
               </ul>
             </div>
           </div>

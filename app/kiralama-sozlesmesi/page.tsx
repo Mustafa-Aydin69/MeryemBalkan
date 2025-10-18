@@ -425,7 +425,7 @@ export default function KiralamaSozlesmesi() {
               <br />
               Adres: Atatürk Mahallesi, Muhis Yazıcıoğlu Caddesi No: 15/B, Merkez / Erzincan
               <br />
-              E-posta: meryembalkantasarımatölyesi@gmail.com
+              E-posta: meryembalkantasarimatölye@gmail.com
               <br />
               Çalışma Saatleri: Pazartesi-Cuma 09:00-18:00, Cumartesi
               10:00-16:00
@@ -554,7 +554,7 @@ export default function KiralamaSozlesmesi() {
                 }`}
               >
                 <li>Erzincan, Türkiye</li>
-                <li>meryembalkantasarımatölyesi@gmail.com</li>
+                <li>meryembalkantasarimatölye@gmail.com</li>
               </ul>
             </div>
           </div>

@@ -303,7 +303,7 @@ export default function Iletisim() {
                   </div>
                   <div>
                     <h4 className={`font-medium mb-2 text-sm sm:text-base transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>E-POSTA</h4>
-                    <p className={`text-xs sm:text-sm transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>meryembalkantasarımatölyesi@gmail.com</p>
+                    <p className={`text-xs sm:text-sm transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>meryembalkantasarimatölye@gmail.com</p>
                   </div>
                 </div>
 
@@ -384,7 +384,7 @@ export default function Iletisim() {
               <h5 className="font-medium mb-4 tracking-wide text-sm sm:text-base">İLETİŞİM</h5>
               <ul className={`space-y-2 text-sm transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                 <li>Erzincan, Türkiye</li>
-                <li>meryembalkantasarımatölyesi@gmail.com</li>
+                <li>meryembalkantasarimatölye@gmail.com</li>
               </ul>
             </div>
           </div>

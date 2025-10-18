@@ -169,7 +169,7 @@ export default function KVKK() {
             </p>
             <ul className="list-disc pl-6 text-gray-700">
               <li>Yazılı başvuru: Atatürk Mahallesi, Muhis Yazıcıoğlu Caddesi No: 15/B, Merkez / Erzincan adresine</li>
-              <li>E-posta: meryembalkantasarımatölyesi@gmail.com</li>
+              <li>E-posta: meryembalkantasarimatölye@gmail.com</li>
               
             </ul>
           </section>
@@ -207,7 +207,7 @@ export default function KVKK() {
             <p className="text-gray-700 leading-relaxed">
               KVKK ile ilgili sorularınız için:
               <br />
-              E-posta: meryembalkantasarımatölyesi@gmail.com
+              E-posta: meryembalkantasarimatölye@gmail.com
               <br />
               Adres: Atatürk Mahallesi, Muhis Yazıcıoğlu Caddesi No: 15/B, Merkez / Erzincan
             </p>
@@ -247,7 +247,7 @@ export default function KVKK() {
               <h5 className="font-medium mb-4 tracking-wide text-sm sm:text-base">İLETİŞİM</h5>
               <ul className={`space-y-2 text-sm transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                 <li>Erzincan, Türkiye</li>
-                <li>meryembalkantasarımatölyesi@gmail.com</li>
+                <li>meryembalkantasarimatölye@gmail.com</li>
               </ul>
             </div>
           </div>

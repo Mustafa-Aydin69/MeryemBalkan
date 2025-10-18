@@ -176,7 +176,7 @@ export default function GizlilikPolitikasi() {
             <p className={`text-gray-700 leading-relaxed transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
               Gizlilik politikamız hakkında sorularınız için bizimle iletişime geçebilirsiniz:
               <br />
-              E-posta: meryembalkantasarımatölyesi@gmail.com
+              E-posta: meryembalkantasarimatölye@gmail.com
               <br />
               Adres: Atatürk Mahallesi, Muhis Yazıcıoğlu Caddesi No: 15/B, Merkez / Erzincan
             </p>
@@ -223,7 +223,7 @@ export default function GizlilikPolitikasi() {
               <h5 className="font-medium mb-4 tracking-wide text-sm sm:text-base">İLETİŞİM</h5>
               <ul className={`space-y-2 text-sm transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                 <li>Erzincan, Türkiye</li>
-                <li>meryembalkantasarımatölyesi@gmail.com</li>
+                <li>meryembalkantasarimatölye@gmail.com</li>
               </ul>
             </div>
           </div>

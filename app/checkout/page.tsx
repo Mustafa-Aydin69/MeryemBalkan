@@ -101,7 +101,7 @@ export default function Checkout() {
   const storeAddress = {
     name: "Meryem Balkan Atölye",
     fullAddress: "Atatürk Mahallesi, Muhsin Yazıcıoğlu Caddesi No: 15/B, Merkez / Erzincan",
-    mail: "meryembalkantasarımatölyesi@gmail.com"
+    mail: "meryembalkantasarimatölye@gmail.com"
   };
 
   return (
@@ -1171,7 +1171,7 @@ export default function Checkout() {
                   }`}
               >
                 <li>Erzincan, Türkiye</li>
-                <li>meryembalkantasarımatölyesi@gmail.com</li>
+                <li>meryembalkantasarimatölye@gmail.com</li>
               </ul>
             </div>
           </div>
