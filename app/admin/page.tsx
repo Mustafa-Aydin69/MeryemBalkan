@@ -815,12 +815,12 @@ export default function AdminPanel() {
     >
       <nav
         className={`fixed top-0 left-0 right-0 z-20 transition-all duration-300 ${showNavBackground
-            ? isDarkMode
-              ? 'bg-gray-900 shadow-lg'
-              : 'bg-white shadow-lg'
-            : isDarkMode
-              ? 'bg-gray-900'
-              : 'bg-white'
+          ? isDarkMode
+            ? 'bg-gray-900 shadow-lg'
+            : 'bg-white shadow-lg'
+          : isDarkMode
+            ? 'bg-gray-900'
+            : 'bg-white'
           }`}
       >
         <div className="flex flex-col items-center px-4 md:px-8 py-4 md:py-5">
@@ -830,8 +830,8 @@ export default function AdminPanel() {
             <button
               onClick={toggleTheme}
               className={`w-6 h-6 flex items-center justify-center cursor-pointer transition-colors ${isDarkMode
-                  ? 'text-white hover:text-gray-300'
-                  : 'text-black hover:text-gray-600'
+                ? 'text-white hover:text-gray-300'
+                : 'text-black hover:text-gray-600'
                 }`}
             >
               <i
@@ -860,8 +860,8 @@ export default function AdminPanel() {
             <Link
               href="/"
               className={`w-6 h-6 flex items-center justify-center cursor-pointer transition-colors ${isDarkMode
-                  ? 'text-white hover:text-gray-300'
-                  : 'text-black hover:text-gray-600'
+                ? 'text-white hover:text-gray-300'
+                : 'text-black hover:text-gray-600'
                 }`}
             >
               <i className="ri-home-line text-lg"></i>
@@ -873,14 +873,14 @@ export default function AdminPanel() {
             <button
               onClick={() => setActiveTab('orders')}
               className={`cursor-pointer transition-colors font-light pb-2 ${activeTab === 'orders'
-                  ? `border-b-2 ${isDarkMode
-                    ? 'border-white text-white'
-                    : 'border-black text-black'
-                  }`
-                  : `${isDarkMode
-                    ? 'text-gray-400 hover:text-white'
-                    : 'text-gray-600 hover:text-black'
-                  }`
+                ? `border-b-2 ${isDarkMode
+                  ? 'border-white text-white'
+                  : 'border-black text-black'
+                }`
+                : `${isDarkMode
+                  ? 'text-gray-400 hover:text-white'
+                  : 'text-gray-600 hover:text-black'
+                }`
                 }`}
             >
               SİPARİŞLER
@@ -889,14 +889,14 @@ export default function AdminPanel() {
             <button
               onClick={() => setActiveTab('products')}
               className={`cursor-pointer transition-colors font-light pb-2 ${activeTab === 'products'
-                  ? `border-b-2 ${isDarkMode
-                    ? 'border-white text-white'
-                    : 'border-black text-black'
-                  }`
-                  : `${isDarkMode
-                    ? 'text-gray-400 hover:text-white'
-                    : 'text-gray-600 hover:text-black'
-                  }`
+                ? `border-b-2 ${isDarkMode
+                  ? 'border-white text-white'
+                  : 'border-black text-black'
+                }`
+                : `${isDarkMode
+                  ? 'text-gray-400 hover:text-white'
+                  : 'text-gray-600 hover:text-black'
+                }`
                 }`}
             >
               ÜRÜN YÖNETİMİ
@@ -905,14 +905,14 @@ export default function AdminPanel() {
             <button
               onClick={() => setActiveTab('messages')}
               className={`cursor-pointer transition-colors font-light pb-2 ${activeTab === 'messages'
-                  ? `border-b-2 ${isDarkMode
-                    ? 'border-white text-white'
-                    : 'border-black text-black'
-                  }`
-                  : `${isDarkMode
-                    ? 'text-gray-400 hover:text-white'
-                    : 'text-gray-600 hover:text-black'
-                  }`
+                ? `border-b-2 ${isDarkMode
+                  ? 'border-white text-white'
+                  : 'border-black text-black'
+                }`
+                : `${isDarkMode
+                  ? 'text-gray-400 hover:text-white'
+                  : 'text-gray-600 hover:text-black'
+                }`
                 }`}
             >
               MESAJLAR
@@ -2208,18 +2208,19 @@ export default function AdminPanel() {
       )}
 
       {editingProduct && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-3 sm:p-4">
           <div
-            className={`rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto transition-colors ${isDarkMode ? 'bg-gray-800' : 'bg-white'
+            className={`rounded-lg max-w-2xl w-full mx-2 sm:mx-4 max-h-[90vh] overflow-y-auto transition-colors ${isDarkMode ? "bg-gray-800" : "bg-white"
               }`}
           >
+            {/* Üst Başlık */}
             <div
-              className={`p-6 border-b transition-colors ${isDarkMode ? 'border-gray-700' : 'border-gray-200'
+              className={`p-4 sm:p-6 border-b transition-colors ${isDarkMode ? "border-gray-700" : "border-gray-200"
                 }`}
             >
               <div className="flex justify-between items-center">
                 <h3
-                  className={`text-xl font-medium transition-colors ${isDarkMode ? 'text-white' : 'text-black'
+                  className={`text-lg sm:text-xl font-medium transition-colors ${isDarkMode ? "text-white" : "text-black"
                     }`}
                 >
                   Ürün Düzenle
@@ -2227,8 +2228,8 @@ export default function AdminPanel() {
                 <button
                   onClick={() => setEditingProduct(null)}
                   className={`w-8 h-8 flex items-center justify-center rounded cursor-pointer transition-colors ${isDarkMode
-                    ? 'hover:bg-gray-700 text-white'
-                    : 'hover:bg-gray-100 text-black'
+                    ? "hover:bg-gray-700 text-white"
+                    : "hover:bg-gray-100 text-black"
                     }`}
                 >
                   <i className="ri-close-line text-lg"></i>
@@ -2236,29 +2237,41 @@ export default function AdminPanel() {
               </div>
             </div>
 
-            <div className="p-6 space-y-6">
+            {/* İçerik */}
+            <div className="p-4 sm:p-6 space-y-5 sm:space-y-6 text-sm sm:text-base">
               {/* Ürün Adı */}
               <div>
-                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                <label
+                  className={`block text-sm font-medium mb-2 ${isDarkMode ? "text-white" : "text-black"
+                    }`}
+                >
                   Ürün Adı
                 </label>
                 <input
                   type="text"
                   value={editingProduct.title}
-                  onChange={(e) => handleEditInputChange('title', e.target.value)}
-                  className={`w-full px-4 py-3 border text-sm ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-black'}`}
+                  onChange={(e) => handleEditInputChange("title", e.target.value)}
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 border text-sm rounded ${isDarkMode
+                    ? "bg-gray-700 border-gray-600 text-white"
+                    : "bg-white border-gray-300 text-black"
+                    }`}
                 />
               </div>
 
               {/* Koleksiyon */}
               <div>
-                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                <label
+                  className={`block text-sm font-medium mb-2 ${isDarkMode ? "text-white" : "text-black"
+                    }`}
+                >
                   Koleksiyon
                 </label>
                 <select
-                  value={editingProduct.category || "Kategori"} // aktif değer veritabanından geliyor
-                  onChange={(e) => handleEditInputChange("category", e.target.value)}
-                  className={`w-full px-4 py-3 border rounded text-sm transition-colors ${isDarkMode
+                  value={editingProduct.category || "Kategori"}
+                  onChange={(e) =>
+                    handleEditInputChange("category", e.target.value)
+                  }
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded text-sm transition-colors ${isDarkMode
                     ? "bg-gray-700 border-gray-600 text-white focus:border-white"
                     : "bg-white border-gray-300 text-black focus:border-black"
                     }`}
@@ -2274,52 +2287,58 @@ export default function AdminPanel() {
 
               {/* Fiyat */}
               <div>
-                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                <label
+                  className={`block text-sm font-medium mb-2 ${isDarkMode ? "text-white" : "text-black"
+                    }`}
+                >
                   Fiyat
                 </label>
                 <input
                   type="text"
                   value={editingProduct.price}
-                  onChange={(e) => handleEditInputChange('price', e.target.value)}
-                  className={`w-full px-4 py-3 border text-sm ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-black'}`}
+                  onChange={(e) => handleEditInputChange("price", e.target.value)}
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 border text-sm rounded ${isDarkMode
+                    ? "bg-gray-700 border-gray-600 text-white"
+                    : "bg-white border-gray-300 text-black"
+                    }`}
                 />
               </div>
 
               {/* Renkler */}
               <div>
                 <label
-                  className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-black'}`}
+                  className={`block text-sm font-medium mb-2 ${isDarkMode ? "text-white" : "text-black"
+                    }`}
                 >
                   Renkler
                 </label>
-
-                {/* Renk ekleme inputu */}
                 <input
                   type="text"
                   placeholder="Renk ekle (örn. Kırmızı) ve Enter’a bas"
-                  className={`w-full px-4 py-2 border rounded text-sm transition-colors ${isDarkMode
-                    ? 'bg-gray-700 border-gray-600 text-white focus:border-white'
-                    : 'bg-white border-gray-300 text-black focus:border-black'
+                  className={`w-full px-3 sm:px-4 py-2 border rounded text-sm ${isDarkMode
+                    ? "bg-gray-700 border-gray-600 text-white"
+                    : "bg-white border-gray-300 text-black"
                     }`}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
                       const val = (e.target as HTMLInputElement).value.trim();
                       if (val && !(editingProduct.colors || []).includes(val)) {
-                        handleEditInputChange("colors", [...(editingProduct.colors || []), val]);
+                        handleEditInputChange("colors", [
+                          ...(editingProduct.colors || []),
+                          val,
+                        ]);
                       }
                       (e.target as HTMLInputElement).value = "";
                     }
                   }}
                 />
-
-                {/* Eklenen renkler rozetleri */}
-                {editingProduct.colors && editingProduct.colors.length > 0 && (
+                {editingProduct.colors?.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-3">
                     {editingProduct.colors.map((color: string, i: number) => (
                       <span
                         key={`${color}-${i}`}
-                        className="px-3 py-1 rounded-full text-sm bg-gray-200 text-gray-800 flex items-center"
+                        className="px-3 py-1 rounded-full text-xs sm:text-sm bg-gray-200 text-gray-800 flex items-center"
                       >
                         {color}
                         <button
@@ -2327,7 +2346,9 @@ export default function AdminPanel() {
                           onClick={() =>
                             handleEditInputChange(
                               "colors",
-                              editingProduct.colors.filter((c: string) => c !== color)
+                              editingProduct.colors.filter(
+                                (c: string) => c !== color
+                              )
                             )
                           }
                           className="ml-2 text-red-500 hover:text-red-700"
@@ -2343,37 +2364,51 @@ export default function AdminPanel() {
 
               {/* Açıklama */}
               <div>
-                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                <label
+                  className={`block text-sm font-medium mb-2 ${isDarkMode ? "text-white" : "text-black"
+                    }`}
+                >
                   Açıklama Başlığı
                 </label>
                 <input
                   type="text"
                   value={editingProduct.description}
-                  onChange={(e) => handleEditInputChange('description', e.target.value)}
-                  className={`w-full px-4 py-3 border text-sm ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-black'}`}
+                  onChange={(e) =>
+                    handleEditInputChange("description", e.target.value)
+                  }
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 border text-sm rounded ${isDarkMode
+                    ? "bg-gray-700 border-gray-600 text-white"
+                    : "bg-white border-gray-300 text-black"
+                    }`}
                 />
-                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                <label
+                  className={`block text-sm font-medium mt-4 mb-2 ${isDarkMode ? "text-white" : "text-black"
+                    }`}
+                >
                   Açıklama
                 </label>
                 <textarea
-                  value={editingProduct.features || []}
-                  onChange={(e) => handleEditInputChange('features', e.target.value)}
-                  rows={4}
-                  maxLength={500}
-                  className={`w-full px-4 py-3 border text-sm resize-vertical ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-black'}`}
+                  value={editingProduct.features || ""}
+                  onChange={(e) =>
+                    handleEditInputChange("features", e.target.value)
+                  }
+                  rows={3}
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 border text-sm rounded resize-vertical ${isDarkMode
+                    ? "bg-gray-700 border-gray-600 text-white"
+                    : "bg-white border-gray-300 text-black"
+                    }`}
                 ></textarea>
               </div>
 
               {/* Ürün Fotoğrafları */}
               <div>
                 <label
-                  className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-black'
+                  className={`block text-sm font-medium mb-2 ${isDarkMode ? "text-white" : "text-black"
                     }`}
                 >
                   Ürün Fotoğrafları (En fazla 5 adet)
                 </label>
                 <div className="space-y-4">
-                  {/* Gizli input */}
                   <input
                     type="file"
                     id="edit-product-images"
@@ -2381,33 +2416,30 @@ export default function AdminPanel() {
                     multiple
                     className="hidden"
                     onChange={(e) => {
-                      if (e.target.files) {
-                        handleEditImageUpload(e.target.files);
-                      }
+                      if (e.target.files) handleEditImageUpload(e.target.files);
                     }}
                   />
 
-                  {/* Fotoğraf Seç butonu */}
                   <button
                     type="button"
                     onClick={() =>
-                      document.getElementById('edit-product-images')?.click()
+                      document.getElementById("edit-product-images")?.click()
                     }
                     disabled={editingProduct.images?.length >= 5}
-                    className={`w-full h-32 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${editingProduct.images?.length >= 5
+                    className={`w-full h-28 sm:h-32 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors text-sm ${editingProduct.images?.length >= 5
                       ? isDarkMode
-                        ? 'border-gray-700 text-gray-600 cursor-not-allowed'
-                        : 'border-gray-200 text-gray-400 cursor-not-allowed'
+                        ? "border-gray-700 text-gray-600 cursor-not-allowed"
+                        : "border-gray-200 text-gray-400 cursor-not-allowed"
                       : isDarkMode
-                        ? 'border-gray-600 hover:border-gray-500 text-gray-400 hover:text-gray-300'
-                        : 'border-gray-300 hover:border-gray-400 text-gray-500 hover:text-gray-600'
+                        ? "border-gray-600 hover:border-gray-500 text-gray-400 hover:text-gray-300"
+                        : "border-gray-300 hover:border-gray-400 text-gray-500 hover:text-gray-600"
                       }`}
                   >
-                    <i className="ri-image-add-line text-2xl mb-2"></i>
-                    <span className="text-sm">
+                    <i className="ri-image-add-line text-2xl mb-1"></i>
+                    <span>
                       {editingProduct.images?.length >= 5
-                        ? 'Maksimum Limit Aşıldı'
-                        : 'Fotoğraf Seç'}
+                        ? "Maksimum Limit Aşıldı"
+                        : "Fotoğraf Seç"}
                     </span>
                     <span className="text-xs mt-1">
                       {editingProduct.images?.length || 0}/5 fotoğraf
@@ -2506,28 +2538,31 @@ export default function AdminPanel() {
                 </div>
               </div>
 
-
-
               {/* Durum */}
               <div>
-                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                <label
+                  className={`block text-sm font-medium mb-2 ${isDarkMode ? "text-white" : "text-black"
+                    }`}
+                >
                   Durum
                 </label>
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                   <span
-                    onClick={() => handleEditInputChange('status', 'Yayında')}
-                    className={`flex-1 py-2 px-4 rounded-full text-sm font-medium text-center cursor-pointer ${editingProduct.status === 'Yayında'
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-gray-100 text-gray-600'
+                    onClick={() => handleEditInputChange("status", "Yayında")}
+                    className={`flex-1 py-2 px-4 rounded-full text-sm font-medium text-center cursor-pointer ${editingProduct.status === "Yayında"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-gray-100 text-gray-600"
                       }`}
                   >
                     <i className="ri-check-line mr-1"></i> Yayında
                   </span>
                   <span
-                    onClick={() => handleEditInputChange('status', 'Yayında Değil')}
-                    className={`flex-1 py-2 px-4 rounded-full text-sm font-medium text-center cursor-pointer ${editingProduct.status === 'Yayında Değil'
-                      ? 'bg-red-100 text-red-700'
-                      : 'bg-gray-100 text-gray-600'
+                    onClick={() =>
+                      handleEditInputChange("status", "Yayında Değil")
+                    }
+                    className={`flex-1 py-2 px-4 rounded-full text-sm font-medium text-center cursor-pointer ${editingProduct.status === "Yayında Değil"
+                      ? "bg-red-100 text-red-700"
+                      : "bg-gray-100 text-gray-600"
                       }`}
                   >
                     <i className="ri-close-line mr-1"></i> Yayında Değil
@@ -2535,18 +2570,22 @@ export default function AdminPanel() {
                 </div>
               </div>
 
-              {/* Butonlar */}
-              <div className="flex gap-3 mt-6">
+              {/* Alt Butonlar */}
+              <div className="flex flex-col sm:flex-row gap-3 mt-6">
                 <button
                   onClick={() => setEditingProduct(null)}
-                  className={`flex-1 py-3 px-4 rounded-full border font-medium ${isDarkMode ? 'border-gray-600 text-white' : 'border-gray-300 text-black'
+                  className={`flex-1 py-2.5 sm:py-3 px-4 rounded-full border font-medium ${isDarkMode
+                    ? "border-gray-600 text-white hover:bg-gray-700"
+                    : "border-gray-300 text-black hover:bg-gray-50"
                     }`}
                 >
                   İptal
                 </button>
                 <button
                   onClick={handleUpdateProduct}
-                  className={`flex-1 py-3 px-4 rounded-full font-medium ${isDarkMode ? 'bg-white text-black' : 'bg-black text-white'
+                  className={`flex-1 py-2.5 sm:py-3 px-4 rounded-full font-medium ${isDarkMode
+                    ? "bg-white text-black hover:bg-gray-100"
+                    : "bg-black text-white hover:bg-gray-800"
                     }`}
                 >
                   Güncelle
@@ -2624,19 +2663,19 @@ export default function AdminPanel() {
 
 
       {editingOrder && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 sm:p-6">
           <div
-            className={`rounded-lg max-w-md w-full transition-colors ${isDarkMode ? 'bg-gray-800' : 'bg-white'
+            className={`rounded-lg max-w-md w-full transition-colors overflow-y-auto max-h-[90vh] ${isDarkMode ? 'bg-gray-800' : 'bg-white'
               }`}
           >
             {/* Üst Başlık */}
             <div
-              className={`p-6 border-b transition-colors ${isDarkMode ? 'border-gray-700' : 'border-gray-200'
+              className={`p-4 sm:p-6 border-b transition-colors ${isDarkMode ? 'border-gray-700' : 'border-gray-200'
                 }`}
             >
               <div className="flex justify-between items-center">
                 <h3
-                  className={`text-xl font-medium transition-colors ${isDarkMode ? 'text-white' : 'text-black'
+                  className={`text-lg sm:text-xl font-medium transition-colors ${isDarkMode ? 'text-white' : 'text-black'
                     }`}
                 >
                   Sipariş Durumu Güncelle
@@ -2654,20 +2693,20 @@ export default function AdminPanel() {
             </div>
 
             {/* İçerik */}
-            <div className="p-6 space-y-4">
+            <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
               {/* Sipariş Bilgileri */}
               <div
-                className={`p-4 rounded-lg transition-colors ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
+                className={`p-3 sm:p-4 rounded-lg transition-colors ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
                   }`}
               >
                 <h4
-                  className={`font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'
+                  className={`font-medium mb-2 sm:mb-3 transition-colors ${isDarkMode ? 'text-white' : 'text-black'
                     }`}
                 >
                   Sipariş Bilgileri
                 </h4>
                 <div
-                  className={`text-sm space-y-1 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                  className={`text-sm space-y-1 sm:space-y-2 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'
                     }`}
                 >
                   <p>
@@ -2687,10 +2726,8 @@ export default function AdminPanel() {
                     {editingOrder.id.toString().padStart(4, '0')}
                   </p>
                   <p>
-                    <strong>Ürün:</strong> {editingOrder.productName}
-                  </p>
-                  <p>
-                    <strong>Detaylar:</strong> Beden: {editingOrder.size}, Renk: {editingOrder.color}
+                    <strong>Detaylar:</strong> Beden: {editingOrder.size}, Renk:{' '}
+                    {editingOrder.color}
                   </p>
                   <p>
                     <strong>Etkinlik Tarihi:</strong> {editingOrder.eventDate}
@@ -2716,7 +2753,7 @@ export default function AdminPanel() {
                     <button
                       key={status}
                       onClick={() => handleOrderInputChange('status', status)}
-                      className={`w-full py-3 px-4 rounded-lg border text-sm font-medium transition-colors cursor-pointer whitespace-nowrap text-left ${editingOrder.status === status
+                      className={`w-full py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg border text-sm font-medium transition-colors cursor-pointer text-left ${editingOrder.status === status
                         ? 'border-black bg-black text-white'
                         : isDarkMode
                           ? 'border-gray-600 text-white hover:border-gray-500 hover:bg-gray-700'
@@ -2734,36 +2771,35 @@ export default function AdminPanel() {
                 </div>
               </div>
 
-              {/* Kargo Kodu Alanı - SADECE "Kargoya Verildi" seçildiğinde */}
-              {editingOrder.status === "Kargoya Verildi" && (
-                <div className="mt-4">
+              {/* Kargo Kodu Alanı */}
+              {editingOrder.status === 'Kargoya Verildi' && (
+                <div className="mt-3 sm:mt-4">
                   <label
-                    className={`block text-sm font-medium mb-2 ${isDarkMode ? "text-white" : "text-black"
+                    className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-black'
                       }`}
                   >
                     Kargo Kodu
                   </label>
                   <input
                     type="text"
-                    value={editingOrder.shippingCode || ""}
+                    value={editingOrder.shippingCode || ''}
                     onChange={(e) =>
-                      handleOrderInputChange("shippingCode", e.target.value)
+                      handleOrderInputChange('shippingCode', e.target.value)
                     }
                     placeholder="Örn: YURTICI12345"
-                    className={`w-full px-4 py-2 rounded-lg border transition-colors ${isDarkMode
-                      ? "bg-gray-700 text-white border-gray-600 focus:border-gray-400"
-                      : "bg-gray-50 text-black border-gray-300 focus:border-gray-500"
+                    className={`w-full px-3 py-2 rounded-lg border transition-colors text-sm sm:text-base ${isDarkMode
+                      ? 'bg-gray-700 text-white border-gray-600 focus:border-gray-400'
+                      : 'bg-gray-50 text-black border-gray-300 focus:border-gray-500'
                       }`}
                   />
                 </div>
               )}
 
-
               {/* Alt Butonlar */}
-              <div className="flex gap-3 mt-6">
+              <div className="flex flex-col sm:flex-row gap-3 mt-6">
                 <button
                   onClick={() => setEditingOrder(null)}
-                  className={`flex-1 py-3 px-4 rounded-full border font-medium transition-colors whitespace-nowrap ${isDarkMode
+                  className={`flex-1 py-2.5 sm:py-3 px-4 rounded-full border font-medium transition-colors ${isDarkMode
                     ? 'border-gray-600 text-white hover:bg-gray-700'
                     : 'border-gray-300 text-black hover:bg-gray-50'
                     }`}
@@ -2772,7 +2808,7 @@ export default function AdminPanel() {
                 </button>
                 <button
                   onClick={handleUpdateOrder}
-                  className={`flex-1 py-3 px-4 rounded-full font-medium transition-colors whitespace-nowrap ${isDarkMode
+                  className={`flex-1 py-2.5 sm:py-3 px-4 rounded-full font-medium transition-colors ${isDarkMode
                     ? 'bg-white text-black hover:bg-gray-100'
                     : 'bg-black text-white hover:bg-gray-800'
                     }`}
@@ -2784,7 +2820,6 @@ export default function AdminPanel() {
           </div>
         </div>
       )}
-
 
       {selectedImage && (
         <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
