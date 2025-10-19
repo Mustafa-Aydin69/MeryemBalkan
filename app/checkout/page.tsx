@@ -22,7 +22,7 @@ export default function Checkout() {
   const [deliveryMethod, setDeliveryMethod] = useState('');
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [billingAddressOption, setBillingAddressOption] = useState<'same' | 'different'>('same');
-
+  const [loadingPrices, setLoadingPrices] = useState(true);
   const [formData, setFormData] = useState({
     email: '',
     firstName: '',
@@ -38,27 +38,71 @@ export default function Checkout() {
   useEffect(() => {
     setIsClient(true);
     try {
-      const savedTheme = localStorage.getItem('theme');
-      if (savedTheme === 'dark') {
+      const savedTheme = localStorage.getItem("theme");
+      if (savedTheme === "dark") {
         setIsDarkMode(true);
-        document.documentElement.classList.add('dark');
+        document.documentElement.classList.add("dark");
       }
+
       // ✅ Sepeti localStorage'dan çek
-      const storedCart = localStorage.getItem('cartItems');
+      const storedCart = localStorage.getItem("cartItems");
       if (storedCart) {
-        setCartItems(JSON.parse(storedCart));
+        const parsed = JSON.parse(storedCart);
+        setCartItems(parsed);
+
+        if (parsed.length > 0) {
+          setLoadingPrices(true); // 🔹 fiyat yükleniyor durumu başlat
+          fetch("/api/get-prices", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              productIds: parsed.map((item) => item.productId),
+            }),
+          })
+            .then((res) => res.json())
+            .then((data) => {
+              console.log("🧾 API'den dönen fiyat verisi:", data);
+              if (Array.isArray(data)) {
+                const merged = parsed.map((item) => {
+                  // "5_Altın_Sarısı_36_2025-10-22" → "5"
+                  const realId = String(item.productId).split('_')[0];
+
+                  const found = data.find((p) => String(p.id) === realId);
+
+                  return {
+                    ...item,
+                    price: found
+                      ? Number(String(found.price).replace(/\./g, '').replace(',', '.'))
+                      : 0,
+                  };
+                });
+                console.log("💰 Birleştirilmiş sepet verisi:", merged);
+                setCartItems(merged);
+              } else {
+                console.error("Beklenmeyen API yanıtı:", data);
+              }
+            })
+            .catch((err) => console.error("Fiyatlar yüklenemedi:", err))
+            .finally(() => setLoadingPrices(false)); // 🔹 fiyatlar geldi
+        } else {
+          setLoadingPrices(false);
+        }
+      } else {
+        setLoadingPrices(false);
       }
     } catch (e) {
-      console.warn('Unable to access localStorage:', e);
+      console.warn("Unable to access localStorage:", e);
+      setLoadingPrices(false);
     }
 
     const handleScroll = () => {
       setScrollY(window.scrollY);
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
 
   const toggleTheme = () => {
     const newDarkMode = !isDarkMode;
@@ -103,7 +147,7 @@ export default function Checkout() {
 
   // ✅ Güvenli alt toplam (string, "12.000", "12,000" gibi tüm formatları destekler)
   const subtotal = cartItems.reduce((sum, item) => {
-    const cleanPrice = Number(String(item.price).replace(/\./g, '').replace(',', '.'));
+    const cleanPrice = Number(String(item.price || 0).replace(/\./g, '').replace(',', '.'));
     return sum + (isNaN(cleanPrice) ? 0 : cleanPrice);
   }, 0);
 
@@ -896,7 +940,11 @@ export default function Checkout() {
 
               {/* Dinamik Ürün Listesi */}
               <div className="space-y-4">
-                {cartItems.length === 0 ? (
+                {loadingPrices ? (
+                  <div className="text-center py-10 text-gray-500 animate-pulse">
+                    Fiyatlar yükleniyor...
+                  </div>
+                ) : cartItems.length === 0 ? (
                   <div className={`text-center py-8 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                     <p>Sepetiniz boş</p>
                     <Link
@@ -910,7 +958,9 @@ export default function Checkout() {
                     </Link>
                   </div>
                 ) : (
+
                   cartItems.map((item, index) => (
+
                     <div
                       key={item.id}
                       className={`flex items-center space-x-4 pb-4 ${index < cartItems.length - 1 ? 'border-b border-gray-200' : ''
@@ -943,7 +993,7 @@ export default function Checkout() {
                           {new Date(item.date).toLocaleDateString('tr-TR', {
                             day: 'numeric',
                             month: 'long',
-                            year: 'numeric'
+                            year: 'numeric',
                           })}
                         </p>
                       </div>
@@ -952,16 +1002,15 @@ export default function Checkout() {
                           className={`font-medium transition-colors ${isDarkMode ? 'text-white' : 'text-black'
                             }`}
                         >
-                          {item.price.toLocaleString('tr-TR')}TL
+                          {item.price.toLocaleString('tr-TR')} TL
                         </p>
                       </div>
                     </div>
                   ))
                 )}
               </div>
-
               {/* Fiyat Detayları - Sadece sepet dolu ise göster */}
-              {cartItems.length > 0 && (
+              {!loadingPrices && cartItems.length > 0 && (
                 <>
                   <div className="space-y-3">
                     <div className="flex justify-between">

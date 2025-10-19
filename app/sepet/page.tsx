@@ -158,10 +158,10 @@ export default function Sepet() {
       {/* Navigation */}
       <nav
         className={`fixed top-0 left-0 right-0 z-20 transition-all duration-200 ${showNavBackground
-            ? isDarkMode
-              ? 'bg-gray-900/90 backdrop-blur border-b border-gray-700'
-              : 'bg-white/90 backdrop-blur border-b border-gray-200'
-            : 'bg-transparent'
+          ? isDarkMode
+            ? 'bg-gray-900/90 backdrop-blur border-b border-gray-700'
+            : 'bg-white/90 backdrop-blur border-b border-gray-200'
+          : 'bg-transparent'
           }`}
       >
         <div className="flex flex-col items-center px-4 sm:px-6 md:px-8 py-3 sm:py-4 md:py-6 w-full max-w-7xl mx-auto">
@@ -169,10 +169,10 @@ export default function Sepet() {
             <button
               onClick={toggleTheme}
               className={`w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center cursor-pointer transition-colors ${showNavBackground
-                  ? isDarkMode
-                    ? 'text-white hover:text-gray-300'
-                    : 'text-black hover:text-gray-600'
-                  : 'text-white hover:text-gray-300'
+                ? isDarkMode
+                  ? 'text-white hover:text-gray-300'
+                  : 'text-black hover:text-gray-600'
+                : 'text-white hover:text-gray-300'
                 }`}
               aria-label="Tema Değiştir"
             >
@@ -185,10 +185,10 @@ export default function Sepet() {
             <div className="text-center flex-1">
               <h1
                 className={`text-base sm:text-lg md:text-xl font-light tracking-[0.2em] sm:tracking-[0.3em] font-serif transition-colors italic break-words ${showNavBackground
-                    ? isDarkMode
-                      ? 'text-white'
-                      : 'text-black'
-                    : 'text-white'
+                  ? isDarkMode
+                    ? 'text-white'
+                    : 'text-black'
+                  : 'text-white'
                   }`}
               >
                 MERYEM BALKAN
@@ -199,20 +199,20 @@ export default function Sepet() {
               <Link
                 href="/sepet"
                 className={`w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center cursor-pointer transition-colors ${showNavBackground
-                    ? isDarkMode
-                      ? 'text-white hover:text-gray-300'
-                      : 'text-black hover:text-gray-600'
-                    : 'text-white hover:text-gray-300'
+                  ? isDarkMode
+                    ? 'text-white hover:text-gray-300'
+                    : 'text-black hover:text-gray-600'
+                  : 'text-white hover:text-gray-300'
                   }`}
                 aria-label="Sepet"
               ></Link>
               <button
                 onClick={() => setIsLoginModalOpen(true)}
                 className={`w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center cursor-pointer transition-colors ${showNavBackground
-                    ? isDarkMode
-                      ? 'text-white hover:text-gray-300'
-                      : 'text-black hover:text-gray-600'
-                    : 'text-white hover:text-gray-300'
+                  ? isDarkMode
+                    ? 'text-white hover:text-gray-300'
+                    : 'text-black hover:text-gray-600'
+                  : 'text-white hover:text-gray-300'
                   }`}
                 aria-label="Giriş"
               >
