@@ -32,7 +32,6 @@ export default function Checkout() {
     postalCode: '',
     phone: '',
     country: '',
-    tcNumber: '',
     district: '',
   });
 
@@ -94,9 +93,22 @@ export default function Checkout() {
     console.log('Order data:', { deliveryMethod, formData, cartItems });
   };
 
-  const shippingCost = deliveryMethod === 'pickup' ? 0 : deliveryMethod === 'shipping' ? 50 : 0;
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price, 0);
-  const totalPrice = subtotal + shippingCost;
+  // ✅ Teslimat ücreti
+  const shippingCost =
+    deliveryMethod === 'pickup'
+      ? 0
+      : deliveryMethod === 'shipping'
+        ? 50
+        : 0;
+
+  // ✅ Güvenli alt toplam (string, "12.000", "12,000" gibi tüm formatları destekler)
+  const subtotal = cartItems.reduce((sum, item) => {
+    const cleanPrice = Number(String(item.price).replace(/\./g, '').replace(',', '.'));
+    return sum + (isNaN(cleanPrice) ? 0 : cleanPrice);
+  }, 0);
+
+  // ✅ Toplam (sayısal toplama)
+  const totalPrice = subtotal + (Number(shippingCost) || 0);
 
   const storeAddress = {
     name: "Meryem Balkan Atölye",
@@ -121,7 +133,7 @@ export default function Checkout() {
             : 'bg-white'
           }`}
       >
-        <div className="flex flex-col items-center px-8 py-6">
+        <div className="flex flex-col items-center px-4 sm:px-6 md:px-8 py-4 sm:py-5 md:py-6">
           <div className="flex justify-between items-center w-full mb-4">
             <button
               onClick={toggleTheme}
@@ -164,7 +176,7 @@ export default function Checkout() {
             </div>
           </div>
 
-          <div className="flex space-x-8 text-sm font-medium tracking-wide">
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs sm:text-sm font-medium tracking-wide text-center">
             <Link
               href="/"
               className={`cursor-pointer transition-colors font-light ${isDarkMode
@@ -234,9 +246,9 @@ export default function Checkout() {
       </section>
 
       {/* Main Content */}
-      <div className="pt-8 pb-16 px-8">
+      <div className="pt-6 pb-12 px-4 sm:px-6 md:px-8">
         <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 lg:gap-12">
             {/* Sol Taraf - Form */}
             <div className="space-y-8">
               {/* Teslimat Seçenekleri */}
@@ -397,17 +409,6 @@ export default function Checkout() {
                         Kredi / Banka Kartı
                       </span>
                     </div>
-                    <div className="flex space-x-2">
-                      <div className="flex items-center space-x-1">
-                        <div className="w-8 h-5 bg-blue-600 rounded-sm flex items-center justify-center">
-                          <span className="text-white text-xs font-bold">VISA</span>
-                        </div>
-                        <div className="w-8 h-5 bg-red-500 rounded-sm"></div>
-                        <div className="w-8 h-5 bg-blue-500 rounded-sm"></div>
-                        <div className="w-8 h-5 bg-yellow-500 rounded-sm"></div>
-                        <div className="w-8 h-5 bg-gray-800 rounded-sm"></div>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -445,7 +446,7 @@ export default function Checkout() {
                     </select>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
                       <label
                         htmlFor="firstName"
@@ -488,31 +489,6 @@ export default function Checkout() {
                           }`}
                       />
                     </div>
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="tcNumber"
-                      className={`block text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'
-                        }`}
-                    >
-                      T.C. Kimlik Numarası *
-                    </label>
-                    <input
-                      type="text"
-                      id="tcNumber"
-                      name="tcNumber"
-                      value={formData.tcNumber}
-                      onChange={handleInputChange}
-                      required
-                      maxLength={11}
-                      pattern="[0-9]{11}"
-                      placeholder="11 haneli T.C. kimlik numaranız"
-                      className={`w-full px-4 py-3 border focus:outline-none text-sm transition-colors ${isDarkMode
-                        ? 'bg-gray-800 border-gray-600 text-white focus:border-white placeholder:text-gray-400'
-                        : 'bg-white border-gray-300 text-black focus:border-black placeholder:text-gray-500'
-                        }`}
-                    />
                   </div>
 
                   <div>
@@ -789,7 +765,7 @@ export default function Checkout() {
                         />
                       </div>
                     </div>
-                    
+
                     <div>
                       <label
                         htmlFor="address"
@@ -909,8 +885,7 @@ export default function Checkout() {
 
             {/* Sağ Taraf - Dinamik Sipariş Özeti */}
             <div
-              className={`space-y-6 h-fit ${isDarkMode ? 'bg-gray-800' : 'bg-gray-50'
-                } p-6 rounded-lg lg:sticky lg:top-32`}
+              className={`space-y-5 h-fit ${isDarkMode ? 'bg-gray-800' : 'bg-gray-50'} p-4 sm:p-5 md:p-6 rounded-xl lg:sticky lg:top-32`}
             >
               <h3
                 className={`text-xl font-medium transition-colors ${isDarkMode ? 'text-white' : 'text-black'
@@ -941,7 +916,7 @@ export default function Checkout() {
                       className={`flex items-center space-x-4 pb-4 ${index < cartItems.length - 1 ? 'border-b border-gray-200' : ''
                         }`}
                     >
-                      <div className="w-16 h-20 flex-shrink-0 overflow-hidden rounded">
+                      <div className="w-14 h-18 sm:w-16 sm:h-20 flex-shrink-0 overflow-hidden rounded-md">
                         <img
                           src={item.image}
                           alt={item.title}
@@ -1053,6 +1028,12 @@ export default function Checkout() {
                   >
                     Siparişi Tamamla
                   </button>
+                  {/* Bilgilendirme yazısı */}
+                  <div className="mt-3 flex flex-col items-center text-center">
+                    <p className="text-xs text-gray-500 max-w-[250px] leading-snug">
+                      Siparişi tamamla dedikten sonra <span className="font-semibold text-gray-700">ödeme sayfasına</span> yönlendirileceksiniz.
+                    </p>
+                  </div>
                 </>
               )}
 
@@ -1072,114 +1053,43 @@ export default function Checkout() {
       </div>
 
       {/* Footer - önceki kod aynı */}
-      <footer
-        className={`py-16 px-8 border-t transition-colors duration-300 ${isDarkMode ? 'bg-gray-900 text-white border-gray-700' : 'bg-white border-gray-200'
-          }`}
-      >
+      <footer className={`py-12 sm:py-16 px-4 sm:px-6 md:px-8 border-t transition-colors duration-300 ${isDarkMode ? 'bg-gray-900 text-white border-gray-700' : 'bg-white border-gray-200'}`}>
         <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div className="col-span-2">
-              <h4 className="text-2xl font-light tracking-wide mb-4 font-serif italic">
-                MERYEM BALKAN
-              </h4>
-              <p
-                className={`mb-6 leading-relaxed transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                  }`}
-              >
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
+            <div className="col-span-1 md:col-span-2">
+              <h4 className="text-xl sm:text-2xl font-light tracking-wide mb-4 font-serif italic">MERYEM BALKAN</h4>
+              <p className={`mb-4 sm:mb-6 leading-relaxed text-sm sm:text-base transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                 Modern kadının zarafet ve gücünü yansıtan, kaliteli ve sürdürülebilir moda tasarımları
               </p>
               <div className="flex space-x-4">
-                <a
-                  href="https://www.instagram.com/meryembalkan_ateiler/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`w-10 h-10 flex items-center justify-center border transition-colors cursor-pointer ${isDarkMode ? 'border-gray-600 hover:bg-gray-700' : 'border-gray-300 hover:bg-gray-100'
-                    }`}
-                >
+                <a href="https://www.instagram.com/meryembalkan_ateiler/" target="_blank" rel="noopener noreferrer" className={`w-10 h-10 flex items-center justify-center border transition-colors cursor-pointer rounded-full ${isDarkMode ? 'border-gray-600 hover:bg-gray-700' : 'border-gray-300 hover:bg-gray-100'}`} aria-label="Instagram">
                   <i className="ri-instagram-line text-lg"></i>
                 </a>
               </div>
             </div>
 
             <div>
-              <h5 className="font-medium mb-4 tracking-wide">KURUMSAL</h5>
-              <ul
-                className={`space-y-2 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                  }`}
-              >
-                <li>
-                  <Link
-                    href="/hakkimda"
-                    className={`cursor-pointer transition-colors ${isDarkMode ? 'hover:text-white' : 'hover:text-black'
-                      }`}
-                  >
-                    Hakkımızda
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/iletisim"
-                    className={`cursor-pointer transition-colors ${isDarkMode ? 'hover:text-white' : 'hover:text-black'
-                      }`}
-                  >
-                    Randevu Al
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/gizlilik-politikasi"
-                    className={`cursor-pointer transition-colors ${isDarkMode ? 'hover:text-white' : 'hover:text-black'
-                      }`}
-                  >
-                    Gizlilik Politikası
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/kvkk"
-                    className={`cursor-pointer transition-colors ${isDarkMode ? 'hover:text-white' : 'hover:text-black'
-                      }`}
-                  >
-                    KVKK
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/aydinlatma-metni"
-                    className={`cursor-pointer transition-colors ${isDarkMode ? 'hover:text-white' : 'hover:text-black'
-                      }`}
-                  >
-                    Aydınlatma Metni
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/kiralama-sozlesmesi"
-                    className={`cursor-pointer transition-colors ${isDarkMode ? 'hover:text-white' : 'hover:text-black'
-                      }`}
-                  >
-                    Kiralama Sözleşmesi ve Yükümlülükleri
-                  </Link>
-                </li>
+              <h5 className="font-medium mb-4 tracking-wide text-sm sm:text-base">KURUMSAL</h5>
+              <ul className={`space-y-2 text-sm transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                <li><Link href="/hakkimda" className={`cursor-pointer transition-colors ${isDarkMode ? 'hover:text-white' : 'hover:text-black'}`}>Hakkımızda</Link></li>
+                <li><Link href="/iletisim" className={`cursor-pointer transition-colors ${isDarkMode ? 'hover:text-white' : 'hover:text-black'}`}>İletişime Geç</Link></li>
+                <li><Link href="/gizlilik-politikasi" className={`cursor-pointer transition-colors ${isDarkMode ? 'hover:text-white' : 'hover:text-black'}`}>Gizlilik Politikası</Link></li>
+                <li><Link href="/kvkk" className={`cursor-pointer transition-colors ${isDarkMode ? 'hover:text-white' : 'hover:text-black'}`}>KVKK</Link></li>
+                <li><Link href="/aydinlatma-metni" className={`cursor-pointer transition-colors ${isDarkMode ? 'hover:text-white' : 'hover:text-black'}`}>Aydınlatma Metni</Link></li>
+                <li><Link href="/kiralama-sozlesmesi" className={`cursor-pointer transition-colors ${isDarkMode ? 'hover:text-white' : 'hover:text-black'}`}>Kiralama Sözleşmesi ve Yükümlülükleri</Link></li>
               </ul>
             </div>
 
             <div>
-              <h5 className="font-medium mb-4 tracking-wide">İLETİŞİM</h5>
-              <ul
-                className={`space-y-2 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                  }`}
-              >
+              <h5 className="font-medium mb-4 tracking-wide text-sm sm:text-base">İLETİŞİM</h5>
+              <ul className={`space-y-2 text-sm transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                 <li>Erzincan, Türkiye</li>
-                <li>meryembalkantasarimatölye@gmail.com</li>
+                <li className="break-all">meryembalkantasarimatölye@gmail.com</li>
               </ul>
             </div>
           </div>
 
-          <div
-            className={`border-t mt-12 pt-8 text-center text-sm transition-colors ${isDarkMode ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-500'
-              }`}
-          >
+          <div className={`border-t mt-8 sm:mt-12 pt-6 sm:pt-8 text-center text-xs sm:text-sm transition-colors ${isDarkMode ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-500'}`}>
             <p>&copy; 2025 Meryem Balkan.</p>
           </div>
         </div>

@@ -138,7 +138,7 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
         data.forEach(({ eventDate }) => {
           if (!eventDate) return;
           const event = new Date(eventDate);
-          for (let i = -5; i <= 5; i++) {
+          for (let i = -7; i <= 7; i++) {
             const d = new Date(event);
             d.setDate(event.getDate() + i);
             blocked.push(d);
@@ -446,7 +446,7 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
                 <img
                   src={product.images[currentImageIndex]}
                   alt={product.title}
-                  className="w-full h-[60vh] sm:h-[70vh] object-cover object-top cursor-pointer transition-all duration-500 ease-out"
+                 className="w-full h-[55vh] sm:h-[65vh] md:h-[70vh] object-cover object-top cursor-pointer transition-all duration-500 ease-out"
                   onClick={() => setFullscreen(true)}
                 />
 
