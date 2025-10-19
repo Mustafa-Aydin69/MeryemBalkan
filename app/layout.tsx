@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Pacifico } from "next/font/google";
 import "./globals.css";
 import PageTransition from "./components/PageTransition";
 import { Toaster } from "sonner";
+import "react-datepicker/dist/react-datepicker.css";
 
 const pacifico = Pacifico({
   weight: "400",

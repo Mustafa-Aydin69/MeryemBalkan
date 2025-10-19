@@ -5,6 +5,9 @@ import LoginModal from '../../components/LoginModal';
 import { addToCart } from '../../utils/cartUtils';
 import { createClient } from "@supabase/supabase-js";
 import { motion } from "framer-motion";
+import DatePicker from "react-datepicker";
+import { tr } from "date-fns/locale";
+
 
 const supabase = createClient(
   "https://orplwznpdpwnyflkbuoy.supabase.co",
@@ -37,7 +40,8 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
   const [selectedSize, setSelectedSize] = useState('');
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [selectedColor, setSelectedColor] = useState('');
-  const [date, setDate] = useState('');
+  const [date, setDate] = useState<Date | null>(null);
+  const [disabledDates, setDisabledDates] = useState<Date[]>([]);
   const [hasCartItems, setHasCartItems] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -113,6 +117,40 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
 
     fetchProduct();
   }, [productId]);
+  //Günleri çek
+  useEffect(() => {
+    if (!product) return;
+
+    const fetchDisabledDates = async () => {
+      const { data, error } = await supabase
+        .from("siparisler")
+        .select("eventDate")
+        .eq("productName", product.title);
+
+      if (error) {
+        console.error("Tarih bilgileri alınamadı:", error);
+        return;
+      }
+
+      if (data) {
+        const blocked: Date[] = [];
+
+        data.forEach(({ eventDate }) => {
+          if (!eventDate) return;
+          const event = new Date(eventDate);
+          for (let i = -5; i <= 5; i++) {
+            const d = new Date(event);
+            d.setDate(event.getDate() + i);
+            blocked.push(d);
+          }
+        });
+
+        setDisabledDates(blocked);
+      }
+    };
+
+    fetchDisabledDates();
+  }, [product]);
 
   // İlgili ürünleri çek
   const fetchRelatedProducts = async (category: string, currentId: number) => {
@@ -210,7 +248,7 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
       product.price,
       selectedColor,
       selectedSize,
-      date,
+      date ? date.toISOString().split("T")[0] : "",
       product.images[0]
     );
 
@@ -223,7 +261,7 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
       setTimeout(() => {
         setSelectedColor('');
         setSelectedSize('');
-        setDate('');
+        setDate(null);
         setNotification(null);
       }, 3000);
     }
@@ -477,17 +515,25 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
               {/* Date Selection */}
               <div>
                 <h3 className={`font-medium mb-3 ${isDarkMode ? 'text-white' : 'text-black'}`}>Tarih</h3>
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
+                <DatePicker
+                  selected={date}
+                  onChange={(d) => setDate(d)}
+                  locale={tr}
+                  dateFormat="dd/MM/yyyy"
+                  minDate={new Date()}
+                  excludeDates={disabledDates}
+                  placeholderText="Tarihinizi seçiniz"
                   className={`w-full px-4 py-3 rounded-lg border text-sm focus:outline-none ${isDarkMode
                     ? 'bg-gray-800 border-gray-600 text-white focus:border-white'
                     : 'bg-white border-gray-300 text-black focus:border-black'
                     }`}
+                  popperPlacement="bottom-start"
+                  todayButton="Bugün"
+                  clearButtonTitle="Temizle"
+                  calendarClassName="custom-calendar"
                 />
               </div>
+              {/* Terms and Conditions */}
               <div className="flex items-center mb-4">
                 <input
                   type="checkbox"
