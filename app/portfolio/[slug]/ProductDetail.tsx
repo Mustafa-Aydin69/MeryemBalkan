@@ -229,6 +229,14 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
       });
       return;
     }
+    // ⚖️ Kiralama sözleşmesi onayı kontrolü
+    if (!acceptedTerms) {
+      setNotification({
+        message: 'Lütfen kiralama şartlarını onaylayın.',
+        type: 'warning',
+      });
+      return;
+    }
 
     const selected = new Date(date);
     const today = new Date();
@@ -446,7 +454,7 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
                 <img
                   src={product.images[currentImageIndex]}
                   alt={product.title}
-                 className="w-full h-[55vh] sm:h-[65vh] md:h-[70vh] object-cover object-top cursor-pointer transition-all duration-500 ease-out"
+                  className="w-full h-[55vh] sm:h-[65vh] md:h-[70vh] object-cover object-top cursor-pointer transition-all duration-500 ease-out"
                   onClick={() => setFullscreen(true)}
                 />
 
