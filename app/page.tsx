@@ -45,7 +45,7 @@ export default function Home() {
       description: "Düğün gününüzü unutulmaz kılacak, size özel tasarımlar.",
       buttonText: "Hemen İncele",
       buttonLink: "/portfolio?category=gelinlik",
-      image: "images/Anasayfa/Gelinlik.jpg"
+      image: "images/Anasayfa/GelinlikYeni.jpg"
     },
     {
       id: 2,
@@ -53,7 +53,7 @@ export default function Home() {
       description: "Nişan günü için özel tasarlanmış zarif ve romantik elbiselerle unutulmaz anlar yaşayın.",
       buttonText: "Hemen İncele",
       buttonLink: "/portfolio?category=nisanlik",
-      image: "images/Anasayfa/Nisanlik.jpg"
+      image: "images/Anasayfa/NisanlikYeni.jpg"
     },
     {
       id: 3,
@@ -77,7 +77,7 @@ export default function Home() {
       description: "Gecenin ritmini yakalayın! After party koleksiyonumuz, şıklığı ve rahatlığı bir araya getiriyor.",
       buttonText: "Hemen İncele",
       buttonLink: "/portfolio?category=after-party",
-      image: "images/Anasayfa/First.jpg"
+      image: "images/Anasayfa/FirstYeni.jpg"
     },
   ];
 
@@ -234,7 +234,9 @@ export default function Home() {
 
   // Hydration hatası için güvenli scroll kontrolü
   const showNavBackground = isClient && scrollY > (typeof window !== 'undefined' ? window.innerHeight * 0.8 : 800);
-
+  if (!isClient) {
+    return null;
+  }
   // Hydration hatası düzeltmesi için suppressHydrationWarning
   return (
     <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'dark bg-gray-900' : 'bg-white'}`} suppressHydrationWarning={true}>
@@ -299,9 +301,9 @@ export default function Home() {
               {image.video ? (
                 <video
                   src={image.video}
-                  autoPlay 
-                  muted 
-                  loop 
+                  autoPlay
+                  muted
+                  loop
                   playsInline
                   className={`w-full h-full object-cover object-center transition-all duration-[4000ms] ease-out ${visibleImages.has(image.id) ? 'opacity-100 scale-100' : 'opacity-0 scale-110'}`}
                 />

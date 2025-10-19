@@ -39,6 +39,7 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
   const [selectedColor, setSelectedColor] = useState('');
   const [date, setDate] = useState('');
   const [hasCartItems, setHasCartItems] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [scrollY, setScrollY] = useState(0);
   const [isClient, setIsClient] = useState(false);
@@ -430,7 +431,7 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
             <div className="space-y-6">
               <div>
                 <h1 className={`text-3xl font-light tracking-wide mb-2 ${isDarkMode ? 'text-white' : 'text-black'}`}>{product.title}</h1>
-                <p className={`text-lg mb-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>{product.collection}</p>
+
                 <p className={`text-2xl font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>{product.price.toLocaleString('tr-TR')} ₺</p>
                 <p className={`text-sm mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Vergi dahil. Kargo ücreti ödeme sırasında hesaplanır.</p>
               </div>
@@ -486,6 +487,21 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
                     : 'bg-white border-gray-300 text-black focus:border-black'
                     }`}
                 />
+              </div>
+              <div className="flex items-center mb-4">
+                <input
+                  type="checkbox"
+                  id="terms"
+                  checked={acceptedTerms}
+                  onChange={() => setAcceptedTerms(!acceptedTerms)}
+                  className="w-4 h-4 mr-2 accent-black cursor-pointer"
+                />
+                <label
+                  htmlFor="terms"
+                  className={`text-sm cursor-pointer ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}
+                >
+                  Kiralama şartlarını <Link href="/kiralama-sozlesmesi" className="underline hover:opacity-80">okudum ve onayladım</Link>
+                </label>
               </div>
 
               {/* Add to Cart Button */}
@@ -597,35 +613,66 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
                   key={item.id}
                   initial={{ opacity: 0, y: 40, scale: 0.95 }}
                   whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                  whileHover={{
+                    scale: 1.04,
+                    boxShadow: "0 15px 30px rgba(0,0,0,0.15)",
+                    transition: { duration: 0.3 },
+                  }}
                   transition={{
                     duration: 0.6,
                     delay: index * 0.15,
                     ease: "easeOut",
                   }}
                   viewport={{ once: true }}
+                  className="bg-transparent rounded-xl overflow-hidden"
                 >
                   <Link
                     href={`/portfolio/${item.slug}`}
                     className="group cursor-pointer flex flex-col items-center text-center"
                   >
-                    <div className="relative overflow-hidden mb-3 w-full">
-                      <img
+                    <div className="relative overflow-hidden mb-3 w-full rounded-lg shadow-sm group">
+                      {/* Ürün Görseli */}
+                      <motion.img
                         src={item.images}
                         alt={item.title}
-                        className="w-full h-80 object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                        className="w-full h-80 object-cover object-top transition-transform duration-700 group-hover:scale-110"
                       />
-                    </div>
 
-                    <h3
-                      className={`text-base font-normal tracking-wide mb-1 ${isDarkMode ? "text-white" : "text-black"
-                        }`}
-                    >
+                      {/* Arka plan karartma (hover’da görünür) */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+                      {/* Ortalanmış "Göz At" butonu */}
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        whileHover={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.4, ease: "easeOut" }}
+                        className="absolute inset-0 flex items-center justify-center"
+                      >
+                        <button
+                          className="flex items-center gap-2 bg-white/90 text-black px-5 py-2 rounded-full text-sm font-medium tracking-wide backdrop-blur-sm shadow-md hover:bg-white hover:scale-105 transition-all duration-300"
+                        >
+                          Göz At
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="w-4 h-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 5l7 7-7 7"
+                            />
+                          </svg>
+                        </button>
+                      </motion.div>
+                    </div>
+                    <h3 className={`text-base font-normal tracking-wide mb-1 ${isDarkMode ? "text-white" : "text-black"}`}>
                       {item.title}
                     </h3>
-                    <p
-                      className={`text-sm font-light ${isDarkMode ? "text-gray-300" : "text-gray-700"
-                        }`}
-                    >
+                    <p className={`text-sm font-light ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
                       {item.price.toLocaleString("tr-TR")} ₺
                     </p>
                   </Link>
