@@ -338,10 +338,6 @@ export default function LoginModal({ isOpen, onClose, isDarkMode }: LoginModalPr
                   Kullanıcı Girişine Dön
                 </button>
               </div>
-
-              <div className={`text-center text-xs p-3 rounded transition-colors ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-50 text-gray-600'}`}>
-                <p><strong>Demo Giriş:</strong> admin / password</p>
-              </div>
             </form>
           )}
 

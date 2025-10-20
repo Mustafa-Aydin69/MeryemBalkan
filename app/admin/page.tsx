@@ -159,7 +159,6 @@ export default function AdminPanel() {
   const [allProducts, setAllProducts] = useState<any[]>([]);
 
 
-
   // 1️⃣ Filtreleme
   const filteredProducts = allProducts.filter(
     (product) =>

@@ -12,7 +12,7 @@ export default function PageTransition() {
     setShow(true);
     const timer = setTimeout(() => {
       setShow(false);
-    }, 1800); // ⏱️ 1.6 saniye (daha smooth)
+    }, 1800); // ⏱️ 1.8 saniye (daha smooth)
     return () => clearTimeout(timer);
   }, [pathname]);
 
