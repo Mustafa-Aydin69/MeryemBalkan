@@ -51,6 +51,7 @@ export default function AdminPanel() {
   const [isDeleteMessageModalOpen, setIsDeleteMessageModalOpen] = useState(false);
   const [viewingOrder, setViewingOrder] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({
     key: 'id',
     direction: 'asc',
@@ -154,7 +155,6 @@ export default function AdminPanel() {
     imagePreviews: [] as string[], // public URL’ler
     images: [] as string[],        // dosya adları
   });
-
 
   const [allProducts, setAllProducts] = useState<any[]>([]);
 
@@ -2023,6 +2023,7 @@ export default function AdminPanel() {
               </div>
 
               <div>
+                {/* Açıklama Başlığı */}
                 <label
                   htmlFor="description"
                   className={`block text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'
@@ -2030,6 +2031,7 @@ export default function AdminPanel() {
                 >
                   Açıklama Başlığı
                 </label>
+
                 <input
                   type="text"
                   id="description"
@@ -2040,10 +2042,12 @@ export default function AdminPanel() {
                   }
                   placeholder="Örn: Zarif siyah gece elbisesi."
                   className={`w-full px-4 py-3 mb-4 border focus:outline-none text-sm transition-colors ${isDarkMode
-                    ? 'bg-gray-700 border-gray-600 text-white focus:border-white'
-                    : 'bg-white border-gray-300 text-black focus:border-black'
+                      ? 'bg-gray-700 border-gray-600 text-white focus:border-white'
+                      : 'bg-white border-gray-300 text-black focus:border-black'
                     }`}
                 />
+
+                {/* Açıklama */}
                 <label
                   htmlFor="feat"
                   className={`block text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'
@@ -2051,6 +2055,7 @@ export default function AdminPanel() {
                 >
                   Açıklama *
                 </label>
+
                 <textarea
                   id="features"
                   name="features"
@@ -2060,9 +2065,12 @@ export default function AdminPanel() {
                   maxLength={500}
                   required
                   placeholder="Örn: Kumaş Özellikleri, Ürün Detayları vb."
-                  className={`w-full px-4 py-3 border focus:outline-none text-sm resize-vertical transition-colors ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-white' : 'bg-white border-gray-300 text-black focus:border-black'
+                  className={`w-full px-4 py-3 border focus:outline-none text-sm resize-vertical transition-colors ${isDarkMode
+                      ? 'bg-gray-700 border-gray-600 text-white focus:border-white'
+                      : 'bg-white border-gray-300 text-black focus:border-black'
                     }`}
                 ></textarea>
+
                 <div
                   className={`text-xs mt-1 transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
                     }`}
