@@ -2,10 +2,11 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { supabase } from '../utils/supabaseClient';
 
 export default function OrdersPage() {
     const [isDarkMode, setIsDarkMode] = useState(false);
-    const [orders, setOrders] = useState([]);
+    const [orders, setOrders] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
 
@@ -28,11 +29,21 @@ export default function OrdersPage() {
         loadOrders(userEmail);
     }, [router]);
 
-    const loadOrders = (email: string) => {
-        // localStorage'dan siparişleri yükle
-        const allOrders = JSON.parse(localStorage.getItem('allOrders') || '[]');
-        const userOrders = allOrders.filter((order: any) => order.userEmail === email);
-        setOrders(userOrders);
+    // 🔹 Supabase’den mail adresine göre sipariş çekme
+    const loadOrders = async (email: string) => {
+        setIsLoading(true);
+        const { data, error } = await supabase
+            .from('siparisler')
+            .select('*')
+            .eq('email', email)
+            .order('orderDate', { ascending: false });
+
+        if (error) {
+            console.error('Siparişler alınamadı:', error.message);
+            setOrders([]);
+        } else {
+            setOrders(data || []);
+        }
         setIsLoading(false);
     };
 
@@ -125,75 +136,50 @@ export default function OrdersPage() {
                     ) : orders.length === 0 ? (
                         <div className={`text-center py-16 ${isDarkMode ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg`}>
                             <i className={`ri-shopping-bag-line text-6xl mb-4 ${isDarkMode ? 'text-gray-600' : 'text-gray-400'}`}></i>
-                            <h2 className={`text-2xl font-light mb-4 ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                                Henüz sipariş yok
-                            </h2>
-                            <p className={`mb-8 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            <h2 className={`text-2xl font-light mb-4 ${isDarkMode ? 'text-white' : 'text-black'}`}>Henüz sipariş yok</h2>
+                            <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-8`}>
                                 Sipariş vermek için mağazaya gidin.
                             </p>
-                            <Link
-                                href="/portfolio"
-                                className={`inline-block px-8 py-4 rounded-full transition-colors ${isDarkMode ? 'bg-white text-black hover:bg-gray-200' : 'bg-black text-white hover:bg-gray-800'}`}
-                            >
-                                Mağazaya Git
-                            </Link>
+                            <Link href="/portfolio" className={`inline-block px-8 py-4 rounded-full ${isDarkMode ? 'bg-white text-black hover:bg-gray-200' : 'bg-black text-white hover:bg-gray-800'}`}>Mağazaya Git</Link>
                         </div>
                     ) : (
                         <div className="space-y-6">
-                            {orders.map((order: any, index: number) => (
-                                <div
-                                    key={index}
-                                    className={`p-6 rounded-lg transition-colors ${isDarkMode ? 'bg-gray-800' : 'bg-gray-50'}`}
-                                >
+                            {orders.map((order, index) => (
+                                <div key={index} className={`p-6 rounded-lg transition-colors ${isDarkMode ? 'bg-gray-800' : 'bg-gray-50'}`}>
                                     <div className="flex justify-between items-start mb-4">
                                         <div>
                                             <h3 className={`text-lg font-medium mb-1 ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                                                Sipariş #{order.orderNumber}
+                                                {order.productName}
                                             </h3>
                                             <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                                {formatDate(order.date)}
+                                                {formatDate(order.orderDate)}
                                             </p>
                                         </div>
-                                        <span className={`px-4 py-2 rounded-full text-sm ${order.status === 'completed'
-                                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                                : order.status === 'processing'
-                                                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                                                    : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                                            }`}>
-                                            {order.status === 'completed' ? 'Tamamlandı' : order.status === 'processing' ? 'İşleniyor' : 'Beklemede'}
+                                        <span
+                                            className={`px-4 py-2 rounded-full text-sm ${order.status === 'Hazırlanıyor'
+                                                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                                    : order.status === 'Kargoya Verildi'
+                                                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                                        : order.status === 'Teslim Edildi'
+                                                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                                            : order.status === 'İptal Edildi'
+                                                                ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                                                : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
+                                                }`}
+                                        >
+                                            {order.status}
                                         </span>
+
                                     </div>
 
-                                    <div className="space-y-4">
-                                        {order.items.map((item: any, itemIndex: number) => (
-                                            <div key={itemIndex} className="flex items-center space-x-4">
-                                                <img
-                                                    src={item.image}
-                                                    alt={item.name}
-                                                    className="w-20 h-20 object-cover rounded"
-                                                />
-                                                <div className="flex-1">
-                                                    <h4 className={`font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                                                        {item.name}
-                                                    </h4>
-                                                    <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                                        {item.rentalDays} Gün Kiralama
-                                                    </p>
-                                                </div>
-                                                <div className={`text-right ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                                                    <p className="font-medium">{formatPrice(item.price)}</p>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    <div className={`mt-4 pt-4 border-t flex justify-between items-center ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                                        <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                                            Toplam:
-                                        </span>
-                                        <span className={`text-xl font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                                            {formatPrice(order.total)}
-                                        </span>
+                                    <div className={`grid grid-cols-1 sm:grid-cols-2 gap-y-2 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                                        <p><strong>Beden:</strong> {order.size}</p>
+                                        <p><strong>Renk:</strong> {order.color}</p>
+                                        <p><strong>Etkinlik Tarihi:</strong> {formatDate(order.eventDate)}</p>
+                                        <p><strong>Adres:</strong> {order.address}</p>
+                                        <p><strong>Telefon:</strong> {order.phone}</p>
+                                        <p><strong>Fiyat:</strong> {formatPrice(order.price)}</p>
+                                        <p><strong>Kargo Kodu:</strong> {order.shippingCode || '-'}</p>
                                     </div>
                                 </div>
                             ))}
