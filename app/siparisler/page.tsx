@@ -19,8 +19,9 @@ export default function OrdersPage() {
         }
 
         // Kullanıcı girişi kontrolü
+        const verificationCode = localStorage.getItem('verificationCodeVerified');
         const userEmail = localStorage.getItem('userEmail');
-        if (!userEmail) {
+        if (!userEmail || verificationCode !== 'true') {
             router.push('/');
             return;
         }
@@ -49,6 +50,7 @@ export default function OrdersPage() {
 
     const handleLogout = () => {
         localStorage.removeItem('userEmail');
+        localStorage.removeItem('verificationCodeVerified');
         router.push('/');
     };
 
@@ -145,18 +147,32 @@ export default function OrdersPage() {
                     ) : (
                         <div className="space-y-6">
                             {orders.map((order, index) => (
-                                <div key={index} className={`p-6 rounded-lg transition-colors ${isDarkMode ? 'bg-gray-800' : 'bg-gray-50'}`}>
+                                <div
+                                    key={index}
+                                    className={`rounded-2xl shadow-md p-5 sm:p-6 transition-all duration-300 hover:shadow-lg ${isDarkMode
+                                            ? 'bg-gray-800 border border-gray-700'
+                                            : 'bg-white border border-gray-200'
+                                        }`}
+                                >
+                                    {/* Üst kısım: ürün adı ve durum etiketi */}
                                     <div className="flex justify-between items-start mb-4">
                                         <div>
-                                            <h3 className={`text-lg font-medium mb-1 ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                                            <h3
+                                                className={`text-lg sm:text-xl font-medium mb-1 ${isDarkMode ? 'text-white' : 'text-gray-900'
+                                                    }`}
+                                            >
                                                 {order.productName}
                                             </h3>
-                                            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                            <p
+                                                className={`text-xs sm:text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                                                    }`}
+                                            >
                                                 {formatDate(order.orderDate)}
                                             </p>
                                         </div>
+
                                         <span
-                                            className={`px-4 py-2 rounded-full text-sm ${order.status === 'Hazırlanıyor'
+                                            className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-full ${order.status === 'Hazırlanıyor'
                                                     ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
                                                     : order.status === 'Kargoya Verildi'
                                                         ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
@@ -164,22 +180,39 @@ export default function OrdersPage() {
                                                             ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                                                             : order.status === 'İptal Edildi'
                                                                 ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                                                                : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
+                                                                : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200'
                                                 }`}
                                         >
                                             {order.status}
                                         </span>
-
                                     </div>
 
-                                    <div className={`grid grid-cols-1 sm:grid-cols-2 gap-y-2 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                                        <p><strong>Beden:</strong> {order.size}</p>
-                                        <p><strong>Renk:</strong> {order.color}</p>
-                                        <p><strong>Etkinlik Tarihi:</strong> {formatDate(order.eventDate)}</p>
-                                        <p><strong>Adres:</strong> {order.address}</p>
-                                        <p><strong>Telefon:</strong> {order.phone}</p>
-                                        <p><strong>Fiyat:</strong> {formatPrice(order.price)}</p>
-                                        <p><strong>Kargo Kodu:</strong> {order.shippingCode || '-'}</p>
+                                    {/* İçerik kısmı */}
+                                    <div
+                                        className={`grid grid-cols-1 sm:grid-cols-2 gap-y-2 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                                            }`}
+                                    >
+                                        <p>
+                                            <strong>Beden:</strong> {order.size}
+                                        </p>
+                                        <p>
+                                            <strong>Renk:</strong> {order.color}
+                                        </p>
+                                        <p>
+                                            <strong>Etkinlik:</strong> {formatDate(order.eventDate)}
+                                        </p>
+                                        <p>
+                                            <strong>Fiyat:</strong> {formatPrice(order.price)}
+                                        </p>
+                                        <p className="col-span-2">
+                                            <strong>Adres:</strong> {order.address}
+                                        </p>
+                                        <p>
+                                            <strong>Telefon:</strong> {order.phone}
+                                        </p>
+                                        <p>
+                                            <strong>Kargo Kodu:</strong> {"Yurtiçi Kargo -> "+ order.shippingCode || '-'}
+                                        </p>
                                     </div>
                                 </div>
                             ))}
