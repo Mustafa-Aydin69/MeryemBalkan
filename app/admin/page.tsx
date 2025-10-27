@@ -2667,14 +2667,48 @@ export default function AdminPanel() {
 
             <div className="mt-6 flex flex-col sm:flex-row gap-3">
               <button
-                onClick={() => alert('Fatura oluşturuldu!')}
+                onClick={async () => {
+                  if (!viewingOrder || !viewingOrder.id) {
+                    toast.error("Fatura oluşturmak için geçerli bir sipariş seçin!");
+                    return;
+                  }
+
+                  const loading = toast.loading("Fatura oluşturuluyor...");
+
+                  try {
+                    const res = await fetch("/api/generate-fatura", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ orderId: viewingOrder.id }),
+                    });
+
+                    if (res.ok) {
+                      // 🔹 PDF dosyasını al
+                      const blob = await res.blob();
+                      const url = window.URL.createObjectURL(blob);
+
+                      // 🔹 Yeni sekmede göster (veya otomatik indir)
+                      window.open(url, "_blank");
+
+                      toast.success("Fatura oluşturuldu!");
+                    } else {
+                      toast.error("Fatura oluşturulamadı.");
+                    }
+                  } catch (error) {
+                    console.error("Fatura oluşturma hatası:", error);
+                    toast.error("Bir hata oluştu. Lütfen tekrar deneyin.");
+                  } finally {
+                    toast.dismiss(loading);
+                  }
+                }}
                 className={`flex-1 py-3 px-4 rounded-full font-medium transition-colors ${isDarkMode
-                  ? 'bg-white text-black hover:bg-gray-100'
-                  : 'bg-black text-white hover:bg-gray-800'
+                  ? "bg-white text-black hover:bg-gray-100"
+                  : "bg-black text-white hover:bg-gray-800"
                   }`}
               >
                 <i className="ri-printer-line mr-2"></i> Fatura Oluştur
               </button>
+
 
               <button
                 onClick={() => setViewingOrder(null)}
