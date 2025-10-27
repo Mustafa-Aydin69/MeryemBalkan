@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '../utils/supabaseClient';
+
 
 interface LoginModalProps {
   isOpen: boolean;

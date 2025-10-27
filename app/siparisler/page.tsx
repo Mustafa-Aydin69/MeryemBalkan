@@ -2,7 +2,12 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { supabase } from '../utils/supabaseClient';
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,  
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!    
+);
 
 export default function OrdersPage() {
     const [isDarkMode, setIsDarkMode] = useState(false);
@@ -150,8 +155,8 @@ export default function OrdersPage() {
                                 <div
                                     key={index}
                                     className={`rounded-2xl shadow-md p-5 sm:p-6 transition-all duration-300 hover:shadow-lg ${isDarkMode
-                                            ? 'bg-gray-800 border border-gray-700'
-                                            : 'bg-white border border-gray-200'
+                                        ? 'bg-gray-800 border border-gray-700'
+                                        : 'bg-white border border-gray-200'
                                         }`}
                                 >
                                     {/* Üst kısım: ürün adı ve durum etiketi */}
@@ -173,14 +178,14 @@ export default function OrdersPage() {
 
                                         <span
                                             className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-full ${order.status === 'Hazırlanıyor'
-                                                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                                                    : order.status === 'Kargoya Verildi'
-                                                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                                                        : order.status === 'Teslim Edildi'
-                                                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                                            : order.status === 'İptal Edildi'
-                                                                ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                                                                : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200'
+                                                ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                                : order.status === 'Kargoya Verildi'
+                                                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                                    : order.status === 'Teslim Edildi'
+                                                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                                        : order.status === 'İptal Edildi'
+                                                            ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                                            : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200'
                                                 }`}
                                         >
                                             {order.status}
@@ -211,7 +216,7 @@ export default function OrdersPage() {
                                             <strong>Telefon:</strong> {order.phone}
                                         </p>
                                         <p>
-                                            <strong>Kargo Kodu:</strong> {"Yurtiçi Kargo -> "+ order.shippingCode || '-'}
+                                            <strong>Kargo Kodu:</strong> {"Yurtiçi Kargo -> " + order.shippingCode || '-'}
                                         </p>
                                     </div>
                                 </div>
