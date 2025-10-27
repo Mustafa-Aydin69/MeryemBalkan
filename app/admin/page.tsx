@@ -6,8 +6,8 @@ import { createClient } from "@supabase/supabase-js"
 import { toast } from "sonner";
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!, 
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!  
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
 interface Message {
@@ -762,7 +762,7 @@ export default function AdminPanel() {
   const handleUpdateOrder = async () => {
     if (!editingOrder) return;
 
-    // Güncellenecek veriyi hazırlıyoruz
+    // Güncellenecek veriyi hazırla
     const updateData = {
       status: editingOrder.status,
     };
@@ -776,6 +776,7 @@ export default function AdminPanel() {
     }
 
     console.log("🟩 Supabase'e gönderilen:", updateData);
+
     // Supabase UPDATE işlemi
     const { data, error } = await supabase
       .from("siparisler")
@@ -789,12 +790,32 @@ export default function AdminPanel() {
       return;
     }
 
+    // 📨 Eğer statü Kargoya Verildi ise e-posta gönder API'sini çağır
+    if (editingOrder.status === "Kargoya Verildi" && editingOrder.shippingCode) {
+      try {
+        console.log("📦 Kargo maili gönderiliyor...");
+
+        await fetch("/api/send-shipment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            orderId: editingOrder.id,
+            customerEmail: editingOrder.email, // müşteri maili sipariş tablosunda olmalı
+            trackingCode: editingOrder.shippingCode,
+          }),
+        });
+
+
+        console.log("✅ Kargo maili gönderildi.");
+      } catch (err) {
+        console.error("Mail gönderim hatası:", err);
+      }
+    }
+
     // Frontend listesini güncelle
     setOrders((prev) =>
       prev.map((order) =>
-        order.id === editingOrder.id
-          ? { ...order, ...updateData }
-          : order
+        order.id === editingOrder.id ? { ...order, ...updateData } : order
       )
     );
 
@@ -802,6 +823,7 @@ export default function AdminPanel() {
     setEditingOrder(null);
     toast.success("Sipariş başarıyla güncellendi ✅");
   };
+
 
   const handleOrderInputChange = (field, value) => {
     setEditingOrder((prev) => ({ ...prev, [field]: value }));
@@ -2041,8 +2063,8 @@ export default function AdminPanel() {
                   }
                   placeholder="Örn: Zarif siyah gece elbisesi."
                   className={`w-full px-4 py-3 mb-4 border focus:outline-none text-sm transition-colors ${isDarkMode
-                      ? 'bg-gray-700 border-gray-600 text-white focus:border-white'
-                      : 'bg-white border-gray-300 text-black focus:border-black'
+                    ? 'bg-gray-700 border-gray-600 text-white focus:border-white'
+                    : 'bg-white border-gray-300 text-black focus:border-black'
                     }`}
                 />
 
@@ -2065,8 +2087,8 @@ export default function AdminPanel() {
                   required
                   placeholder="Örn: Kumaş Özellikleri, Ürün Detayları vb."
                   className={`w-full px-4 py-3 border focus:outline-none text-sm resize-vertical transition-colors ${isDarkMode
-                      ? 'bg-gray-700 border-gray-600 text-white focus:border-white'
-                      : 'bg-white border-gray-300 text-black focus:border-black'
+                    ? 'bg-gray-700 border-gray-600 text-white focus:border-white'
+                    : 'bg-white border-gray-300 text-black focus:border-black'
                     }`}
                 ></textarea>
 
