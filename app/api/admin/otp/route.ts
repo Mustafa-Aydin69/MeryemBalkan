@@ -1,40 +1,52 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import {
-  ADMIN_CONFIG,
-  sanitizeInput,
-  isValidEmail,
-  isValidOTP,
-  isWhitelistedEmail,
-  GENERIC_SUCCESS_MESSAGE,
-} from '@/app/lib/admin-config';
-import {
-  checkRateLimit,
-  incrementRateLimit,
-  resetRateLimit,
-  getClientIP,
-} from '@/app/lib/rate-limiter';
-import {
-  generateSecureOTP,
-  storeOTP,
-  verifyOTP,
-  createVerificationToken,
-} from '@/app/lib/otp-store';
+// Render uyumluluğu için Node.js runtime ve dynamic rendering zorla
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { NextRequest, NextResponse } from 'next/server';
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+// Lazy import - build time'da çalıştırılmaz
+let supabaseInstance: SupabaseClient | null = null;
+
+function getSupabase(): SupabaseClient {
+  if (!supabaseInstance) {
+    const { createClient } = require('@supabase/supabase-js');
+    supabaseInstance = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+  }
+  return supabaseInstance as SupabaseClient;
+}
 
 // Güvenlik gecikmesi (timing attack önlemi)
 async function securityDelay(): Promise<void> {
-  const delay = 2000 + Math.random() * 1000; // 2-3 saniye arası
+  const delay = 2000 + Math.random() * 1000;
   await new Promise((resolve) => setTimeout(resolve, delay));
 }
 
 // POST: OTP gönder
 export async function POST(request: NextRequest) {
   try {
+    // Runtime'da import - build time'da çalıştırılmaz
+    const {
+      sanitizeInput,
+      isValidEmail,
+      isWhitelistedEmail,
+      GENERIC_SUCCESS_MESSAGE,
+    } = await import('@/app/lib/admin-config');
+    
+    const {
+      checkRateLimit,
+      incrementRateLimit,
+      getClientIP,
+    } = await import('@/app/lib/rate-limiter');
+    
+    const {
+      generateSecureOTP,
+      storeOTP,
+    } = await import('@/app/lib/otp-store');
+
     const ip = getClientIP(request);
     const body = await request.json();
     const email = sanitizeInput(body.email || '').toLowerCase();
@@ -74,7 +86,7 @@ export async function POST(request: NextRequest) {
     const otp = generateSecureOTP();
     storeOTP(email, otp);
 
-    // E-posta gönder (nodemailer ile)
+    // E-posta gönder (nodemailer ile) - runtime'da import
     try {
       const nodemailer = require('nodemailer');
       
@@ -106,7 +118,7 @@ export async function POST(request: NextRequest) {
       });
     } catch (emailError) {
       console.error('Email gönderme hatası:', emailError);
-      // Sessizce başarısız ol - kullanıcıya hata gösterme
+      // Sessizce başarısız ol
     }
 
     await securityDelay();
@@ -116,9 +128,8 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error('OTP API hatası:', error);
-    await securityDelay();
     return NextResponse.json(
-      { message: GENERIC_SUCCESS_MESSAGE },
+      { message: 'İşlem tamamlandı' },
       { status: 200 }
     );
   }
@@ -127,6 +138,27 @@ export async function POST(request: NextRequest) {
 // PUT: OTP doğrula
 export async function PUT(request: NextRequest) {
   try {
+    // Runtime'da import
+    const {
+      sanitizeInput,
+      isValidEmail,
+      isValidOTP,
+      isWhitelistedEmail,
+      GENERIC_SUCCESS_MESSAGE,
+    } = await import('@/app/lib/admin-config');
+    
+    const {
+      checkRateLimit,
+      incrementRateLimit,
+      resetRateLimit,
+      getClientIP,
+    } = await import('@/app/lib/rate-limiter');
+    
+    const {
+      verifyOTP,
+      createVerificationToken,
+    } = await import('@/app/lib/otp-store');
+
     const ip = getClientIP(request);
     const body = await request.json();
     const email = sanitizeInput(body.email || '').toLowerCase();
@@ -192,11 +224,9 @@ export async function PUT(request: NextRequest) {
     );
   } catch (error) {
     console.error('OTP doğrulama hatası:', error);
-    await securityDelay();
     return NextResponse.json(
-      { success: false, message: GENERIC_SUCCESS_MESSAGE },
+      { success: false, message: 'İşlem tamamlandı' },
       { status: 200 }
     );
   }
 }
-

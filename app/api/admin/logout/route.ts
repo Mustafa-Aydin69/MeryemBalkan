@@ -1,22 +1,35 @@
+// Render uyumluluğu için Node.js runtime ve dynamic rendering zorla
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
-import { ADMIN_CONFIG } from '@/app/lib/admin-config';
 
 // POST: Admin logout
 export async function POST(request: NextRequest) {
-  const response = NextResponse.json(
-    { success: true, message: 'Çıkış yapıldı' },
-    { status: 200 }
-  );
+  try {
+    // Runtime'da import
+    const { ADMIN_CONFIG } = await import('@/app/lib/admin-config');
 
-  // Cookie'yi temizle
-  response.cookies.set(ADMIN_CONFIG.COOKIE.NAME, '', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    path: '/',
-    maxAge: 0, // Hemen sil
-  });
+    const response = NextResponse.json(
+      { success: true, message: 'Çıkış yapıldı' },
+      { status: 200 }
+    );
 
-  return response;
+    // Cookie'yi temizle
+    response.cookies.set(ADMIN_CONFIG.COOKIE.NAME, '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/',
+      maxAge: 0,
+    });
+
+    return response;
+  } catch (error) {
+    console.error('Logout hatası:', error);
+    return NextResponse.json(
+      { success: false, message: 'Çıkış yapılamadı' },
+      { status: 500 }
+    );
+  }
 }
-

@@ -1,5 +1,3 @@
-import { ADMIN_CONFIG } from './admin-config';
-
 // In-memory rate limiter (production'da Redis kullanılmalı)
 interface RateLimitEntry {
   attempts: number;
@@ -7,18 +5,52 @@ interface RateLimitEntry {
   lockedUntil?: number;
 }
 
-const rateLimitStore = new Map<string, RateLimitEntry>();
+// Global store
+declare global {
+  // eslint-disable-next-line no-var
+  var __rateLimitStore: Map<string, RateLimitEntry> | undefined;
+  // eslint-disable-next-line no-var
+  var __rateLimitCleanupInitialized: boolean | undefined;
+}
 
-// Store'u temizle (memory leak önlemi)
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of rateLimitStore.entries()) {
-    // 2 saatten eski kayıtları temizle
-    if (now - entry.firstAttempt > 2 * 60 * 60 * 1000) {
-      rateLimitStore.delete(key);
+// Lazy initialization
+function getRateLimitStore(): Map<string, RateLimitEntry> {
+  if (!global.__rateLimitStore) {
+    global.__rateLimitStore = new Map<string, RateLimitEntry>();
+  }
+  return global.__rateLimitStore;
+}
+
+// Config'i lazy load et
+function getAdminConfig() {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { ADMIN_CONFIG } = require('./admin-config');
+  return ADMIN_CONFIG;
+}
+
+// Cleanup interval'ı güvenli şekilde başlat
+function initCleanup() {
+  if (typeof global !== 'undefined' && !global.__rateLimitCleanupInitialized) {
+    global.__rateLimitCleanupInitialized = true;
+    
+    if (typeof setInterval !== 'undefined') {
+      setInterval(() => {
+        try {
+          const rateLimitStore = getRateLimitStore();
+          const now = Date.now();
+          
+          for (const [key, entry] of rateLimitStore.entries()) {
+            if (now - entry.firstAttempt > 2 * 60 * 60 * 1000) {
+              rateLimitStore.delete(key);
+            }
+          }
+        } catch {
+          // Build time'da hata olursa sessizce geç
+        }
+      }, 60 * 1000);
     }
   }
-}, 60 * 1000); // Her dakika temizle
+}
 
 export type RateLimitType = 'OTP_REQUEST' | 'OTP_VERIFY' | 'LOGIN';
 
@@ -34,10 +66,13 @@ export function checkRateLimit(
   type: RateLimitType,
   ipAddress?: string
 ): RateLimitResult {
+  initCleanup();
+  
+  const rateLimitStore = getRateLimitStore();
+  const ADMIN_CONFIG = getAdminConfig();
   const config = ADMIN_CONFIG.RATE_LIMIT[type];
   const now = Date.now();
   
-  // IP + identifier kombinasyonu için key oluştur
   const key = `${type}:${identifier}:${ipAddress || 'unknown'}`;
   
   let entry = rateLimitStore.get(key);
@@ -70,7 +105,6 @@ export function checkRateLimit(
   
   // Limit kontrolü
   if (entry.attempts >= config.MAX_ATTEMPTS) {
-    // Lockout uygula
     let lockoutDuration = ADMIN_CONFIG.LOCKOUT.LOCKOUT_15_MIN;
     
     if (entry.attempts >= ADMIN_CONFIG.LOCKOUT.ATTEMPTS_FOR_1_HOUR) {
@@ -99,6 +133,7 @@ export function incrementRateLimit(
   type: RateLimitType,
   ipAddress?: string
 ): void {
+  const rateLimitStore = getRateLimitStore();
   const key = `${type}:${identifier}:${ipAddress || 'unknown'}`;
   const now = Date.now();
   
@@ -121,6 +156,7 @@ export function resetRateLimit(
   type: RateLimitType,
   ipAddress?: string
 ): void {
+  const rateLimitStore = getRateLimitStore();
   const key = `${type}:${identifier}:${ipAddress || 'unknown'}`;
   rateLimitStore.delete(key);
 }
@@ -139,4 +175,3 @@ export function getClientIP(request: Request): string {
   
   return 'unknown';
 }
-

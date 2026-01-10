@@ -2,7 +2,8 @@
 import Link from 'next/link';
 import LoginModal from '../components/LoginModal';
 import { useState, useEffect, useRef } from 'react';
-import { createClient } from "@supabase/supabase-js"
+import { createClient } from "@supabase/supabase-js";
+import { createSlug } from '../utils/slugUtils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -78,21 +79,6 @@ export default function Portfolio() {
 
     fetchProducts();
   }, []);
-
-  const createSlug = (id: number, title: string) => {
-    const slug = title
-      .toLowerCase()
-      .replace(/ş/g, 's')
-      .replace(/ğ/g, 'g')
-      .replace(/ü/g, 'u')
-      .replace(/ö/g, 'o')
-      .replace(/ç/g, 'c')
-      .replace(/ı/g, 'i')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-
-    return `${id}-${slug}`;
-  };
 
   const filteredItems = activeFilter === 'all'
     ? products

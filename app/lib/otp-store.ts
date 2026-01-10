@@ -1,5 +1,3 @@
-import { ADMIN_CONFIG } from './admin-config';
-
 // In-memory OTP store (production'da Redis kullanılmalı)
 interface OTPEntry {
   code: string;
@@ -14,21 +12,57 @@ declare global {
   var __otpStore: Map<string, OTPEntry> | undefined;
   // eslint-disable-next-line no-var
   var __verificationTokenStore: Map<string, { email: string; createdAt: number }> | undefined;
+  // eslint-disable-next-line no-var
+  var __otpCleanupInitialized: boolean | undefined;
 }
 
-const otpStore = global.__otpStore || new Map<string, OTPEntry>();
-global.__otpStore = otpStore;
+// Lazy initialization - sadece runtime'da çalışır
+function getOTPStore(): Map<string, OTPEntry> {
+  if (!global.__otpStore) {
+    global.__otpStore = new Map<string, OTPEntry>();
+  }
+  return global.__otpStore;
+}
 
-// Store'u temizle (memory leak önlemi)
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of otpStore.entries()) {
-    // Süresi dolmuş OTP'leri temizle
-    if (now - entry.createdAt > ADMIN_CONFIG.OTP.EXPIRES_IN * 2) {
-      otpStore.delete(key);
+function getVerificationTokenStore(): Map<string, { email: string; createdAt: number }> {
+  if (!global.__verificationTokenStore) {
+    global.__verificationTokenStore = new Map<string, { email: string; createdAt: number }>();
+  }
+  return global.__verificationTokenStore;
+}
+
+// Config'i lazy load et (build time'da çalışmasın)
+function getOTPConfig() {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { ADMIN_CONFIG } = require('./admin-config');
+  return ADMIN_CONFIG.OTP;
+}
+
+// Cleanup interval'ı güvenli şekilde başlat (sadece runtime'da)
+function initCleanup() {
+  if (typeof global !== 'undefined' && !global.__otpCleanupInitialized) {
+    global.__otpCleanupInitialized = true;
+    
+    // Sadece server-side'da çalışsın
+    if (typeof setInterval !== 'undefined') {
+      setInterval(() => {
+        try {
+          const otpStore = getOTPStore();
+          const config = getOTPConfig();
+          const now = Date.now();
+          
+          for (const [key, entry] of otpStore.entries()) {
+            if (now - entry.createdAt > config.EXPIRES_IN * 2) {
+              otpStore.delete(key);
+            }
+          }
+        } catch {
+          // Build time'da hata olursa sessizce geç
+        }
+      }, 60 * 1000);
     }
   }
-}, 60 * 1000); // Her dakika temizle
+}
 
 // Güvenli rastgele OTP oluştur
 export function generateSecureOTP(): string {
@@ -40,7 +74,10 @@ export function generateSecureOTP(): string {
 
 // OTP kaydet
 export function storeOTP(email: string, code: string): void {
+  initCleanup();
+  const otpStore = getOTPStore();
   const key = email.toLowerCase();
+  
   otpStore.set(key, {
     code,
     email: key,
@@ -51,6 +88,8 @@ export function storeOTP(email: string, code: string): void {
 
 // OTP doğrula
 export function verifyOTP(email: string, code: string): boolean {
+  const otpStore = getOTPStore();
+  const config = getOTPConfig();
   const key = email.toLowerCase();
   const entry = otpStore.get(key);
   
@@ -59,7 +98,7 @@ export function verifyOTP(email: string, code: string): boolean {
   }
   
   // Süre kontrolü
-  if (Date.now() - entry.createdAt > ADMIN_CONFIG.OTP.EXPIRES_IN) {
+  if (Date.now() - entry.createdAt > config.EXPIRES_IN) {
     otpStore.delete(key);
     return false;
   }
@@ -83,6 +122,8 @@ export function verifyOTP(email: string, code: string): boolean {
 
 // OTP doğrulama durumunu kontrol et
 export function isOTPVerified(email: string): boolean {
+  const otpStore = getOTPStore();
+  const config = getOTPConfig();
   const key = email.toLowerCase();
   const entry = otpStore.get(key);
   
@@ -91,7 +132,7 @@ export function isOTPVerified(email: string): boolean {
   }
   
   // Süre kontrolü
-  if (Date.now() - entry.createdAt > ADMIN_CONFIG.OTP.EXPIRES_IN) {
+  if (Date.now() - entry.createdAt > config.EXPIRES_IN) {
     otpStore.delete(key);
     return false;
   }
@@ -101,15 +142,16 @@ export function isOTPVerified(email: string): boolean {
 
 // OTP temizle
 export function clearOTP(email: string): void {
+  const otpStore = getOTPStore();
   const key = email.toLowerCase();
   otpStore.delete(key);
 }
 
 // Doğrulama session token oluştur (OTP doğrulandıktan sonra şifre adımı için)
-const verificationTokenStore = global.__verificationTokenStore || new Map<string, { email: string; createdAt: number }>();
-global.__verificationTokenStore = verificationTokenStore;
-
 export function createVerificationToken(email: string): string {
+  initCleanup();
+  const verificationTokenStore = getVerificationTokenStore();
+  
   const array = new Uint8Array(32);
   crypto.getRandomValues(array);
   const token = Array.from(array)
@@ -125,6 +167,7 @@ export function createVerificationToken(email: string): string {
 }
 
 export function validateVerificationToken(token: string): string | null {
+  const verificationTokenStore = getVerificationTokenStore();
   const entry = verificationTokenStore.get(token);
   
   if (!entry) {
@@ -141,6 +184,6 @@ export function validateVerificationToken(token: string): string | null {
 }
 
 export function clearVerificationToken(token: string): void {
+  const verificationTokenStore = getVerificationTokenStore();
   verificationTokenStore.delete(token);
 }
-

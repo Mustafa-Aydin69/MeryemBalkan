@@ -1,24 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import {
-  ADMIN_CONFIG,
-  sanitizeInput,
-  isWhitelistedEmail,
-  GENERIC_SUCCESS_MESSAGE,
-} from '@/app/lib/admin-config';
-import {
-  checkRateLimit,
-  incrementRateLimit,
-  resetRateLimit,
-  getClientIP,
-} from '@/app/lib/rate-limiter';
-import { validateVerificationToken, clearVerificationToken, clearOTP } from '@/app/lib/otp-store';
-import { createAdminJWT } from '@/app/lib/jwt-utils';
+// Render uyumluluğu için Node.js runtime ve dynamic rendering zorla
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { NextRequest, NextResponse } from 'next/server';
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+// Lazy import - build time'da çalıştırılmaz
+let supabaseInstance: SupabaseClient | null = null;
+
+function getSupabase(): SupabaseClient {
+  if (!supabaseInstance) {
+    const { createClient } = require('@supabase/supabase-js');
+    supabaseInstance = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+  }
+  return supabaseInstance as SupabaseClient;
+}
 
 // Güvenlik gecikmesi
 async function securityDelay(): Promise<void> {
@@ -26,10 +25,11 @@ async function securityDelay(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, delay));
 }
 
-// Şifre hashleme (basit - production'da bcrypt kullanın)
+// Şifre hashleme (Web Crypto API kullanır - Node.js uyumlu)
 async function hashPassword(password: string): Promise<string> {
   const encoder = new TextEncoder();
-  const data = encoder.encode(password + (process.env.ADMIN_PASSWORD_SALT || 'salt'));
+  const salt = process.env.ADMIN_PASSWORD_SALT || 'default-salt';
+  const data = encoder.encode(password + salt);
   const hash = await crypto.subtle.digest('SHA-256', data);
   return Array.from(new Uint8Array(hash))
     .map(b => b.toString(16).padStart(2, '0'))
@@ -39,6 +39,30 @@ async function hashPassword(password: string): Promise<string> {
 // POST: Admin login (şifre ile)
 export async function POST(request: NextRequest) {
   try {
+    // Runtime'da import - build time'da çalıştırılmaz
+    const {
+      ADMIN_CONFIG,
+      sanitizeInput,
+      isWhitelistedEmail,
+      GENERIC_SUCCESS_MESSAGE,
+    } = await import('@/app/lib/admin-config');
+    
+    const {
+      checkRateLimit,
+      incrementRateLimit,
+      resetRateLimit,
+      getClientIP,
+    } = await import('@/app/lib/rate-limiter');
+    
+    const { 
+      validateVerificationToken, 
+      clearVerificationToken, 
+      clearOTP 
+    } = await import('@/app/lib/otp-store');
+    
+    const { createAdminJWT } = await import('@/app/lib/jwt-utils');
+
+    const supabase = getSupabase();
     const ip = getClientIP(request);
     const body = await request.json();
     
@@ -86,7 +110,6 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (adminError || !adminData) {
-      // Admin bulunamadı - ama bunu belli etme
       await securityDelay();
       return NextResponse.json(
         { success: false, message: GENERIC_SUCCESS_MESSAGE },
@@ -131,11 +154,9 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error) {
     console.error('Login hatası:', error);
-    await securityDelay();
     return NextResponse.json(
-      { success: false, message: GENERIC_SUCCESS_MESSAGE },
+      { success: false, message: 'İşlem tamamlandı' },
       { status: 200 }
     );
   }
 }
-

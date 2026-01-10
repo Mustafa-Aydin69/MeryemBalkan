@@ -7,6 +7,65 @@ import { motion } from "framer-motion";
 import DatePicker from "react-datepicker";
 import { tr } from "date-fns/locale";
 
+// Renk isimleri -> CSS renk kodu eşleştirmesi
+const colorMap: Record<string, string> = {
+  // Temel renkler
+  'Siyah': '#000000',
+  'Beyaz': '#FFFFFF',
+  'Kırmızı': '#DC2626',
+  'Mavi': '#2563EB',
+  'Lacivert': '#1E3A5F',
+  'Yeşil': '#16A34A',
+  'Sarı': '#EAB308',
+  'Turuncu': '#EA580C',
+  'Mor': '#9333EA',
+  'Pembe': '#EC4899',
+  'Gri': '#6B7280',
+  'Kahverengi': '#92400E',
+  'Bej': '#D4B896',
+  'Krem': '#FFFDD0',
+  'Bordo': '#800020',
+  'Altın': '#FFD700',
+  'Gümüş': '#C0C0C0',
+  'Bronz': '#CD7F32',
+  'Turkuaz': '#40E0D0',
+  'Eflatun': '#9966CC',
+  'Fuşya': '#FF00FF',
+  'Mercan': '#FF7F50',
+  'Zümrüt': '#50C878',
+  'Mürdüm': '#6B3A6B',
+  'Petrol': '#006064',
+  'Hardal': '#FFDB58',
+  'Kiremit': '#CB4154',
+  'Şampanya': '#F7E7CE',
+  'Pudra': '#F5D0C5',
+  'Mint': '#98FF98',
+  'Lila': '#C8A2C8',
+  'İndigo': '#4B0082',
+  'Kobalt': '#0047AB',
+  'Vizon': '#8B7355',
+};
+
+// Renk adından CSS renk kodunu al
+const getColorCode = (colorName: string): string => {
+  // Tam eşleşme ara
+  if (colorMap[colorName]) return colorMap[colorName];
+  
+  // Küçük harfle ara
+  const lowerName = colorName.toLowerCase();
+  for (const [key, value] of Object.entries(colorMap)) {
+    if (key.toLowerCase() === lowerName) return value;
+  }
+  
+  // Kısmi eşleşme ara (ör: "Açık Mavi" -> "Mavi")
+  for (const [key, value] of Object.entries(colorMap)) {
+    if (colorName.includes(key) || key.includes(colorName)) return value;
+  }
+  
+  // Varsayılan gri
+  return '#9CA3AF';
+};
+
 interface Product {
   id: number;
   title: string;
@@ -368,20 +427,36 @@ export default function ProductDetail({
 
               {/* Color Selection */}
               <div>
-                <h3 className={`font-medium mb-3 ${isDarkMode ? 'text-white' : 'text-black'}`}>Renk:  {selectedColor || 'Seçiniz'}</h3>
-                <div className="flex gap-3">
-                  {product.colors.map((color) => (
-                    <button
-                      key={color}
-                      onClick={() => setSelectedColor(color)}
-                      className={`w-12 h-12 rounded-full border-2 flex items-center justify-center text-xs font-medium ${selectedColor === color
-                        ? (isDarkMode ? 'border-white bg-gray-700 text-white' : 'border-black bg-gray-100')
-                        : (isDarkMode ? 'border-gray-600 hover:border-gray-400' : 'border-gray-300 hover:border-gray-400')
-                        } cursor-pointer`}
-                    >
-                      {color.substring(0, 2)}
-                    </button>
-                  ))}
+                <h3 className={`font-medium mb-3 ${isDarkMode ? 'text-white' : 'text-black'}`}>Renk: {selectedColor || 'Seçiniz'}</h3>
+                <div className="flex gap-3 flex-wrap">
+                  {product.colors.map((color) => {
+                    const colorCode = getColorCode(color);
+                    const isLight = ['Beyaz', 'Krem', 'Şampanya', 'Sarı', 'Pudra', 'Bej'].some(
+                      c => color.toLowerCase().includes(c.toLowerCase())
+                    );
+                    
+                    return (
+                      <button
+                        key={color}
+                        onClick={() => setSelectedColor(color)}
+                        title={color}
+                        className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer relative
+                          ${selectedColor === color
+                            ? 'ring-2 ring-offset-2 ring-black dark:ring-white'
+                            : 'hover:scale-110'
+                          }`}
+                        style={{ 
+                          backgroundColor: colorCode,
+                          boxShadow: '0 0 0 1px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,255,255,0.1)'
+                        }}
+                      >
+                        {/* Seçili işareti */}
+                        {selectedColor === color && (
+                          <i className={`ri-check-line text-lg ${isLight ? 'text-black' : 'text-white'}`} style={{ textShadow: isLight ? 'none' : '0 1px 2px rgba(0,0,0,0.5)' }}></i>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -395,7 +470,7 @@ export default function ProductDetail({
                       onClick={() => setSelectedSize(size)}
                       className={`py-3 text-center border ${selectedSize === size
                         ? (isDarkMode ? 'border-white bg-white text-black' : 'border-black bg-black text-white')
-                        : (isDarkMode ? 'border-gray-600 hover:border-gray-400 text-white' : 'border-gray-300 hover:border-gray-400')
+                        : (isDarkMode ? 'border-gray-600 hover:border-gray-400 text-white' : 'border-gray-300 hover:border-gray-400 text-black')
                         } cursor-pointer whitespace-nowrap rounded-full`}
                     >
                       {size}
