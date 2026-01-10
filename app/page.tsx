@@ -1,7 +1,14 @@
 'use client';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import LoginModal from './components/LoginModal';
 import { useState, useEffect, useRef } from 'react';
+
+// Admin login bileşenini lazy load yap - sadece tetik varsa yüklensin
+const SecureAdminLogin = dynamic(
+  () => import('./components/SecureAdminLogin'),
+  { ssr: false, loading: () => null }
+);
 
 export default function Home() {
   const [visibleImages, setVisibleImages] = useState<Set<number>>(new Set());
@@ -10,13 +17,16 @@ export default function Home() {
   const [isClient, setIsClient] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
-  const [displayText, setDisplayText] = useState('GELİNLİK'); // Başlangıç değeri sabit
+  const [displayText, setDisplayText] = useState('GELİNLİK');
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  const [typingStarted, setTypingStarted] = useState(false); // Yazı başlama kontrolü
+  const [typingStarted, setTypingStarted] = useState(false);
   const [hasCartItems, setHasCartItems] = useState(false);
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [adminTriggerActive, setAdminTriggerActive] = useState(false);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const productObserverRef = useRef<IntersectionObserver | null>(null);
+  
 
   const typingWords = [
     { text: 'GELİNLİK', color: 'text-pink-400' },
@@ -81,6 +91,21 @@ export default function Home() {
     },
   ];
 
+  // Admin tetik kontrolü - cookie ile (middleware'den gelir)
+  useEffect(() => {
+    // Cookie kontrolü - admin_entry_verified varsa aktif et
+    const cookies = document.cookie.split(';');
+    const hasAdminEntry = cookies.some(cookie => 
+      cookie.trim().startsWith('admin_entry_verified=true')
+    );
+    
+    if (hasAdminEntry) {
+      setAdminTriggerActive(true);
+      // Cookie'yi temizle (tek kullanımlık)
+      document.cookie = 'admin_entry_verified=; path=/; max-age=0';
+    }
+  }, []);
+
   useEffect(() => {
     setIsClient(true);
     const savedTheme = localStorage.getItem('theme');
@@ -89,21 +114,15 @@ export default function Home() {
       document.documentElement.classList.add('dark');
     }
 
-    // Sepet durumunu kontrol et
     const checkCartItems = () => {
       const cartItems = JSON.parse(localStorage.getItem('cartItems') || '[]');
       setHasCartItems(cartItems.length > 0);
     };
 
     checkCartItems();
-
-    // Storage değişikliklerini dinle
     window.addEventListener('storage', checkCartItems);
-
-    // Custom event dinle
     window.addEventListener('cartUpdated', checkCartItems);
 
-    // Typing efektini başlat
     setTimeout(() => {
       setTypingStarted(true);
     }, 1000);
@@ -122,19 +141,15 @@ export default function Home() {
 
     const typeWriter = () => {
       if (!isDeleting) {
-        // Typing
         if (displayText.length < targetText.length) {
           setDisplayText(targetText.substring(0, displayText.length + 1));
         } else {
-          // Word complete, wait then start deleting
           setTimeout(() => setIsDeleting(true), 2000);
         }
       } else {
-        // Deleting
         if (displayText.length > 0) {
           setDisplayText(displayText.substring(0, displayText.length - 1));
         } else {
-          // Deletion complete, move to next word
           setIsDeleting(false);
           setCurrentWordIndex((prev) => (prev + 1) % typingWords.length);
         }
@@ -161,7 +176,6 @@ export default function Home() {
   useEffect(() => {
     if (!isClient) return;
 
-    // IMAGE OBSERVER (hero)
     observerRef.current = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -177,7 +191,6 @@ export default function Home() {
       }
     );
 
-    // PRODUCT OBSERVER (ürün kartları için – logic korunuyor)
     productObserverRef.current = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -232,18 +245,17 @@ export default function Home() {
     }
   };
 
-  // Hydration hatası için güvenli scroll kontrolü
   const showNavBackground = isClient && scrollY > (typeof window !== 'undefined' ? window.innerHeight * 0.8 : 800);
+  
   if (!isClient) {
     return null;
   }
-  // Hydration hatası düzeltmesi için suppressHydrationWarning
+
   return (
     <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'dark bg-gray-900' : 'bg-white'}`} suppressHydrationWarning={true}>
       {/* Navigation */}
       <nav className={`fixed top-0 left-0 right-0 z-20 transition-all duration-200 ${showNavBackground ? (isDarkMode ? 'bg-gray-900/90 backdrop-blur border-b border-gray-700' : 'bg-white/90 backdrop-blur border-b border-gray-200') : 'bg-transparent'}`}>
         <div className="flex flex-col items-center px-4 sm:px-6 md:px-8 py-3 sm:py-4 md:py-6 w-full max-w-7xl mx-auto">
-          {/* Üst Satır: Dark Mode Toggle - Meryem Balkan - Sepet + Giriş */}
           <div className="flex justify-between items-center w-full mb-2 sm:mb-3 md:mb-4 gap-3">
             <button
               onClick={toggleTheme}
@@ -275,7 +287,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Alt Satır: Menü Öğeleri */}
           <div className="flex flex-wrap justify-center gap-x-4 sm:gap-x-6 md:gap-x-8 gap-y-2 text-xs sm:text-sm font-medium tracking-wide">
             <Link href="/" className={`cursor-pointer transition-colors font-light whitespace-nowrap ${showNavBackground ? (isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600') : 'text-white hover:text-gray-300'}`}>ANASAYFA</Link>
             <Link href="/portfolio" className={`cursor-pointer transition-colors font-light whitespace-nowrap ${showNavBackground ? (isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600') : 'text-white hover:text-gray-300'}`}>ELBİSELER</Link>
@@ -285,7 +296,7 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* Hero Images - Vertical Scroll */}
+      {/* Hero Images */}
       <section className="relative">
         {heroImages.map((image, index) => (
           <div
@@ -293,7 +304,6 @@ export default function Home() {
             data-image-id={image.id}
             className="relative h-[100dvh] sm:h-screen overflow-hidden"
           >
-            {/* Background Video or Image with Reveal Animation */}
             <div className="absolute inset-0">
               <div
                 className={`absolute inset-0 bg-black transition-all duration-[4000ms] ease-out z-10 ${visibleImages.has(image.id) ? 'opacity-0' : 'opacity-100'}`}
@@ -317,7 +327,6 @@ export default function Home() {
               <div className="absolute inset-0 bg-black/40 sm:bg-black/30"></div>
             </div>
 
-            {/* Content */}
             <div className="relative z-10 flex items-center justify-center h-full px-4 sm:px-6 md:px-8">
               <div className={`text-center text-white max-w-[90%] sm:max-w-2xl mx-auto px-0 sm:px-2 md:px-4 transition-all duration-[4000ms] delay-[1000ms] ease-out ${visibleImages.has(image.id) ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'} break-words`}>
                 {image.id === 0 ? (
@@ -430,12 +439,35 @@ export default function Home() {
         </div>
       </footer>
 
-      {/* Login Modal */}
+      {/* Normal Login Modal - Admin butonu kaldırıldı */}
       <LoginModal
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
         isDarkMode={isDarkMode}
       />
+
+      {/* Secure Admin Login - SADECE ?mb-admin=true ile açılır */}
+      {adminTriggerActive && (
+        <SecureAdminLogin
+          isOpen={showAdminLogin}
+          onClose={() => setShowAdminLogin(false)}
+        />
+      )}
+      
+      {/* Gizli admin tetikleyici - sadece URL parametresi varsa görünür */}
+      {adminTriggerActive && !showAdminLogin && (
+        <button
+          onClick={() => setShowAdminLogin(true)}
+          className="fixed bottom-4 right-4 w-12 h-12 opacity-10 hover:opacity-100 transition-opacity z-50 flex items-center justify-center"
+          aria-label="Yetkili Erişim"
+        >
+          <img 
+            src="/images/Anasayfa/Meryem_Balkan_Logo.jpg" 
+            alt="" 
+            className="w-full h-full object-contain rounded-full"
+          />
+        </button>
+      )}
     </div>
   );
 }

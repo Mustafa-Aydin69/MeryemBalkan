@@ -165,7 +165,7 @@ function createReplyEmailTemplate(customerName, replyMessage, originalMessage, s
             Her anınızı özel kılmak için buradayız
           </div>
           <div class="contact-info">
-            <a href="mailto:info@meryembalkan.com" class="contact-link">info@meryembalkan.com</a>
+            <a href="mailto:meryembalkantasarimatolye@gmail.com" class="contact-link">meryembalkantasarimatolye@gmail.com</a>
           </div>
           <div class="footer-text" style="margin-top: 20px;">
             © 2025 Meryem Balkan. Tüm hakları saklıdır.

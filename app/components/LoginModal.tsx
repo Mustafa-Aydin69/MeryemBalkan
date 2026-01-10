@@ -23,11 +23,9 @@ interface Order {
 }
 
 export default function LoginModal({ isOpen, onClose, isDarkMode }: LoginModalProps) {
-  const [step, setStep] = useState<'email' | 'verification' | 'orders' | 'admin'>('email');
+  const [step, setStep] = useState<'email' | 'verification' | 'orders'>('email');
   const [email, setEmail] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
-  const [adminUsername, setAdminUsername] = useState('');
-  const [adminPassword, setAdminPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -50,8 +48,6 @@ export default function LoginModal({ isOpen, onClose, isDarkMode }: LoginModalPr
     setStep('email');
     setEmail('');
     setVerificationCode('');
-    setAdminUsername('');
-    setAdminPassword('');
     setError('');
     setIsLoading(false);
     setOrders([]);
@@ -155,34 +151,6 @@ export default function LoginModal({ isOpen, onClose, isDarkMode }: LoginModalPr
     }
   };
 
-  const handleAdminLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
-
-    if (!adminUsername || !adminPassword) {
-      setError('Kullanıcı adı ve şifre gereklidir');
-      setIsLoading(false);
-      return;
-    }
-
-    // Demo için admin girişi
-    if (adminUsername === 'admin' && adminPassword === 'password') {
-      localStorage.setItem('admin', JSON.stringify({
-        username: adminUsername,
-        loginTime: new Date().toISOString(),
-        isLoggedIn: true
-      }));
-
-      handleClose();
-      router.push('/admin');
-    } else {
-      setError('Kullanıcı adı veya şifre hatalı');
-    }
-
-    setIsLoading(false);
-  };
-
   const getStatusText = (status: string) => {
     switch (status) {
       case 'pending': return 'Beklemede';
@@ -213,7 +181,6 @@ export default function LoginModal({ isOpen, onClose, isDarkMode }: LoginModalPr
               {step === 'email' && 'Giriş Yap'}
               {step === 'verification' && 'Doğrulama Kodu'}
               {step === 'orders' && 'Siparişlerim'}
-              {step === 'admin' && 'Admin Girişi'}
             </h3>
             <button
               onClick={handleClose}
@@ -265,81 +232,7 @@ export default function LoginModal({ isOpen, onClose, isDarkMode }: LoginModalPr
                 </div>
               </form>
 
-              {/* Admin Girişi Bölümü */}
-              <div className="mt-8 pt-6 transition-colors">
-                <div className="text-center">
-                  <button
-                    onClick={() => setStep('admin')}
-                    className={`text-sm italic cursor-pointer transition-colors ${isDarkMode
-                      ? 'text-gray-300 hover:text-white'
-                      : 'text-gray-600 hover:text-black'
-                      }`}
-                  >
-                    Meryem Balkan
-                  </button>
-                </div>
-              </div>
             </>
-          )}
-
-          {/* Admin Step */}
-          {step === 'admin' && (
-            <form onSubmit={handleAdminLogin} className="space-y-6">
-              {error && (
-                <div className={`p-4 rounded border transition-colors ${isDarkMode ? 'bg-red-900 border-red-700 text-red-200' : 'bg-red-50 border-red-200 text-red-800'}`}>
-                  <i className="ri-error-warning-line mr-2"></i>
-                  {error}
-                </div>
-              )}
-
-              <div>
-                <label htmlFor="adminUsername" className={`block text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                  Kullanıcı Adı *
-                </label>
-                <input
-                  type="text"
-                  id="adminUsername"
-                  value={adminUsername}
-                  onChange={(e) => setAdminUsername(e.target.value)}
-                  required
-                  placeholder="Admin kullanıcı adı"
-                  className={`w-full px-4 py-3 border focus:outline-none text-sm transition-colors ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-white placeholder-gray-400' : 'bg-white border-gray-300 text-black focus:border-black placeholder-gray-500'}`}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="adminPassword" className={`block text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                  Şifre *
-                </label>
-                <input
-                  type="password"
-                  id="adminPassword"
-                  value={adminPassword}
-                  onChange={(e) => setAdminPassword(e.target.value)}
-                  required
-                  placeholder="Admin şifresi"
-                  className={`w-full px-4 py-3 border focus:outline-none text-sm transition-colors ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-white placeholder-gray-400' : 'bg-white border-gray-300 text-black focus:border-black placeholder-gray-500'}`}
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={isLoading}
-                className={`w-full py-4 tracking-wide font-medium transition-colors whitespace-nowrap rounded-full ${isLoading ? 'bg-gray-400 text-white cursor-not-allowed' : (isDarkMode ? 'bg-white text-black hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-800')}`}
-              >
-                {isLoading ? 'GİRİŞ YAPILIYOR...' : 'ADMİN GİRİŞİ YAP'}
-              </button>
-
-              <div className="text-center">
-                <button
-                  type="button"
-                  onClick={() => setStep('email')}
-                  className={`text-sm underline cursor-pointer transition-colors ${isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-black'}`}
-                >
-                  Kullanıcı Girişine Dön
-                </button>
-              </div>
-            </form>
           )}
 
           {/* Verification Step */}

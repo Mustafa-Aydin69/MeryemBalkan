@@ -1,12 +1,11 @@
-import { jsPDF } from "jspdf";
+import jsPDF from "jspdf";
 import { supabase } from "../../utils/supabaseClient";
 import { NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
 
-// Türkçe karakterleri temizle
+// Türkçe karakterleri temizleme fonksiyonu
 function cleanTurkishText(text) {
-  if (!text) return text;
+  if (!text) return "";
+  text = String(text);
   const map = {
     'ı': 'i', 'İ': 'I', 'ş': 's', 'Ş': 'S',
     'ğ': 'g', 'Ğ': 'G', 'ü': 'u', 'Ü': 'U',
@@ -15,11 +14,18 @@ function cleanTurkishText(text) {
   return text.replace(/[ıİşŞğĞüÜöÖçÇ]/g, char => map[char] || char);
 }
 
+// Para birimi formatlama
+function formatCurrency(amount) {
+  return Number(amount).toFixed(2).replace('.', ',') + " TL";
+}
+
 export async function POST(req) {
   try {
     const { orderId } = await req.json();
-    if (!orderId)
+
+    if (!orderId) {
       return NextResponse.json({ message: "orderId eksik" }, { status: 400 });
+    }
 
     // === 1. Sipariş verisini çek ===
     const { data: order, error } = await supabase
@@ -28,191 +34,223 @@ export async function POST(req) {
       .eq("id", orderId)
       .single();
 
-    if (error || !order)
+    if (error || !order) {
       return NextResponse.json({ message: "Sipariş bulunamadı" }, { status: 404 });
+    }
 
-    // === 2. jsPDF oluştur ===
+    // === 2. jsPDF-AutoTable'ı dinamik olarak import et ===
+    const autoTable = (await import("jspdf-autotable")).default;
+    
+    // === 3. jsPDF Başlat ===
     const doc = new jsPDF({ unit: "mm", format: "a4" });
 
-    // Arka plan
-    doc.setFillColor(233, 236, 248);
-    doc.rect(0, 0, 210, 297, "F");
+    // Font ayarı
+    doc.setFont("helvetica");
 
-    // Beyaz içerik kutusu
-    doc.setFillColor(255, 255, 255);
-    doc.roundedRect(10, 10, 190, 277, 3, 3, "F");
-
-    // === LOGO ===
-    const logoPath = path.join(
-      process.cwd(),
-      "public",
-      "images",
-      "AnaSayfa",
-      "Meryem_Balkan_Logo.jpg"
-    );
-    const logoBuffer = await fs.readFile(logoPath);
-    const base64Logo = logoBuffer.toString("base64");
-    doc.addImage(`data:image/jpeg;base64,${base64Logo}`, "JPEG", 20, 20, 25, 25);
-
-    // === BAŞLIK KISMI ===
+    // === 4. HEADER (GÖNDERİCİ BİLGİLERİ - SOL ÜST) ===
+    doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.text("MERYEM BALKAN", 50, 26);
-    doc.text("TASARIM", 50, 32);
-    doc.text(cleanTurkishText("ATÖLYESI"), 50, 38);
+    doc.text(cleanTurkishText("MERYEM BALKAN TASARIM ATOLYESI"), 14, 20);
 
-    doc.setFontSize(20);
-    doc.text("FATURA", 190, 28, { align: "right" });
-
-    // Şirket bilgileri
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
-    doc.text(cleanTurkishText("Atatürk Mah. Gazi Bulvarı No: 12"), 20, 52);
-    doc.text(cleanTurkishText("10100 Karesi/Balıkesir"), 20, 57);
-    doc.text("+0 212 123 24 25", 20, 62);
-    doc.text("merhaba@harikasite.web.tr", 20, 67);
+    const senderAddress = [
+      cleanTurkishText("Ataturk Mah. Gazi Bulvari No: 12"),
+      cleanTurkishText("10100 Karesi/Balikesir"),
+      "Tel: +90 212 123 24 25",
+      "Web: www.meryembalkan.com | E-Posta: merhaba@meryembalkan.com",
+      cleanTurkishText("Vergi Dairesi: KARESI | VKN: 11111111111"),
+      "MERSISNO: 0111111111100015"
+    ];
 
-    // Fatura No ve Tarih
-    const tarih = new Date(order.orderDate || Date.now()).toLocaleDateString("tr-TR", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
+    let senderY = 26;
+    senderAddress.forEach(line => {
+      doc.text(line, 14, senderY);
+      senderY += 4;
     });
-    doc.setFontSize(8);
-    doc.text(`Fatura No: ${String(order.id).padStart(3, "0")}`, 190, 52, { align: "right" });
-    doc.text(cleanTurkishText(`Duzenlenme Tarihi: ${tarih}`), 190, 57, { align: "right" });
 
-    // === ALICI BİLGİLERİ ===
+    // === 5. e-ARŞİV FATURA LOGOSU (SAĞ ÜST) ===
+    doc.setFontSize(16);
+    doc.setTextColor(255, 0, 0);
     doc.setFont("helvetica", "bold");
+    doc.text(cleanTurkishText("e-ARSIV FATURA"), 150, 20);
+    doc.setTextColor(0, 0, 0);
+
+    // === 6. FATURA DETAYLARI TABLOSU ===
+    const siparisTarihi = new Date(order.orderDate || Date.now());
+    const tarihStr = siparisTarihi.toLocaleDateString("tr-TR");
+    const saatStr = siparisTarihi.toLocaleTimeString("tr-TR", { hour: '2-digit', minute: '2-digit' });
+
+    autoTable(doc, {
+      startY: 25,
+      margin: { left: 120 },
+      theme: 'plain',
+      styles: {
+        fontSize: 8,
+        cellPadding: 1,
+        font: "helvetica"
+      },
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 35 },
+        1: { cellWidth: 40 }
+      },
+      body: [
+        [cleanTurkishText("Ozellestirme No:"), "TR1.2"],
+        [cleanTurkishText("Senaryo:"), "EARSIVFATURA"],
+        [cleanTurkishText("Fatura Tipi:"), "SATIS"],
+        [cleanTurkishText("Fatura No:"), `FAT${new Date().getFullYear()}${String(order.id).padStart(5, '0')}`],
+        [cleanTurkishText("Fatura Tarihi:"), `${tarihStr} ${saatStr}`],
+        [cleanTurkishText("Duzenlenme Tarihi:"), tarihStr],
+        ["ETTN:", crypto.randomUUID().toUpperCase()]
+      ]
+    });
+
+    // === 7. ALICI BİLGİLERİ ===
+    const customerStartY = doc.lastAutoTable.finalY + 10;
+
     doc.setFontSize(10);
-    doc.text(cleanTurkishText("ALICI BILGILERI"), 20, 80);
-
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    
-    let currentY = 88;
-    
-    // Müşteri adı
-    const customerName = cleanTurkishText(order.customerName || "Musteri Adi");
-    const wrappedName = doc.splitTextToSize(customerName, 170);
-    doc.text(wrappedName, 20, currentY);
-    currentY += wrappedName.length * 5;
-    
-    // Adres
-    const address = cleanTurkishText(order.address || "Adres bilgisi bulunamadi");
-    const wrappedAddress = doc.splitTextToSize(address, 170);
-    doc.text(wrappedAddress, 20, currentY);
-    currentY += wrappedAddress.length * 5;
-    
-    // Email
-    doc.text(order.email || "-", 20, currentY);
-    currentY += 5;
-    
-    // Telefon
-    doc.text(order.phone || "", 20, currentY);
-    currentY += 5;
+    doc.text("SAYIN", 14, customerStartY);
 
-    // === TABLO ===
-    const tableStartY = currentY + 10;
-    doc.setFontSize(8);
     doc.setFont("helvetica", "bold");
-    doc.text("ACIKLAMA", 20, tableStartY);
-    doc.text("RENK", 85, tableStartY);
-    doc.text("BEDEN", 110, tableStartY);
-    doc.text("ETKINLIK", 135, tableStartY);
-    doc.text("FIYAT", 190, tableStartY, { align: "right" });
+    doc.text(cleanTurkishText(order.customerName || "Musteri Adi").toUpperCase(), 14, customerStartY + 5);
 
-    doc.setLineWidth(0.3);
-    doc.line(20, tableStartY + 2, 190, tableStartY + 2);
-
-    // Ürün satırı
-    let y = tableStartY + 8;
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
+    doc.setFontSize(9);
 
-    // Ürün adını wrap et
-    const productName = cleanTurkishText(order.productName || "Urun Adi Yok");
-    const wrappedProduct = doc.splitTextToSize(productName, 60);
-    doc.text(wrappedProduct, 20, y);
+    const addressLines = doc.splitTextToSize(cleanTurkishText(order.address || "Adres bilgisi yok"), 80);
+    doc.text(addressLines, 14, customerStartY + 10);
 
-    // Diğer sütunlar
-    doc.text(cleanTurkishText(order.color || "-"), 85, y);
-    doc.text(order.size || "-", 110, y);
-    
-    // Etkinlik tarihi
-    const eventDateShort = new Date(order.eventDate).toLocaleDateString("tr-TR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric"
+    let infoY = customerStartY + 10 + (addressLines.length * 4);
+    doc.text(`Tel: ${order.phone || "-"}`, 14, infoY);
+    infoY += 4;
+    doc.text(`E-Posta: ${order.email || "-"}`, 14, infoY);
+    infoY += 4;
+    doc.text(`TCKN/VKN: 11111111111`, 14, infoY);
+
+    // === 8. ÜRÜN TABLOSU ===
+    const birimFiyat = Number(order.price) || 0;
+    const miktar = 1;
+    const kdvOrani = 0.20;
+
+    const kdvDahilTutar = birimFiyat * miktar;
+    const matrah = kdvDahilTutar / (1 + kdvOrani);
+    const kdvTutari = kdvDahilTutar - matrah;
+
+    const columns = [
+      { header: 'Sira', dataKey: 'id' },
+      { header: cleanTurkishText('Malzeme/Hizmet Kodu'), dataKey: 'code' },
+      { header: cleanTurkishText('Aciklama'), dataKey: 'desc' },
+      { header: 'Miktar', dataKey: 'qty' },
+      { header: 'Birim Fiyat', dataKey: 'price' },
+      { header: 'KDV', dataKey: 'vatRate' },
+      { header: 'KDV Tutari', dataKey: 'vatAmt' },
+      { header: 'Tutar (KDV Haric)', dataKey: 'total' },
+    ];
+
+    let urunAciklamasi = cleanTurkishText(order.productName || "Urun");
+    if (order.color) urunAciklamasi += ` - ${cleanTurkishText(order.color)}`;
+    if (order.size) urunAciklamasi += ` (${order.size})`;
+
+    const tableData = [
+      {
+        id: "1",
+        code: "HIZMET-001",
+        desc: urunAciklamasi,
+        qty: `${miktar} Adet`,
+        price: formatCurrency(matrah),
+        vatRate: "%20",
+        vatAmt: formatCurrency(kdvTutari),
+        total: formatCurrency(matrah)
+      }
+    ];
+
+    autoTable(doc, {
+      columns: columns,
+      body: tableData,
+      startY: infoY + 10,
+      theme: 'grid',
+      headStyles: {
+        fillColor: [240, 240, 240],
+        textColor: 0,
+        fontStyle: 'bold',
+        lineWidth: 0.1,
+        lineColor: 200
+      },
+      styles: {
+        fontSize: 8,
+        halign: 'center',
+        textColor: 0,
+        lineWidth: 0.1,
+        lineColor: 200,
+        font: "helvetica"
+      },
+      columnStyles: {
+        desc: { halign: 'left' },
+        price: { halign: 'right' },
+        vatAmt: { halign: 'right' },
+        total: { halign: 'right' }
+      }
     });
-    doc.text(eventDateShort || "-", 135, y);
-    
-    doc.text(`${Number(order.price).toFixed(2)} TL`, 190, y, { align: "right" });
 
-    // Ürün adı birden fazla satırsa y pozisyonunu ayarla
-    y += Math.max(wrappedProduct.length * 5, 5);
-    doc.line(20, y + 2, 190, y + 2);
+    // === 9. TOPLAMLAR ===
+    const finalY = doc.lastAutoTable.finalY + 5;
 
-    // === TOPLAM ALANI ===
-    y += 15;
-    const toplamFiyat = Number(order.price) || 0;
-    const kdv = toplamFiyat * 0.18;
-    const genelToplam = toplamFiyat + kdv;
+    autoTable(doc, {
+      startY: finalY,
+      margin: { left: 130 },
+      theme: 'plain',
+      styles: {
+        fontSize: 9,
+        cellPadding: 1,
+        halign: 'right',
+        font: "helvetica"
+      },
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 40 },
+        1: { cellWidth: 30 }
+      },
+      body: [
+        [cleanTurkishText("Malzeme/Hizmet Toplam:"), formatCurrency(matrah)],
+        [cleanTurkishText("Toplam Iskonto:"), "0,00 TL"],
+        [cleanTurkishText("Hesaplanan KDV (%20):"), formatCurrency(kdvTutari)],
+        [
+          { content: cleanTurkishText("Odenecek Tutar:"), styles: { fontStyle: 'bold' } }, 
+          { content: formatCurrency(kdvDahilTutar), styles: { fontStyle: 'bold' } }
+        ]
+      ]
+    });
+
+    // === 10. ALT BİLGİLER ===
+    const textY = doc.lastAutoTable.finalY + 10;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+
+    doc.text(cleanTurkishText(`Yazi ile: #${formatCurrency(kdvDahilTutar)}#`), 14, textY);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
-    doc.text("ARA TOPLAM :", 135, y);
-    doc.text(`${toplamFiyat.toFixed(2)} TL`, 190, y, { align: "right" });
 
-    y += 6;
-    doc.text("KDV (18%) :", 135, y);
-    doc.text(`${kdv.toFixed(2)} TL`, 190, y, { align: "right" });
+    doc.text(cleanTurkishText("NOT: Bu belge fatura yerine gecer."), 14, textY + 10);
+    doc.text(cleanTurkishText(`Odeme Yontemi: Kredi Karti`), 14, textY + 15);
 
-    y += 10;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.text("TOPLAM FIYAT :", 135, y);
-    doc.text(`${genelToplam.toFixed(2)} TL`, 190, y, { align: "right" });
-
-    // === ÖDEME BİLGİLERİ ===
-    y += 20;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.text(cleanTurkishText("ODEME BILGISI"), 20, y);
-
-    y += 7;
+    doc.text("BANKA IBAN:", 14, textY + 25);
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.text(cleanTurkishText("Odeme Yontemi: Kredi Karti"), 20, y);
-    y += 5;
-    doc.text(cleanTurkishText("Odeme Durumu: Tamamlandi"), 20, y);
-    y += 5;
-    doc.text(cleanTurkishText("Islem Tarihi: " + new Date(order.orderDate || Date.now()).toLocaleDateString("tr-TR")), 20, y);
+    doc.text("TR00 0000 0000 0000 0000 0000 00 - MERYEM BALKAN", 14, textY + 30);
 
-    // Alt not
-    doc.setFont("helvetica", "italic");
-    doc.setFontSize(7);
-    const not = cleanTurkishText(
-      "*Bu fatura sistem tarafindan otomatik olusturulmustur. Herhangi bir imza veya onay gerektirmez."
-    );
-    const wrapped = doc.splitTextToSize(not, 70);
-    doc.text(wrapped, 125, y - 8);
-
-    // Alt teşekkür
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.text(cleanTurkishText("BIZI TERCIH ETTIGINIZ ICIN TESEKKUR EDERIZ."), 105, 282, { align: "center" });
-
-    // === PDF ÇIKTISI ===
+    // === PDF OLUŞTUR VE GÖNDER ===
     const pdfBytes = doc.output("arraybuffer");
+
     return new NextResponse(pdfBytes, {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `inline; filename=fatura_${order.id}.pdf`,
       },
     });
+
   } catch (err) {
     console.error("Fatura olusturma hatasi:", err);
-    return NextResponse.json({ message: "Sunucu hatasi" }, { status: 500 });
+    return NextResponse.json({ message: "Sunucu hatasi: " + err.message }, { status: 500 });
   }
 }
