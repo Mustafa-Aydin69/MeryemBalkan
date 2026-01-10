@@ -1,24 +1,11 @@
 'use client';
 import Link from 'next/link';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import LoginModal from '../../components/LoginModal';
 import { addToCart } from '../../utils/cartUtils';
-import { createClient } from "@supabase/supabase-js";
 import { motion } from "framer-motion";
 import DatePicker from "react-datepicker";
 import { tr } from "date-fns/locale";
-
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
-const IMAGE_BASE_URL = "https://orplwznpdpwnyflkbuoy.supabase.co/storage/v1/object/public/urunler/";
-
-interface ProductDetailProps {
-  productId: string;
-}
 
 interface Product {
   id: number;
@@ -34,14 +21,30 @@ interface Product {
   category: string;
 }
 
-export default function ProductDetail({ productId }: ProductDetailProps) {
-  const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
+interface RelatedProduct {
+  id: number;
+  title: string;
+  collection: string;
+  price: number;
+  images: string;
+  slug: string;
+}
+
+interface ProductDetailProps {
+  product: Product | null;
+  relatedProducts: RelatedProduct[];
+  disabledDates: string[]; // ISO string formatında
+}
+
+export default function ProductDetail({ 
+  product, 
+  relatedProducts, 
+  disabledDates: disabledDatesStr 
+}: ProductDetailProps) {
   const [selectedSize, setSelectedSize] = useState('');
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [selectedColor, setSelectedColor] = useState('');
   const [date, setDate] = useState<Date | null>(null);
-  const [disabledDates, setDisabledDates] = useState<Date[]>([]);
   const [hasCartItems, setHasCartItems] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -56,126 +59,14 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
     message: string;
     type: 'success' | 'error' | 'warning';
   } | null>(null);
-  const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
   const [fullscreen, setFullscreen] = useState(false);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
-  // Ürün verilerini Supabase'den çek
-  useEffect(() => {
-    const fetchProduct = async () => {
-      setLoading(true);
 
-      const { data, error } = await supabase
-        .from("urunler")
-        .select("*")
-        .eq("id", productId)
-        .eq("status", "Yayında")
-        .single();
-
-      if (error) {
-        console.error("Ürün alınamadı:", error);
-        setLoading(false);
-        return;
-      }
-
-      if (!data) {
-        console.log("Ürün bulunamadı");
-        setLoading(false);
-        return;
-      }
-
-      // Veriyi dönüştür
-      const mappedProduct: Product = {
-        id: data.id,
-        title: data.title,
-        collection: data.collection,
-        year: data.year,
-        price: data.price,
-        description: data.description || 'Size özel tasarlanmış zarif elbise.',
-        features: data.features && data.features.length > 0
-          ? data.features
-          : ['Özel tasarım', 'Kaliteli kumaş', 'Profesyonel işçilik'],
-        size: data.size && data.size.length > 0
-          ? data.size
-          : ['36', '38', '40', '42'],
-        colors: data.colors && data.colors.length > 0
-          ? data.colors
-          : ['Siyah', 'Lacivert'],
-        images: data.images && data.images.length > 0
-          ? data.images.map((img: string) => `${IMAGE_BASE_URL}${img}`)
-          : ['/images/AnaSayfa/Meryem_Balkan_Logo.jpg'],
-        category: data.category,
-      };
-
-
-      setProduct(mappedProduct);
-      setLoading(false);
-
-      // İlgili ürünleri çek
-      fetchRelatedProducts(data.category, data.id);
-    };
-
-    fetchProduct();
-  }, [productId]);
-  //Günleri çek
-  useEffect(() => {
-    if (!product) return;
-
-    const fetchDisabledDates = async () => {
-      const { data, error } = await supabase
-        .from("siparisler")
-        .select("eventDate")
-        .eq("productName", product.title);
-
-      if (error) {
-        console.error("Tarih bilgileri alınamadı:", error);
-        return;
-      }
-
-      if (data) {
-        const blocked: Date[] = [];
-
-        data.forEach(({ eventDate }) => {
-          if (!eventDate) return;
-          const event = new Date(eventDate);
-          for (let i = -7; i <= 7; i++) {
-            const d = new Date(event);
-            d.setDate(event.getDate() + i);
-            blocked.push(d);
-          }
-        });
-
-        setDisabledDates(blocked);
-      }
-    };
-
-    fetchDisabledDates();
-  }, [product]);
-
-  // İlgili ürünleri çek
-  const fetchRelatedProducts = async (category: string, currentId: number) => {
-    const { data, error } = await supabase
-      .from("urunler")
-      .select("*")
-      .eq("category", category)
-      .eq("status", "Yayında")
-      .neq("id", currentId)
-      .limit(4);
-
-    if (data) {
-      const mapped = data.map((item: any) => ({
-        id: item.id,
-        title: item.title,
-        collection: item.collection,
-        price: item.price,
-        images: item.images && Array.isArray(item.images) && item.images.length > 0
-          ? `${IMAGE_BASE_URL}${item.images[0]}`
-          : '/images/AnaSayfa/Meryem_Balkan_Logo.jpg',
-        slug: `${item.id}-${item.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`
-      }));
-      setRelatedProducts(mapped);
-    }
-  };
+  // String tarihlerini Date objelerine çevir (memoized)
+  const disabledDates = useMemo(() => {
+    return disabledDatesStr.map(d => new Date(d));
+  }, [disabledDatesStr]);
 
   useEffect(() => {
     setIsClient(true);
@@ -188,6 +79,7 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
     const checkCartItems = () => {
       const cartItems = JSON.parse(localStorage.getItem('cartItems') || '[]');
       setCartItemCount(cartItems.length);
+      setHasCartItems(cartItems.length > 0);
     };
 
     checkCartItems();
@@ -278,14 +170,6 @@ export default function ProductDetail({ productId }: ProductDetailProps) {
   };
 
   const showNavBackground = isClient && scrollY > 200;
-
-  if (loading) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-black'}`}>
-        <p>Yükleniyor...</p>
-      </div>
-    );
-  }
 
   if (!product) {
     return (
