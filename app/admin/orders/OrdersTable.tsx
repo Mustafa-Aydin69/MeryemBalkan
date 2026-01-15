@@ -67,8 +67,10 @@ export default function OrdersTable({
       const group = groupMap.get(key)!;
       group.orders.push(order);
       
-      // Toplam harcamayı hesapla
-      const price = parseFloat(order.price?.toString().replace(/[^\d.,]/g, '').replace(',', '.') || '0');
+      // Toplam harcamayı hesapla (Türk formatı: 18.000 veya 18.000,50)
+      // Önce noktaları kaldır (binlik ayraç), sonra virgülü noktaya çevir (ondalık ayraç)
+      const priceStr = order.price?.toString().replace(/[^\d.,]/g, '') || '0';
+      const price = parseFloat(priceStr.replace(/\./g, '').replace(',', '.') || '0');
       group.totalSpent += price;
     });
 

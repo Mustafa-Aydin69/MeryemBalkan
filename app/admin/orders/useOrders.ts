@@ -117,8 +117,11 @@ export function useOrders() {
       case 'Hazırlanıyor':
         return 'bg-blue-100 text-blue-700';
       case 'Kargoya Verildi':
+      case 'Kirada':
         return 'bg-orange-100 text-orange-700';
       case 'Teslim Edildi':
+      case 'Tamamlandı':
+      case 'Sipariş Tamamlandı':
         return 'bg-green-100 text-green-700';
       case 'İptal Edildi':
         return 'bg-red-100 text-red-700';
@@ -128,8 +131,15 @@ export function useOrders() {
   };
 
   const handleEditOrder = (order: Order) => {
+    // Veritabanından gelen status değerini UI'daki değere çevir
+    let uiStatus = order.status;
+    if (order.status === "Tamamlandı") {
+      uiStatus = "Sipariş Tamamlandı";
+    }
+
     setEditingOrder({
       ...order,
+      status: uiStatus,
       originalStatus: order.status,
       shippingCode: order.shippingCode || "",
     });
@@ -142,11 +152,17 @@ export function useOrders() {
   const handleUpdateOrder = async () => {
     if (!editingOrder) return;
 
+    // Status dönüşümü: UI'daki değeri veritabanı değerine çevir
+    let dbStatus = editingOrder.status;
+    if (editingOrder.status === "Sipariş Tamamlandı") {
+      dbStatus = "Tamamlandı";
+    }
+
     const updateData: any = {
-      status: editingOrder.status,
+      status: dbStatus,
     };
 
-    if (editingOrder.status === "Kargoya Verildi") {
+    if (editingOrder.status === "Kirada") {
       updateData.shippingCode =
         editingOrder.shippingCode !== undefined
           ? editingOrder.shippingCode
@@ -167,8 +183,8 @@ export function useOrders() {
       return;
     }
 
-    // E-posta gönder (Kargoya Verildi durumunda)
-    if (editingOrder.status === "Kargoya Verildi" && editingOrder.shippingCode) {
+    // E-posta gönder (Kirada durumunda)
+    if (editingOrder.status === "Kirada" && editingOrder.shippingCode) {
       try {
         console.log("📦 Kargo maili gönderiliyor...");
 

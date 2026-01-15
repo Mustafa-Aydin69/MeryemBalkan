@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import LoginModal from '../components/LoginModal';
 import { useState, useEffect } from 'react';
 
@@ -15,6 +16,7 @@ interface CartItem {
 }
 
 export default function Checkout() {
+  const router = useRouter();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [scrollY, setScrollY] = useState(0);
@@ -23,6 +25,8 @@ export default function Checkout() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [billingAddressOption, setBillingAddressOption] = useState<'same' | 'different'>('same');
   const [loadingPrices, setLoadingPrices] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     email: '',
     firstName: '',
@@ -31,7 +35,7 @@ export default function Checkout() {
     city: '',
     postalCode: '',
     phone: '',
-    country: '',
+    country: 'Türkiye',
     district: '',
   });
 
@@ -127,14 +131,108 @@ export default function Checkout() {
 
   const showNavBackground = isClient && scrollY > 50;
 
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    // Hata varsa temizle
+    if (formErrors[name]) {
+      setFormErrors((prev) => ({ ...prev, [name]: '' }));
+    }
   };
 
-  const handleSubmit = (e) => {
+  // Tüm alanların dolu olup olmadığını kontrol et
+  const isFormComplete = (): boolean => {
+    return (
+      formData.firstName.trim() !== '' &&
+      formData.lastName.trim() !== '' &&
+      formData.address.trim() !== '' &&
+      formData.district.trim() !== '' &&
+      formData.city.trim() !== '' &&
+      formData.postalCode.trim() !== '' &&
+      formData.phone.trim() !== '' &&
+      formData.email.trim() !== '' &&
+      deliveryMethod !== '' &&
+      cartItems.length > 0
+    );
+  };
+
+  // Form validasyonu
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+
+    if (!formData.firstName.trim()) errors.firstName = 'Ad zorunludur';
+    if (!formData.lastName.trim()) errors.lastName = 'Soyad zorunludur';
+    if (!formData.address.trim()) errors.address = 'Adres zorunludur';
+    if (!formData.district.trim()) errors.district = 'İlçe zorunludur';
+    if (!formData.city.trim()) errors.city = 'Şehir zorunludur';
+    if (!formData.postalCode.trim()) errors.postalCode = 'Posta kodu zorunludur';
+    if (!formData.phone.trim()) {
+      errors.phone = 'Telefon numarası zorunludur';
+    } else if (!/^[0-9\s]{10,15}$/.test(formData.phone.replace(/\D/g, ''))) {
+      errors.phone = 'Geçerli bir telefon numarası giriniz';
+    }
+    if (!formData.email.trim()) {
+      errors.email = 'E-posta adresi zorunludur';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = 'Geçerli bir e-posta adresi giriniz';
+    }
+    if (!deliveryMethod) errors.deliveryMethod = 'Teslimat yöntemi seçiniz';
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Order data:', { deliveryMethod, formData, cartItems });
+    
+    // Form validasyonu
+    if (!validateForm()) {
+      // İlk hatalı alana scroll
+      const firstError = document.querySelector('[data-error="true"]');
+      firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Sipariş verilerini hazırla
+      const orderData = {
+        customer: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          phone: formData.phone,
+          email: formData.email,
+        },
+        shippingAddress: {
+          address: formData.address,
+          district: formData.district,
+          city: formData.city,
+          postalCode: formData.postalCode,
+          country: formData.country,
+        },
+        billingAddress: billingAddressOption === 'same' 
+          ? null // Aynı adres
+          : formData, // Farklı adres (şimdilik aynı formData)
+        deliveryMethod,
+        items: cartItems,
+        subtotal,
+        shippingCost,
+        totalPrice,
+        createdAt: new Date().toISOString(),
+      };
+
+      // Sipariş verilerini localStorage'a kaydet (ödeme sayfasında kullanılacak)
+      localStorage.setItem('pendingOrder', JSON.stringify(orderData));
+
+      // Ödeme sayfasına yönlendir
+      router.push('/odeme');
+    } catch (error) {
+      console.error('Sipariş oluşturma hatası:', error);
+      setFormErrors({ submit: 'Bir hata oluştu. Lütfen tekrar deneyin.' });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // ✅ Teslimat ücreti
@@ -647,6 +745,29 @@ export default function Checkout() {
                         }`}
                     />
                   </div>
+
+                  <div>
+                    <label
+                      htmlFor="email"
+                      className={`block text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'
+                        }`}
+                    >
+                      E-posta Adresi *
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      required
+                      placeholder="ornek@email.com"
+                      className={`w-full px-4 py-3 border focus:outline-none text-sm transition-colors ${isDarkMode
+                        ? 'bg-gray-800 border-gray-600 text-white focus:border-white placeholder:text-gray-400'
+                        : 'bg-white border-gray-300 text-black focus:border-black placeholder:text-gray-500'
+                        }`}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -1065,8 +1186,8 @@ export default function Checkout() {
                   {/* Sipariş Tamamla Butonu */}
                   <button
                     onClick={handleSubmit}
-                    disabled={cartItems.length === 0 || !deliveryMethod}
-                    className={`w-full py-4 px-8 rounded-full font-medium transition-colors whitespace-nowrap ${cartItems.length === 0 || !deliveryMethod
+                    disabled={!isFormComplete() || isSubmitting}
+                    className={`w-full py-4 px-8 rounded-full font-medium transition-colors whitespace-nowrap flex items-center justify-center gap-2 ${!isFormComplete() || isSubmitting
                       ? isDarkMode
                         ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                         : 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -1075,7 +1196,17 @@ export default function Checkout() {
                         : 'bg-black text-white hover:bg-gray-900'
                       }`}
                   >
-                    Siparişi Tamamla
+                    {isSubmitting ? (
+                      <>
+                        <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        İşleniyor...
+                      </>
+                    ) : (
+                      'Ödemeye Geç'
+                    )}
                   </button>
                   {/* Bilgilendirme yazısı */}
                   <div className="mt-3 flex flex-col items-center text-center">

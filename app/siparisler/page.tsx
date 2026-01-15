@@ -33,7 +33,8 @@ export default function OrdersPage() {
 
         // Siparişleri yükle
         loadOrders(userEmail);
-    }, [router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // 🔹 Supabase’den mail adresine göre sipariş çekme
     const loadOrders = async (email: string) => {

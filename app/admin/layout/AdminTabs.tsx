@@ -1,6 +1,6 @@
 'use client';
 
-type TabType = 'orders' | 'products' | 'messages';
+type TabType = 'orders' | 'products' | 'messages' | 'rentals';
 
 interface AdminTabsProps {
   activeTab: TabType;
@@ -11,6 +11,7 @@ export default function AdminTabs({ activeTab, setActiveTab }: AdminTabsProps) {
   const tabs: { key: TabType; label: string }[] = [
     { key: 'orders', label: 'SİPARİŞLER' },
     { key: 'products', label: 'ÜRÜN YÖNETİMİ' },
+    { key: 'rentals', label: 'KİRA YÖNETİMİ' },
     { key: 'messages', label: 'MESAJLAR' },
   ];
 

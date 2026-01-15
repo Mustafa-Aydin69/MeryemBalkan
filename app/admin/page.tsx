@@ -6,8 +6,9 @@ import AdminTabs from './layout/AdminTabs';
 import OrdersPage from './orders/OrdersPage';
 import ProductsPage from './products/ProductsPage';
 import MessagesPage from './messages/MessagesPage';
+import KiraYonetimi from './rentals/KiraYonetimi';
 
-type TabType = 'orders' | 'products' | 'messages';
+type TabType = 'orders' | 'products' | 'messages' | 'rentals';
 
 export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState<TabType>('orders');
@@ -52,6 +53,7 @@ export default function AdminPanel() {
         <div className="max-w-7xl mx-auto">
           {activeTab === 'orders' && <OrdersPage />}
           {activeTab === 'products' && <ProductsPage />}
+          {activeTab === 'rentals' && <KiraYonetimi />}
           {activeTab === 'messages' && <MessagesPage />}
         </div>
       </main>

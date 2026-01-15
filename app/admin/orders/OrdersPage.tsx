@@ -231,8 +231,8 @@ export default function OrdersPage() {
                 <div className="space-y-2">
                   {[
                     { status: 'Hazırlanıyor', icon: 'ri-time-line', color: 'blue' },
-                    { status: 'Kargoya Verildi', icon: 'ri-truck-line', color: 'orange' },
-                    { status: 'Teslim Edildi', icon: 'ri-check-double-line', color: 'green' },
+                    { status: 'Kirada', icon: 'ri-truck-line', color: 'orange' },
+                    { status: 'Sipariş Tamamlandı', icon: 'ri-check-double-line', color: 'green' },
                     { status: 'İptal Edildi', icon: 'ri-close-circle-line', color: 'red' },
                   ].map(({ status, icon, color }) => (
                     <button
@@ -260,7 +260,7 @@ export default function OrdersPage() {
               </div>
 
               {/* Kargo Kodu Alanı */}
-              {editingOrder.status === 'Kargoya Verildi' && (
+              {editingOrder.status === 'Kirada' && (
                 <div>
                   <label className="block text-sm font-medium mb-2 text-white">
                     Kargo Kodu
