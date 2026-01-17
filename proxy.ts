@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 // JWT doğrulama için basit implementasyon (Edge Runtime uyumlu)
-async function verifyJWTInMiddleware(token: string, secret: string): Promise<{
+async function verifyJWTInProxy(token: string, secret: string): Promise<{
   valid: boolean;
   payload?: {
     email: string;
@@ -73,7 +73,7 @@ async function verifyJWTInMiddleware(token: string, secret: string): Promise<{
   }
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Admin giriş key kontrolü - ör: /kH3qWNsLhXenlHAs6EcZjeanfbEMmeupSY8phWghVBw=
@@ -103,7 +103,7 @@ export async function middleware(request: NextRequest) {
 
     // JWT doğrula
     const secret = process.env.ADMIN_JWT_SECRET || 'fallback-secret-change-in-production';
-    const result = await verifyJWTInMiddleware(token, secret);
+    const result = await verifyJWTInProxy(token, secret);
 
     // Token geçersizse
     if (!result.valid || !result.payload) {
