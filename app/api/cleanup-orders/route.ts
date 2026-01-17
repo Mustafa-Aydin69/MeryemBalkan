@@ -1,7 +1,10 @@
+// Sipariş temizleme API - Server-side
+// Service Role Key ile RLS bypass eder
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdmin } from "@/app/lib/supabaseAdmin";
 
 export async function POST(request: Request) {
   try {
@@ -15,10 +18,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = getSupabaseAdmin();
 
     // Sadece "Ödeme Yapıyor" durumundaki siparişleri sil
     const { error } = await supabase

@@ -2,12 +2,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,  
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!    
-);
 
 export default function OrdersPage() {
     const [isDarkMode, setIsDarkMode] = useState(true);
@@ -38,20 +32,27 @@ export default function OrdersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // 🔹 Supabase’den mail adresine göre sipariş çekme
+    // 🔹 API route üzerinden mail adresine göre sipariş çekme
     const loadOrders = async (email: string) => {
         setIsLoading(true);
-        const { data, error } = await supabase
-            .from('siparisler')
-            .select('*')
-            .eq('email', email)
-            .order('orderDate', { ascending: false });
+        try {
+            const response = await fetch('/api/my-orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email }),
+            });
 
-        if (error) {
-            console.error('Siparişler alınamadı:', error.message);
+            const result = await response.json();
+
+            if (!response.ok || result.error) {
+                console.error('Siparişler alınamadı:', result.error);
+                setOrders([]);
+            } else {
+                setOrders(result.data || []);
+            }
+        } catch (error) {
+            console.error('Siparişler alınamadı:', error);
             setOrders([]);
-        } else {
-            setOrders(data || []);
         }
         setIsLoading(false);
     };
