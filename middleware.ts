@@ -77,7 +77,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Admin giriş key kontrolü - ör: /kH3qWNsLhXenlHAs6EcZjeanfbEMmeupSY8phWghVBw=
-  const adminEntryKey = process.env.NEXT_PUBLIC_ADMIN_ENTRY_KEY;
+  const adminEntryKey = process.env.ADMIN_ENTRY_KEY;
   if (adminEntryKey && pathname === `/${adminEntryKey}`) {
     // Key doğru - ana sayfaya yönlendir ve cookie set et
     const response = NextResponse.redirect(new URL('/', request.url));
