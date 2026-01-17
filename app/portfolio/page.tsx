@@ -54,8 +54,8 @@ export default function Portfolio() {
         return;
       }
 
-      const IMAGE_BASE_URL =
-        "https://orplwznpdpwnyflkbuoy.supabase.co/storage/v1/object/public/urunler/";
+      // Cloudflare R2 storage URL
+      const IMAGE_BASE_URL = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || "https://cdn.meryembalkan.com.tr/urunler/";
 
       const mapped = data.map((item: any) => ({
         id: item.id,
@@ -226,7 +226,8 @@ export default function Portfolio() {
   };
 
   const getImageUrl = (item: any, index: number) => {
-    const IMAGE_BASE_URL = "https://orplwznpdpwnyflkbuoy.supabase.co/storage/v1/object/public/urunler/";
+    // Cloudflare R2 storage URL
+    const IMAGE_BASE_URL = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || "https://cdn.meryembalkan.com.tr/urunler/";
     if (!item.images || !item.images[index]) {
       return "/images/AnaSayfa/Meryem_Balkan_Logo.jpg";
     }

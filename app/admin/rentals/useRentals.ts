@@ -12,8 +12,8 @@ import {
 
 const CACHE_KEY: CacheKey = 'rentals';
 
-// Supabase storage base URL
-const IMAGE_BASE_URL = 'https://orplwznpdpwnyflkbuoy.supabase.co/storage/v1/object/public/urunler/';
+// Cloudflare R2 storage URL
+const IMAGE_BASE_URL = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || 'https://cdn.meryembalkan.com.tr/urunler/';
 const FALLBACK_IMAGE = '/images/Anasayfa/Meryem_Balkan_Logo.jpg';
 
 // ==================== DATA MODEL ====================

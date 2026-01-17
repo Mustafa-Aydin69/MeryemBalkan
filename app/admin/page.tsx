@@ -18,7 +18,7 @@ export default function AdminPanel() {
   useEffect(() => {
     setIsClient(true);
     // Dark mode'u her zaman aktif et
-    document.documentElement.classList.add('dark');
+      document.documentElement.classList.add('dark');
   }, []);
 
   useEffect(() => {
@@ -40,7 +40,7 @@ export default function AdminPanel() {
       <nav
         className={`fixed top-0 left-0 right-0 z-20 transition-all duration-300 bg-gray-900 ${
           showNavBackground ? 'shadow-lg' : ''
-        }`}
+          }`}
       >
         <div className="flex flex-col items-center px-4 md:px-8 py-4 md:py-5">
           <AdminHeader />
@@ -57,6 +57,6 @@ export default function AdminPanel() {
           {activeTab === 'messages' && <MessagesPage />}
         </div>
       </main>
-    </div>
+              </div>
   );
 }

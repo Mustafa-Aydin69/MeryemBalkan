@@ -7,6 +7,23 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/app/lib/supabaseAdmin';
 import { cookies } from 'next/headers';
+import { S3Client, DeleteObjectsCommand } from '@aws-sdk/client-s3';
+
+// R2 Client oluştur
+function getR2Client() {
+  if (!process.env.R2_ENDPOINT || !process.env.R2_ACCESS_KEY_ID || !process.env.R2_SECRET_ACCESS_KEY) {
+    throw new Error("R2 environment variables are missing");
+  }
+
+  return new S3Client({
+    region: 'auto',
+    endpoint: process.env.R2_ENDPOINT,
+    credentials: {
+      accessKeyId: process.env.R2_ACCESS_KEY_ID,
+      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+    },
+  });
+}
 
 // JWT doğrulama
 async function verifyAdminToken(request: NextRequest): Promise<boolean> {
@@ -192,18 +209,34 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: fetchError.message }, { status: 500 });
     }
 
-    // Storage'dan resimleri sil
+    // Cloudflare R2'den resimleri sil
     if (productData?.images && Array.isArray(productData.images) && productData.images.length > 0) {
-      const { error: storageError } = await supabase.storage
-        .from('urunler')
-        .remove(productData.images);
+      try {
+        if (!process.env.R2_BUCKET_NAME) {
+          throw new Error("R2_BUCKET_NAME is missing");
+        }
 
-      if (storageError) {
-        console.warn('Bazı fotoğraflar silinemedi:', storageError.message);
+        const r2 = getR2Client();
+        const bucketName = process.env.R2_BUCKET_NAME;
+
+        // Object keys: urunler/<fileName> formatında
+        const objectKeys = productData.images.map((fileName: string) => ({ Key: `urunler/${fileName}` }));
+
+        const deleteCommand = new DeleteObjectsCommand({
+          Bucket: bucketName,
+          Delete: {
+            Objects: objectKeys,
+          },
+        });
+
+        await r2.send(deleteCommand);
+      } catch (r2Error: any) {
+        console.warn('R2\'den fotoğraflar silinemedi:', r2Error.message);
+        // R2 silme başarısız olsa bile ürünü silmeye devam et
       }
     }
 
-    // Ürünü sil
+    // Ürünü veritabanından sil
     const { error } = await supabase
       .from('urunler')
       .delete()

@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { Product } from './useProducts';
 
-// Supabase storage base URL
-const IMAGE_BASE_URL = "https://orplwznpdpwnyflkbuoy.supabase.co/storage/v1/object/public/urunler/";
+// Cloudflare R2 storage URL
+const IMAGE_BASE_URL = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || "https://cdn.meryembalkan.com.tr/urunler/";
 
 // Ürün görseli bileşeni - farklı veri formatlarını handle eder
 function ProductImage({ images, title }: { images: string[] | string | undefined; title: string }) {

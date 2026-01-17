@@ -41,7 +41,9 @@ export default function ProductsPage() {
     handleEditInputChange,
     handleEditImageUpload,
     handleEditImageRemove,
+    isDeletingImage,
     handleUpdateProduct,
+    cancelEditProduct,
     // Delete product
     isDeleteModalOpen,
     setIsDeleteModalOpen,
@@ -547,7 +549,7 @@ export default function ProductsPage() {
                   Ürün Düzenle
                 </h3>
                 <button
-                  onClick={() => setEditingProduct(null)}
+                  onClick={cancelEditProduct}
                   className="w-8 h-8 flex items-center justify-center rounded cursor-pointer hover:bg-gray-700 text-white"
                 >
                   <i className="ri-close-line text-lg"></i>
@@ -758,8 +760,8 @@ export default function ProductsPage() {
                                     <button
                                       type="button"
                                       onClick={() => handleEditImageRemove(index)}
-                                      className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center cursor-pointer transition-all opacity-0 group-hover:opacity-100 shadow-md bg-red-600 text-white hover:bg-red-700"
-                                      title="Fotoğrafı Sil"
+                                      className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center cursor-pointer transition-all shadow-md opacity-0 group-hover:opacity-100 bg-red-600 text-white hover:bg-red-700"
+                                      title="Fotoğrafı Kaldır (Güncelle'ye basınca silinir)"
                                     >
                                       <i className="ri-close-line text-xs"></i>
                                     </button>
@@ -824,16 +826,22 @@ export default function ProductsPage() {
               {/* Alt Butonlar */}
               <div className="flex flex-col sm:flex-row gap-3 mt-6">
                 <button
-                  onClick={() => setEditingProduct(null)}
+                  onClick={cancelEditProduct}
                   className="flex-1 py-2.5 sm:py-3 px-4 rounded-full border font-medium border-gray-600 text-white hover:bg-gray-700"
                 >
                   İptal
                 </button>
                 <button
                   onClick={handleUpdateProduct}
-                  className="flex-1 py-2.5 sm:py-3 px-4 rounded-full font-medium bg-white text-black hover:bg-gray-100"
+                  disabled={isDeletingImage}
+                  className={`flex-1 py-2.5 sm:py-3 px-4 rounded-full font-medium flex items-center justify-center gap-2 ${
+                    isDeletingImage 
+                      ? 'bg-gray-500 text-gray-300 cursor-not-allowed' 
+                      : 'bg-white text-black hover:bg-gray-100'
+                  }`}
                 >
-                  Güncelle
+                  {isDeletingImage && <i className="ri-loader-4-line animate-spin"></i>}
+                  {isDeletingImage ? 'Güncelleniyor...' : 'Güncelle'}
                 </button>
               </div>
             </div>

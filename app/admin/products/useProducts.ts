@@ -13,7 +13,8 @@ import {
 } from '../lib/adminCache';
 
 const CACHE_KEY: CacheKey = 'products';
-const STORAGE_BASE_URL = 'https://orplwznpdpwnyflkbuoy.supabase.co/storage/v1/object/public/urunler/';
+// Cloudflare R2 storage URL
+const STORAGE_BASE_URL = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || 'https://cdn.meryembalkan.com.tr/urunler/';
 
 export interface Product {
   id: number;
@@ -369,6 +370,9 @@ export function useProducts() {
 
   // Edit product handlers
   const handleEditProduct = (product: Product) => {
+    // Önceki pending silinecek resimleri temizle
+    setPendingRemovedImages([]);
+    
     const imagePreviews =
       (product.images || [])
         .filter((img) => typeof img === "string" && img.trim() !== "")
@@ -412,7 +416,28 @@ export function useProducts() {
     }));
   };
 
+  const [isDeletingImage, setIsDeletingImage] = useState(false);
+  const [pendingRemovedImages, setPendingRemovedImages] = useState<string[]>([]);
+
+  // Çarpıya basınca sadece frontend'den kaldır (güncelle'ye basınca asıl silme yapılır)
   const handleEditImageRemove = (index: number) => {
+    if (!editingProduct) return;
+
+    const imageToRemove = editingProduct.images[index];
+
+    // Eğer yeni eklenen bir dosya ise (File objesi), sadece local state'ten sil
+    if (imageToRemove instanceof File) {
+      setEditingProduct((prev: any) => ({
+        ...prev,
+        images: prev.images.filter((_: any, i: number) => i !== index),
+        imagePreviews: prev.imagePreviews.filter((_: any, i: number) => i !== index),
+      }));
+      return;
+    }
+
+    // Mevcut resim ise (string path), pending listesine ekle ve UI'dan kaldır
+    setPendingRemovedImages((prev) => [...prev, imageToRemove]);
+    
     setEditingProduct((prev: any) => ({
       ...prev,
       images: prev.images.filter((_: any, i: number) => i !== index),
@@ -423,21 +448,39 @@ export function useProducts() {
   const handleUpdateProduct = async () => {
     if (!editingProduct) return;
 
-    // Önce eski resimleri al (API üzerinden)
-    let oldImages: string[] = [];
-    try {
-      const oldProductResponse = await fetch(`/api/admin/urunler?fields=images`, {
-        credentials: 'include',
-      });
-      if (oldProductResponse.ok) {
-        const { data } = await oldProductResponse.json();
-        const oldProduct = data?.find((p: any) => p.id === editingProduct.id);
-        oldImages = oldProduct?.images || [];
+    setIsDeletingImage(true);
+
+    // 1. Önce silinecek resimleri R2'den sil (pendingRemovedImages)
+    if (pendingRemovedImages.length > 0) {
+      for (const imagePath of pendingRemovedImages) {
+        try {
+          const response = await fetch('/api/admin/delete-product-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              productId: editingProduct.id,
+              imagePath: imagePath,
+            }),
+          });
+
+          if (!response.ok) {
+            const result = await response.json();
+            console.error('Resim silme hatası:', result.error);
+            toast.error(`Resim silinemedi: ${imagePath}`);
+            setIsDeletingImage(false);
+            return; // Silme başarısızsa güncellemeyi durdur
+          }
+        } catch (error: any) {
+          console.error('Resim silme hatası:', error);
+          toast.error(`Resim silinemedi: ${error.message}`);
+          setIsDeletingImage(false);
+          return;
+        }
       }
-    } catch (error) {
-      console.error('Eski ürün bilgisi alınamadı');
     }
 
+    // 2. Yeni resimleri yükle
     const uploadedNames: string[] = [];
 
     for (const img of editingProduct.images) {
@@ -457,7 +500,7 @@ export function useProducts() {
       }
     }
 
-    const removedImages = oldImages.filter((img: string) => !uploadedNames.includes(img));
+    // 3. DB'yi güncelle
 
     const updateData = {
       title: editingProduct.title,
@@ -488,23 +531,6 @@ export function useProducts() {
         throw new Error('Ürün güncellenemedi');
       }
 
-      // Silinen resimleri storage'dan kaldır
-      if (removedImages.length > 0) {
-        try {
-          await fetch('/api/admin/storage', {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({
-              files: removedImages,
-              bucket: 'urunler',
-            }),
-          });
-        } catch (error) {
-          console.warn('Bazı fotoğraflar storage\'tan silinemedi');
-        }
-      }
-
       const updatedProduct = { ...editingProduct, images: uploadedNames };
       
       setAllProducts((prev) =>
@@ -516,11 +542,15 @@ export function useProducts() {
       // Update cache
       updateCacheItem<Product>(CACHE_KEY, editingProduct.id, () => updatedProduct);
 
+      // Temizlik
       setEditingProduct(null);
+      setPendingRemovedImages([]);
       toast.success("Ürün başarıyla güncellendi! ✅");
     } catch (error: any) {
       console.error("Ürün güncellenemedi:", error.message);
       toast.error("Ürün güncellenirken bir hata oluştu! ❌");
+    } finally {
+      setIsDeletingImage(false);
     }
   };
 
@@ -557,6 +587,12 @@ export function useProducts() {
 
   // Force refresh function (for manual refresh)
   const refreshProducts = () => fetchProducts(true);
+
+  // Modal iptal edildiğinde temizlik yap
+  const cancelEditProduct = () => {
+    setEditingProduct(null);
+    setPendingRemovedImages([]);
+  };
 
   return {
     allProducts,
@@ -595,9 +631,11 @@ export function useProducts() {
     editingProduct,
     setEditingProduct,
     handleEditProduct,
+    cancelEditProduct,
     handleEditInputChange,
     handleEditImageUpload,
     handleEditImageRemove,
+    isDeletingImage,
     handleUpdateProduct,
     // Delete product
     isDeleteModalOpen,
