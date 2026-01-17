@@ -4,8 +4,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import LoginModal from '../../components/LoginModal';
 import { addToCart } from '../../utils/cartUtils';
 import { motion } from "framer-motion";
-import DatePicker from "react-datepicker";
-import { tr } from "date-fns/locale";
+import CustomCalendar from '../../components/CustomCalendar';
 
 // Renk isimleri -> CSS renk kodu eşleştirmesi
 const colorMap: Record<string, string> = {
@@ -109,7 +108,7 @@ export default function ProductDetail({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [scrollY, setScrollY] = useState(0);
   const [isClient, setIsClient] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true);
   const [showSizeImage, setShowSizeImage] = useState(false);
   const [showCalendarInfo, setShowCalendarInfo] = useState(false);
   const [showDeliveryInfo, setShowDeliveryInfo] = useState(false);
@@ -130,8 +129,10 @@ export default function ProductDetail({
   useEffect(() => {
     setIsClient(true);
     const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-      setIsDarkMode(true);
+    if (savedTheme === 'light') {
+      setIsDarkMode(false);
+      document.documentElement.classList.remove('dark');
+    } else {
       document.documentElement.classList.add('dark');
     }
 
@@ -207,7 +208,7 @@ export default function ProductDetail({
       product.price,
       selectedColor,
       selectedSize,
-      date ? date.toISOString().split("T")[0] : "",
+      date ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}` : "",
       product.images[0]
     );
 
@@ -326,14 +327,14 @@ export default function ProductDetail({
       )}
 
       {/* Breadcrumb */}
-      <section className={`px-8 py-4 border-b pt-32 transition-colors duration-300 ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'}`}>
+      <section className={`px-4 sm:px-6 md:px-8 py-3 sm:py-4 border-b pt-24 sm:pt-28 md:pt-32 transition-colors duration-300 ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'}`}>
         <div className="max-w-7xl mx-auto">
-          <div className={`flex items-center text-sm transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+          <div className={`flex items-center text-xs sm:text-sm transition-colors overflow-x-auto whitespace-nowrap ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
             <Link href="/" className={`cursor-pointer transition-colors ${isDarkMode ? 'hover:text-white' : 'hover:text-black'}`}>Anasayfa</Link>
-            <i className="ri-arrow-right-s-line mx-2"></i>
+            <i className="ri-arrow-right-s-line mx-1 sm:mx-2"></i>
             <Link href="/portfolio" className={`cursor-pointer transition-colors ${isDarkMode ? 'hover:text-white' : 'hover:text-black'}`}>Elbiseler</Link>
-            <i className="ri-arrow-right-s-line mx-2"></i>
-            <span className={`transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>{product.title}</span>
+            <i className="ri-arrow-right-s-line mx-1 sm:mx-2"></i>
+            <span className={`transition-colors truncate max-w-[150px] sm:max-w-none ${isDarkMode ? 'text-white' : 'text-black'}`}>{product.title}</span>
           </div>
         </div>
       </section>
@@ -417,18 +418,18 @@ export default function ProductDetail({
             </div>
 
             {/* Product Info (sağ sütun) */}
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               <div>
-                <h1 className={`text-3xl font-light tracking-wide mb-2 ${isDarkMode ? 'text-white' : 'text-black'}`}>{product.title}</h1>
+                <h1 className={`text-xl sm:text-2xl md:text-3xl font-light tracking-wide mb-1 sm:mb-2 ${isDarkMode ? 'text-white' : 'text-black'}`}>{product.title}</h1>
 
-                <p className={`text-2xl font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>{product.price.toLocaleString('tr-TR')} ₺</p>
-                <p className={`text-sm mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Vergi dahil. Kargo ücreti ödeme sırasında hesaplanır.</p>
+                <p className={`text-lg sm:text-xl md:text-2xl font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>{product.price.toLocaleString('tr-TR')} ₺</p>
+                <p className={`text-xs sm:text-sm mt-1.5 sm:mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Vergi dahil. Kargo ücreti ödeme sırasında hesaplanır.</p>
               </div>
 
               {/* Color Selection */}
               <div>
-                <h3 className={`font-medium mb-3 ${isDarkMode ? 'text-white' : 'text-black'}`}>Renk: {selectedColor || 'Seçiniz'}</h3>
-                <div className="flex gap-3 flex-wrap">
+                <h3 className={`text-sm sm:text-base font-medium mb-2 sm:mb-3 ${isDarkMode ? 'text-white' : 'text-black'}`}>Renk: {selectedColor || 'Seçiniz'}</h3>
+                <div className="flex gap-2 sm:gap-3 flex-wrap">
                   {product.colors.map((color) => {
                     const colorCode = getColorCode(color);
                     const isLight = ['Beyaz', 'Krem', 'Şampanya', 'Sarı', 'Pudra', 'Bej'].some(
@@ -440,7 +441,7 @@ export default function ProductDetail({
                         key={color}
                         onClick={() => setSelectedColor(color)}
                         title={color}
-                        className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer relative
+                        className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all cursor-pointer relative
                           ${selectedColor === color
                             ? 'ring-2 ring-offset-2 ring-black dark:ring-white'
                             : 'hover:scale-110'
@@ -452,7 +453,7 @@ export default function ProductDetail({
                       >
                         {/* Seçili işareti */}
                         {selectedColor === color && (
-                          <i className={`ri-check-line text-lg ${isLight ? 'text-black' : 'text-white'}`} style={{ textShadow: isLight ? 'none' : '0 1px 2px rgba(0,0,0,0.5)' }}></i>
+                          <i className={`ri-check-line text-sm sm:text-lg ${isLight ? 'text-black' : 'text-white'}`} style={{ textShadow: isLight ? 'none' : '0 1px 2px rgba(0,0,0,0.5)' }}></i>
                         )}
                       </button>
                     );
@@ -462,13 +463,13 @@ export default function ProductDetail({
 
               {/* Size Selection */}
               <div>
-                <h3 className={`font-medium mb-3 ${isDarkMode ? 'text-white' : 'text-black'}`}>Beden</h3>
-                <div className="grid grid-cols-4 gap-3">
+                <h3 className={`text-sm sm:text-base font-medium mb-2 sm:mb-3 ${isDarkMode ? 'text-white' : 'text-black'}`}>Beden</h3>
+                <div className="grid grid-cols-4 gap-2 sm:gap-3">
                   {product.size.map((size) => (
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}
-                      className={`py-3 text-center border ${selectedSize === size
+                      className={`py-2 sm:py-3 text-xs sm:text-sm text-center border ${selectedSize === size
                         ? (isDarkMode ? 'border-white bg-white text-black' : 'border-black bg-black text-white')
                         : (isDarkMode ? 'border-gray-600 hover:border-gray-400 text-white' : 'border-gray-300 hover:border-gray-400 text-black')
                         } cursor-pointer whitespace-nowrap rounded-full`}
@@ -481,37 +482,27 @@ export default function ProductDetail({
 
               {/* Date Selection */}
               <div>
-                <h3 className={`font-medium mb-3 ${isDarkMode ? 'text-white' : 'text-black'}`}>Tarih</h3>
-                <DatePicker
-                  selected={date}
-                  onChange={(d) => setDate(d)}
-                  locale={tr}
-                  dateFormat="dd/MM/yyyy"
-                  minDate={new Date()}
-                  excludeDates={disabledDates}
-                  placeholderText="Tarihinizi seçiniz"
-                  className={`w-full px-4 py-3 rounded-lg border text-sm focus:outline-none ${isDarkMode
-                    ? 'bg-gray-800 border-gray-600 text-white focus:border-white'
-                    : 'bg-white border-gray-300 text-black focus:border-black'
-                    }`}
-                  popperPlacement="bottom-start"
-                  todayButton="Bugün"
-                  clearButtonTitle="Temizle"
-                  calendarClassName="custom-calendar"
+                <h3 className={`text-sm sm:text-base font-medium mb-2 sm:mb-3 ${isDarkMode ? 'text-white' : 'text-black'}`}>Etkinlik Tarihi</h3>
+                <CustomCalendar
+                  selectedDate={date}
+                  onDateSelect={setDate}
+                  disabledDates={disabledDates}
+                  isDarkMode={isDarkMode}
+                  placeholder="Tarih seçiniz"
                 />
               </div>
               {/* Terms and Conditions */}
-              <div className="flex items-center mb-4">
+              <div className="flex items-start sm:items-center">
                 <input
                   type="checkbox"
                   id="terms"
                   checked={acceptedTerms}
                   onChange={() => setAcceptedTerms(!acceptedTerms)}
-                  className="w-4 h-4 mr-2 accent-black cursor-pointer"
+                  className="w-4 h-4 mr-2 mt-0.5 sm:mt-0 accent-black cursor-pointer flex-shrink-0"
                 />
                 <label
                   htmlFor="terms"
-                  className={`text-sm cursor-pointer ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}
+                  className={`text-xs sm:text-sm cursor-pointer ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}
                 >
                   Kiralama şartlarını <Link href="/kiralama-sozlesmesi" className="underline hover:opacity-80">okudum ve onayladım</Link>
                 </label>
@@ -521,7 +512,7 @@ export default function ProductDetail({
               <button
                 onClick={handleAddToCart}
                 disabled={!selectedSize || !selectedColor || !date}
-                className={`w-full py-4 text-center font-medium tracking-wide transition-colors whitespace-nowrap rounded-full ${selectedSize && selectedColor && date
+                className={`w-full py-3 sm:py-4 text-sm sm:text-base text-center font-medium tracking-wide transition-colors whitespace-nowrap rounded-full ${selectedSize && selectedColor && date
                   ? (isDarkMode ? 'bg-white text-black hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-800') + ' cursor-pointer'
                   : (isDarkMode ? 'bg-gray-700 text-gray-500' : 'bg-gray-200 text-gray-500') + ' cursor-not-allowed'
                   }`}
@@ -529,46 +520,46 @@ export default function ProductDetail({
                 Sepete ekle
               </button>
               {/* Description */}
-              <div className={`border-t pt-6 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <div className={`border-t pt-4 sm:pt-6 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                 <button className={`flex justify-between items-center w-full text-left ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                  <span className="font-medium">Açıklama</span>
+                  <span className="text-sm sm:text-base font-medium">Açıklama</span>
                   <i className="ri-arrow-down-s-line"></i>
                 </button>
-                <div className={`mt-4 leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                <div className={`mt-3 sm:mt-4 text-xs sm:text-sm leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                   <p>{product.description}</p>
-                  <ul className="mt-4 space-y-1">
+                  <div className="mt-3 sm:mt-4 space-y-1">
                     {product.features.map((feature, index) => (
-                      <li key={index}>• {feature}</li>
+                      <p key={index}>{feature}</p>
                     ))}
-                  </ul>
+                  </div>
                 </div>
               </div>
               {/* Beden Ölçme */}
-              <div className={`border-t pt-6 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <div className={`border-t pt-4 sm:pt-6 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                 <button
                   onClick={() => setShowSizeImage(!showSizeImage)}
                   className={`flex justify-between items-center w-full text-left ${isDarkMode ? 'text-white' : 'text-black'}`}
                 >
-                  <span className="font-medium">Bedenimi Nasıl Ölçerim?</span>
+                  <span className="text-sm sm:text-base font-medium">Bedenimi Nasıl Ölçerim?</span>
                   <i className={`ri-arrow-${showSizeImage ? 'up' : 'down'}-s-line`}></i>
                 </button>
                 {showSizeImage && (
-                  <div className="mt-4">
-                    <img src="/images/AnaSayfa/Beden.jpg" alt="Beden Ölçme Tablosu" className="rounded-lg shadow-md" />
+                  <div className="mt-3 sm:mt-4">
+                    <img src="/images/AnaSayfa/Beden.jpg" alt="Beden Ölçme Tablosu" className="rounded-lg shadow-md w-full" />
                   </div>
                 )}
               </div>
               {/* Takvim Bilgisi */}
-              <div className={`border-t pt-6 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <div className={`border-t pt-4 sm:pt-6 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                 <button
                   onClick={() => setShowCalendarInfo(!showCalendarInfo)}
                   className={`flex justify-between items-center w-full text-left ${isDarkMode ? 'text-white' : 'text-black'}`}
                 >
-                  <span className="font-medium">Takvimde Hangi Tarihi Seçmeliyim?</span>
+                  <span className="text-sm sm:text-base font-medium">Takvimde Hangi Tarihi Seçmeliyim?</span>
                   <i className={`ri-arrow-${showCalendarInfo ? 'up' : 'down'}-s-line`}></i>
                 </button>
                 {showCalendarInfo && (
-                  <div className={`mt-4 leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  <div className={`mt-3 sm:mt-4 text-xs sm:text-sm leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                     <p>
                       Takvimde tarih seçerken elbiseyi giyeceğiniz günü seçmeniz gerekir.
                       <br />
@@ -578,16 +569,16 @@ export default function ProductDetail({
                 )}
               </div>
               {/* Teslimat ve İade */}
-              <div className={`border-t pt-6 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <div className={`border-t pt-4 sm:pt-6 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                 <button
                   onClick={() => setShowDeliveryInfo(!showDeliveryInfo)}
                   className={`flex justify-between items-center w-full text-left ${isDarkMode ? 'text-white' : 'text-black'}`}
                 >
-                  <span className="font-medium">Teslimat ve iade bilgileri</span>
+                  <span className="text-sm sm:text-base font-medium">Teslimat ve iade bilgileri</span>
                   <i className={`ri-arrow-${showDeliveryInfo ? 'up' : 'down'}-s-line`}></i>
                 </button>
                 {showDeliveryInfo && (
-                  <div className={`mt-4 leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  <div className={`mt-3 sm:mt-4 text-xs sm:text-sm leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                     <p>
                       <strong>Teslimat:</strong> Takvimde tarih seçerken giyeceğiniz günü seçmeniz gerekir.
                       Siparişleriniz seçtiğiniz kiralama tarihinden <strong>2 gün önce</strong> elinize ulaşacak şekilde kargoya verilmektedir.
@@ -731,7 +722,7 @@ export default function ProductDetail({
             </div>
           </div>
           <div className={`border-t mt-12 pt-8 text-center text-sm transition-colors ${isDarkMode ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-500'}`}>
-            <p>&copy; 2025 Meryem Balkan.</p>
+            <p>&copy; Meryem Balkan.</p>
           </div>
         </div>
       </footer>

@@ -1,13 +1,23 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createClient } from "@supabase/supabase-js";
 import { toast } from "sonner";
+import {
+  getCache,
+  setCache,
+  hasCache,
+  updateCacheItem,
+  removeFromCache,
+  type CacheKey,
+} from '../lib/adminCache';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
+
+const CACHE_KEY: CacheKey = 'messages';
 
 export interface Message {
   id: number;
@@ -20,8 +30,23 @@ export interface Message {
   status: 'Verildi' | 'Bekliyor';
 }
 
+// Transform raw data to Message format
+function transformMessageData(item: any): Message {
+  return {
+    id: item.id,
+    name: item.name,
+    email: item.email,
+    phone: item.phone,
+    serviceType: item.hizmet,
+    message: item.mesaj,
+    date: item.tarih?.slice(0, 10),
+    status: item.cevap === "Verildi" ? "Verildi" : "Bekliyor",
+  };
+}
+
 export function useMessages() {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [messagesCurrentPage, setMessagesCurrentPage] = useState(1);
@@ -32,28 +57,39 @@ export function useMessages() {
   const [isDeleteMessageModalOpen, setIsDeleteMessageModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Fetch messages
-  useEffect(() => {
-    async function getMessages() {
-      const { data, error } = await supabase.from("mesajlar").select("*");
-      if (error) console.error(error);
-      if (data) {
-        setMessages(
-          data.map((item) => ({
-            id: item.id,
-            name: item.name,
-            email: item.email,
-            phone: item.phone,
-            serviceType: item.hizmet,
-            message: item.mesaj,
-            date: item.tarih?.slice(0, 10),
-            status: item.cevap === "Verildi" ? "Verildi" : "Bekliyor",
-          }))
-        );
+  // Fetch messages with caching
+  const fetchMessages = useCallback(async (forceRefresh = false) => {
+    // Check cache first (unless force refresh)
+    if (!forceRefresh && hasCache(CACHE_KEY)) {
+      const cachedData = getCache<Message>(CACHE_KEY);
+      if (cachedData) {
+        setMessages(cachedData);
+        setLoading(false);
+        return;
       }
     }
-    getMessages();
+
+    setLoading(true);
+    
+    const { data, error } = await supabase.from("mesajlar").select("*");
+    if (error) {
+      console.error(error);
+      setLoading(false);
+      return;
+    }
+    if (data) {
+      const transformedMessages = data.map(transformMessageData);
+      setMessages(transformedMessages);
+      // Update cache
+      setCache(CACHE_KEY, transformedMessages);
+      setLoading(false);
+    }
   }, []);
+
+  // Initial fetch - uses cache if available
+  useEffect(() => {
+    fetchMessages();
+  }, [fetchMessages]);
 
   // Filtered messages
   const filteredMessages = messages.filter(
@@ -123,6 +159,10 @@ export function useMessages() {
     }
 
     setMessages((prev) => prev.filter((m) => m.id !== deleteMessageId));
+    
+    // Update cache
+    removeFromCache(CACHE_KEY, deleteMessageId);
+    
     setIsDeleteMessageModalOpen(false);
     setDeleteMessageId(null);
   };
@@ -172,6 +212,12 @@ export function useMessages() {
               m.id === selectedMessage.id ? { ...m, status: 'Verildi' } : m
             )
           );
+          
+          // Update cache
+          updateCacheItem<Message>(CACHE_KEY, selectedMessage.id, (msg) => ({
+            ...msg,
+            status: 'Verildi',
+          }));
 
           toast.success("Yanıt başarıyla gönderildi! ✅");
           setReply('');
@@ -186,10 +232,14 @@ export function useMessages() {
     }
   };
 
+  // Force refresh function (for manual refresh)
+  const refreshMessages = () => fetchMessages(true);
+
   return {
     messages,
     filteredMessages,
     currentMessages,
+    loading,
     searchTerm,
     setSearchTerm,
     searchOpen,
@@ -209,6 +259,7 @@ export function useMessages() {
     isDeleting,
     confirmDeleteMessage,
     handleDeleteMessage,
+    refreshMessages,
   };
 }
 

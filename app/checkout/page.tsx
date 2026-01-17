@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import LoginModal from '../components/LoginModal';
 import { useState, useEffect } from 'react';
+import { checkCartConflicts, createPendingOrders } from '../utils/rentalConflict';
 
 interface CartItem {
   id: string;
@@ -15,9 +16,14 @@ interface CartItem {
   image: string;
 }
 
+interface ConflictInfo {
+  itemTitle: string;
+  reason: string;
+}
+
 export default function Checkout() {
   const router = useRouter();
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [scrollY, setScrollY] = useState(0);
   const [isClient, setIsClient] = useState(false);
@@ -27,6 +33,9 @@ export default function Checkout() {
   const [loadingPrices, setLoadingPrices] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [showConflictModal, setShowConflictModal] = useState(false);
+  const [conflictItems, setConflictItems] = useState<ConflictInfo[]>([]);
+  const [validItemsForPayment, setValidItemsForPayment] = useState<CartItem[]>([]);
   const [formData, setFormData] = useState({
     email: '',
     firstName: '',
@@ -65,7 +74,6 @@ export default function Checkout() {
           })
             .then((res) => res.json())
             .then((data) => {
-              console.log("🧾 API'den dönen fiyat verisi:", data);
               if (Array.isArray(data)) {
                 const merged = parsed.map((item) => {
                   // "5_Altın_Sarısı_36_2025-10-22" → "5"
@@ -80,7 +88,6 @@ export default function Checkout() {
                       : 0,
                   };
                 });
-                console.log("💰 Birleştirilmiş sepet verisi:", merged);
                 setCartItems(merged);
               } else {
                 console.error("Beklenmeyen API yanıtı:", data);
@@ -196,6 +203,54 @@ export default function Checkout() {
     setIsSubmitting(true);
 
     try {
+      // 🔹 ADIM 1: Çakışma kontrolü yap
+      const { conflicts, validItems } = await checkCartConflicts(cartItems);
+      
+      if (conflicts.length > 0) {
+        // Çakışma var - modal göster
+        setConflictItems(conflicts.map(c => ({
+          itemTitle: c.item.title,
+          reason: c.reason
+        })));
+        setValidItemsForPayment(validItems);
+        setShowConflictModal(true);
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // 🔹 ADIM 2: Çakışma yok - siparişleri "Ödeme Yapıyor" olarak kaydet
+      await proceedToPayment(cartItems);
+      
+    } catch (error) {
+      console.error('Sipariş oluşturma hatası:', error);
+      setFormErrors({ submit: 'Bir hata oluştu. Lütfen tekrar deneyin.' });
+      setIsSubmitting(false);
+    }
+  };
+
+  // Ödeme sayfasına geçiş işlemi
+  const proceedToPayment = async (itemsToProcess: CartItem[]) => {
+    setIsSubmitting(true);
+    
+    try {
+      const fullAddress = `${formData.address}, ${formData.district}, ${formData.city} ${formData.postalCode}`;
+      
+      // Siparişleri "Ödeme Yapıyor" olarak kaydet
+      const { success, orderIds, error } = await createPendingOrders(
+        itemsToProcess,
+        {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          phone: formData.phone,
+          email: formData.email,
+        },
+        fullAddress
+      );
+      
+      if (!success) {
+        throw new Error(error || 'Sipariş oluşturulamadı');
+      }
+      
       // Sipariş verilerini hazırla
       const orderData = {
         customer: {
@@ -212,27 +267,74 @@ export default function Checkout() {
           country: formData.country,
         },
         billingAddress: billingAddressOption === 'same' 
-          ? null // Aynı adres
-          : formData, // Farklı adres (şimdilik aynı formData)
+          ? null
+          : formData,
         deliveryMethod,
-        items: cartItems,
-        subtotal,
+        items: itemsToProcess,
+        subtotal: itemsToProcess.reduce((sum, item) => {
+          const cleanPrice = Number(String(item.price || 0).replace(/\./g, '').replace(',', '.'));
+          return sum + (isNaN(cleanPrice) ? 0 : cleanPrice);
+        }, 0),
         shippingCost,
-        totalPrice,
+        totalPrice: itemsToProcess.reduce((sum, item) => {
+          const cleanPrice = Number(String(item.price || 0).replace(/\./g, '').replace(',', '.'));
+          return sum + (isNaN(cleanPrice) ? 0 : cleanPrice);
+        }, 0) + (Number(shippingCost) || 0),
+        orderIds, // Ödeme sayfasında kullanılacak
         createdAt: new Date().toISOString(),
+        paymentStartTime: Date.now(), // 5 dk timeout için başlangıç zamanı
       };
 
-      // Sipariş verilerini localStorage'a kaydet (ödeme sayfasında kullanılacak)
+      // Sipariş verilerini localStorage'a kaydet
       localStorage.setItem('pendingOrder', JSON.stringify(orderData));
+      
+      // Sepeti güncelle (sadece işlenen ürünleri kaldır)
+      const remainingItems = cartItems.filter(
+        item => !itemsToProcess.find(processed => processed.id === item.id)
+      );
+      localStorage.setItem('cartItems', JSON.stringify(remainingItems));
+      window.dispatchEvent(new Event('cartUpdated'));
 
       // Ödeme sayfasına yönlendir
       router.push('/odeme');
     } catch (error) {
-      console.error('Sipariş oluşturma hatası:', error);
+      console.error('Ödeme işlemi hatası:', error);
       setFormErrors({ submit: 'Bir hata oluştu. Lütfen tekrar deneyin.' });
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Çakışma modalında "Evet" - Kalan ürünlerle devam et
+  const handleConflictContinue = async () => {
+    setShowConflictModal(false);
+    
+    if (validItemsForPayment.length === 0) {
+      // Hiç geçerli ürün kalmadı - anasayfaya yönlendir
+      localStorage.setItem('cartItems', '[]');
+      window.dispatchEvent(new Event('cartUpdated'));
+      router.push('/');
+      return;
+    }
+    
+    // Çakışan ürünleri sepetten kaldır ve kalan ürünlerle devam et
+    setCartItems(validItemsForPayment);
+    localStorage.setItem('cartItems', JSON.stringify(validItemsForPayment));
+    window.dispatchEvent(new Event('cartUpdated'));
+    
+    await proceedToPayment(validItemsForPayment);
+  };
+
+  // Çakışma modalında "Hayır" - İşlemi iptal et
+  const handleConflictCancel = () => {
+    setShowConflictModal(false);
+    
+    // Çakışan ürünleri sepetten kaldır
+    localStorage.setItem('cartItems', JSON.stringify(validItemsForPayment));
+    window.dispatchEvent(new Event('cartUpdated'));
+    
+    // Anasayfaya yönlendir
+    router.push('/');
   };
 
   // ✅ Teslimat ücreti
@@ -1270,10 +1372,70 @@ export default function Checkout() {
           </div>
 
           <div className={`border-t mt-8 sm:mt-12 pt-6 sm:pt-8 text-center text-xs sm:text-sm transition-colors ${isDarkMode ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-500'}`}>
-            <p>&copy; 2025 Meryem Balkan.</p>
+            <p>&copy; Meryem Balkan.</p>
           </div>
         </div>
       </footer>
+
+      {/* Conflict Modal */}
+      {showConflictModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className={`rounded-xl w-full max-w-md p-6 shadow-2xl ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-black'}`}>
+            <div className="text-center mb-6">
+              <div className={`w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center ${isDarkMode ? 'bg-red-500/20' : 'bg-red-100'}`}>
+                <i className={`ri-error-warning-line text-3xl ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}></i>
+              </div>
+              <h3 className="text-xl font-medium mb-2">Ürün Müsaitlik Sorunu</h3>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                Bazı ürünler seçtiğiniz tarihlerde artık müsait değil:
+              </p>
+            </div>
+
+            <div className={`max-h-48 overflow-y-auto mb-6 space-y-3 ${isDarkMode ? 'bg-gray-900/50' : 'bg-gray-50'} rounded-lg p-4`}>
+              {conflictItems.map((conflict, index) => (
+                <div key={index} className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>{conflict.itemTitle}</span>
+                  <p className="mt-0.5">{conflict.reason}</p>
+                </div>
+              ))}
+            </div>
+
+            {validItemsForPayment.length > 0 ? (
+              <>
+                <p className={`text-sm mb-4 text-center ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  Diğer {validItemsForPayment.length} ürün ile devam etmek ister misiniz?
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleConflictCancel}
+                    className={`flex-1 py-3 px-4 rounded-full font-medium transition-colors ${isDarkMode ? 'border border-gray-600 text-white hover:bg-gray-700' : 'border border-gray-300 text-black hover:bg-gray-100'}`}
+                  >
+                    Hayır, İptal Et
+                  </button>
+                  <button
+                    onClick={handleConflictContinue}
+                    className={`flex-1 py-3 px-4 rounded-full font-medium transition-colors ${isDarkMode ? 'bg-white text-black hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-800'}`}
+                  >
+                    Evet, Devam Et
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className={`text-sm mb-4 text-center ${isDarkMode ? 'text-red-300' : 'text-red-600'}`}>
+                  Sepetinizdeki tüm ürünler artık müsait değil.
+                </p>
+                <button
+                  onClick={handleConflictCancel}
+                  className={`w-full py-3 px-4 rounded-full font-medium transition-colors ${isDarkMode ? 'bg-white text-black hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-800'}`}
+                >
+                  Anasayfaya Dön
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Login Modal */}
       <LoginModal

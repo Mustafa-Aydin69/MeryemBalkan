@@ -15,7 +15,7 @@ export default function Home() {
   const [visibleProducts, setVisibleProducts] = useState<Set<number>>(new Set());
   const [scrollY, setScrollY] = useState(0);
   const [isClient, setIsClient] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true);
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [displayText, setDisplayText] = useState('GELİNLİK');
   const [isDeleting, setIsDeleting] = useState(false);
@@ -109,8 +109,10 @@ export default function Home() {
   useEffect(() => {
     setIsClient(true);
     const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-      setIsDarkMode(true);
+    if (savedTheme === 'light') {
+      setIsDarkMode(false);
+      document.documentElement.classList.remove('dark');
+    } else {
       document.documentElement.classList.add('dark');
     }
 
@@ -434,7 +436,7 @@ export default function Home() {
           </div>
 
           <div className={`border-t mt-8 sm:mt-12 pt-6 sm:pt-8 text-center text-xs sm:text-sm transition-colors ${isDarkMode ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-500'}`}>
-            <p>&copy; 2025 Meryem Balkan.</p>
+            <p>&copy; Meryem Balkan.</p>
           </div>
         </div>
       </footer>

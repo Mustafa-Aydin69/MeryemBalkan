@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRentals, RentalStatus, Rental, NewRentalForm } from './useRentals';
+import { useRentals, RentalStatus, Rental } from './useRentals';
 import RentalsTable from './RentalsTable';
+import CreateRentalModal from './CreateRentalModal';
 
 // Tarih formatlama
 function formatDate(dateStr: string): string {
@@ -329,251 +330,6 @@ function RentalDetailModal({
   );
 }
 
-// Yeni Kiralama Oluştur Modal Bileşeni
-function CreateRentalModal({
-  onClose,
-  onSubmit,
-}: {
-  onClose: () => void;
-  onSubmit: (form: NewRentalForm) => void;
-}) {
-  const [form, setForm] = useState<NewRentalForm>({
-    productId: '',
-    productName: '',
-    productImageUrl: '',
-    customerFirstName: '',
-    customerLastName: '',
-    customerPhone: '',
-    customerEmail: '',
-    customerAddress: '',
-    etkinlikTarihi: '',
-    price: 0,
-    deposit: 0,
-  });
-
-  // ESC ile kapanma
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
-  }, [onClose]);
-
-  const handleChange = (field: keyof NewRentalForm, value: string | number) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit(form);
-  };
-
-  const isFormValid =
-    form.productName &&
-    form.customerFirstName &&
-    form.customerLastName &&
-    form.customerPhone &&
-    form.etkinlikTarihi &&
-    form.price > 0;
-
-  return (
-    <div
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-gray-800 text-white border border-gray-700 shadow-2xl">
-        {/* Header */}
-        <div className="sticky top-0 bg-gray-800 border-b border-gray-700 px-6 py-4 flex items-center justify-between z-10">
-          <h3 className="text-lg font-medium">Yeni Kiralama Oluştur</h3>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
-          >
-            <i className="ri-close-line text-lg"></i>
-          </button>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Ürün Bilgileri */}
-          <section>
-            <h4 className="text-sm font-medium text-gray-400 mb-3 flex items-center gap-2">
-              <i className="ri-shirt-line"></i>
-              Ürün Bilgileri
-            </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Ürün Adı *</label>
-                <input
-                  type="text"
-                  value={form.productName}
-                  onChange={(e) => handleChange('productName', e.target.value)}
-                  placeholder="Örn: Bloom Kasnak Elbise"
-                  className="w-full px-3 py-2.5 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-gray-500 focus:outline-none placeholder-gray-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Ürün ID</label>
-                <input
-                  type="text"
-                  value={form.productId}
-                  onChange={(e) => handleChange('productId', e.target.value)}
-                  placeholder="Örn: P-101"
-                  className="w-full px-3 py-2.5 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-gray-500 focus:outline-none placeholder-gray-500"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="block text-xs text-gray-500 mb-1">Ürün Görsel URL</label>
-                <input
-                  type="text"
-                  value={form.productImageUrl}
-                  onChange={(e) => handleChange('productImageUrl', e.target.value)}
-                  placeholder="https://..."
-                  className="w-full px-3 py-2.5 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-gray-500 focus:outline-none placeholder-gray-500"
-                />
-              </div>
-            </div>
-          </section>
-
-          {/* Müşteri Bilgileri */}
-          <section>
-            <h4 className="text-sm font-medium text-gray-400 mb-3 flex items-center gap-2">
-              <i className="ri-user-line"></i>
-              Müşteri Bilgileri
-            </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Ad *</label>
-                <input
-                  type="text"
-                  value={form.customerFirstName}
-                  onChange={(e) => handleChange('customerFirstName', e.target.value)}
-                  placeholder="Ad"
-                  className="w-full px-3 py-2.5 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-gray-500 focus:outline-none placeholder-gray-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Soyad *</label>
-                <input
-                  type="text"
-                  value={form.customerLastName}
-                  onChange={(e) => handleChange('customerLastName', e.target.value)}
-                  placeholder="Soyad"
-                  className="w-full px-3 py-2.5 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-gray-500 focus:outline-none placeholder-gray-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Telefon *</label>
-                <input
-                  type="tel"
-                  value={form.customerPhone}
-                  onChange={(e) => handleChange('customerPhone', e.target.value)}
-                  placeholder="0532 123 4567"
-                  className="w-full px-3 py-2.5 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-gray-500 focus:outline-none placeholder-gray-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Email</label>
-                <input
-                  type="email"
-                  value={form.customerEmail}
-                  onChange={(e) => handleChange('customerEmail', e.target.value)}
-                  placeholder="ornek@email.com"
-                  className="w-full px-3 py-2.5 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-gray-500 focus:outline-none placeholder-gray-500"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="block text-xs text-gray-500 mb-1">Açık Adres</label>
-                <textarea
-                  value={form.customerAddress}
-                  onChange={(e) => handleChange('customerAddress', e.target.value)}
-                  placeholder="Adres"
-                  rows={2}
-                  className="w-full px-3 py-2.5 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-gray-500 focus:outline-none placeholder-gray-500 resize-none"
-                />
-              </div>
-            </div>
-          </section>
-
-          {/* Kira Bilgileri */}
-          <section>
-            <h4 className="text-sm font-medium text-gray-400 mb-3 flex items-center gap-2">
-              <i className="ri-calendar-line"></i>
-              Kira Bilgileri
-            </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Etkinlik Tarihi *</label>
-                <input
-                  type="date"
-                  value={form.etkinlikTarihi}
-                  onChange={(e) => handleChange('etkinlikTarihi', e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-gray-500 focus:outline-none"
-                  required
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  En geç iade tarihi otomatik hesaplanır (etkinlik + 5 gün)
-                </p>
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Kira Ücreti (₺) *</label>
-                <input
-                  type="number"
-                  value={form.price || ''}
-                  onChange={(e) => handleChange('price', Number(e.target.value))}
-                  placeholder="0"
-                  min="0"
-                  className="w-full px-3 py-2.5 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-gray-500 focus:outline-none placeholder-gray-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Depozito (₺)</label>
-                <input
-                  type="number"
-                  value={form.deposit || ''}
-                  onChange={(e) => handleChange('deposit', Number(e.target.value))}
-                  placeholder="0"
-                  min="0"
-                  className="w-full px-3 py-2.5 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-gray-500 focus:outline-none placeholder-gray-500"
-                />
-              </div>
-            </div>
-          </section>
-
-          {/* Footer */}
-          <div className="flex gap-3 pt-4 border-t border-gray-700">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-3 px-4 rounded-full border font-medium transition-colors border-gray-600 text-white hover:bg-gray-700"
-            >
-              İptal
-            </button>
-            <button
-              type="submit"
-              disabled={!isFormValid}
-              className={`flex-1 py-3 px-4 rounded-full font-medium transition-colors ${
-                isFormValid
-                  ? 'bg-white text-black hover:bg-gray-100'
-                  : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-              }`}
-            >
-              Kiralama Oluştur
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
 
 export default function KiraYonetimi() {
   const {
@@ -591,7 +347,6 @@ export default function KiraYonetimi() {
     getStatusLabel,
     isCreateModalOpen,
     setIsCreateModalOpen,
-    handleCreateRental,
     refreshRentals,
     markRentalComplete,
     sendNotification,
@@ -753,7 +508,7 @@ export default function KiraYonetimi() {
       {isCreateModalOpen && (
         <CreateRentalModal
           onClose={() => setIsCreateModalOpen(false)}
-          onSubmit={handleCreateRental}
+          onSuccess={refreshRentals}
         />
       )}
     </div>

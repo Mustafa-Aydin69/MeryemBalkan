@@ -7,14 +7,16 @@ import LoginModal from '../components/LoginModal';
 export default function KVKK() {
   const [scrollY, setScrollY] = useState(0);
   const [isClient, setIsClient] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
     const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-      setIsDarkMode(true);
+    if (savedTheme === 'light') {
+      setIsDarkMode(false);
+      document.documentElement.classList.remove('dark');
+    } else {
       document.documentElement.classList.add('dark');
     }
   }, []);
@@ -253,7 +255,7 @@ export default function KVKK() {
           </div>
           
           <div className={`border-t mt-8 sm:mt-12 pt-6 sm:pt-8 text-center text-xs sm:text-sm transition-colors ${isDarkMode ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-500'}`}>
-            <p>&copy; 2025 Meryem Balkan.</p>
+            <p>&copy; Meryem Balkan.</p>
           </div>
         </div>
       </footer>

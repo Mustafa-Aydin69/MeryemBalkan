@@ -7,7 +7,7 @@ import LoginModal from '../components/LoginModal';
 export default function KiralamaSozlesmesi() {
   const [scrollY, setScrollY] = useState(0);
   const [isClient, setIsClient] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   // Initialize client‑side only features (theme & client flag)
@@ -15,8 +15,10 @@ export default function KiralamaSozlesmesi() {
     setIsClient(true);
     try {
       const savedTheme = localStorage.getItem('theme');
-      if (savedTheme === 'dark') {
-        setIsDarkMode(true);
+      if (savedTheme === 'light') {
+        setIsDarkMode(false);
+        document.documentElement.classList.remove('dark');
+      } else {
         document.documentElement.classList.add('dark');
       }
     } catch (e) {
@@ -564,7 +566,7 @@ export default function KiralamaSozlesmesi() {
               isDarkMode ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-500'
             }`}
           >
-            <p>&copy; 2025 Meryem Balkan.</p>
+            <p>&copy; Meryem Balkan.</p>
           </div>
         </div>
       </footer>

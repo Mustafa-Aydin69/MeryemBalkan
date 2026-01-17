@@ -23,10 +23,9 @@ export async function generateStaticParams() {
   }));
 }
 
-// Cache'li ürün verisi çekme (60 saniye)
+// Cache'li ürün ve related products (bu veriler sık değişmiyor)
 const getCachedProductData = unstable_cache(
   async (productId: string) => {
-    // Önce sadece ürünü çek (en hızlı sorgu)
     const productResult = await supabase
       .from("urunler")
       .select("id, title, collection, year, price, description, features, size, colors, images, category")
@@ -35,28 +34,19 @@ const getCachedProductData = unstable_cache(
       .single();
 
     if (productResult.error || !productResult.data) {
-      return { product: null, relatedProducts: [], disabledDates: [] };
+      return { product: null, relatedProducts: [] };
     }
 
     const productData = productResult.data;
 
-    // İkincil verileri paralel çek
-    const [relatedResult, disabledDatesResult] = await Promise.all([
-      // Related products - sadece gerekli alanlar
-      supabase
-        .from("urunler")
-        .select("id, title, collection, price, images")
-        .eq("category", productData.category)
-        .eq("status", "Yayında")
-        .neq("id", productId)
-        .limit(4),
-      
-      // Disabled dates
-      supabase
-        .from("siparisler")
-        .select("eventDate")
-        .eq("productName", productData.title)
-    ]);
+    // Related products
+    const relatedResult = await supabase
+      .from("urunler")
+      .select("id, title, collection, price, images")
+      .eq("category", productData.category)
+      .eq("status", "Yayında")
+      .neq("id", productId)
+      .limit(4);
 
     // Ürün formatla
     const product = {
@@ -93,23 +83,39 @@ const getCachedProductData = unstable_cache(
       slug: createSlug(item.id, item.title)
     })) || [];
 
-    // Disabled dates hesapla
-    const disabledDates: string[] = [];
-    disabledDatesResult.data?.forEach(({ eventDate }) => {
-      if (!eventDate) return;
-      const event = new Date(eventDate);
-      for (let i = -7; i <= 7; i++) {
-        const d = new Date(event);
-        d.setDate(event.getDate() + i);
-        disabledDates.push(d.toISOString().split('T')[0]);
-      }
-    });
-
-    return { product, relatedProducts, disabledDates };
+    return { product, relatedProducts };
   },
   ['product-data'],
-  { revalidate: 60 } // 60 saniye cache
+  { revalidate: 60 } // Ürün bilgileri 60 saniye cache (sık değişmiyor)
 );
+
+// Disabled dates - CACHE YOK, her zaman güncel çekilir
+async function getDisabledDates(productTitle: string): Promise<string[]> {
+  const { data } = await supabase
+    .from("siparisler")
+    .select("eventDate")
+    .eq("productName", productTitle)
+    .in("status", ["Hazırlanıyor", "Kirada", "Ödeme Yapıyor"]);
+
+  if (!data || data.length === 0) return [];
+
+  // eventDate'den 7 gün önce ve 7 gün sonrası = toplam 15 gün bloke
+  const disabledDates: string[] = [];
+  data.forEach(({ eventDate }) => {
+    if (!eventDate) return;
+    const event = new Date(eventDate);
+    for (let i = -7; i <= 7; i++) {
+      const d = new Date(event);
+      d.setDate(event.getDate() + i);
+      // Local date string kullan (timezone sorunu önlemek için)
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      disabledDates.push(dateStr);
+    }
+  });
+
+  // Tekrarlayan tarihleri kaldır
+  return [...new Set(disabledDates)];
+}
 
 interface PageProps {
   params: Promise<{
@@ -121,8 +127,11 @@ export default async function ProductPage({ params }: PageProps) {
   const resolvedParams = await params;
   const productId = parseIdFromSlug(resolvedParams.slug);
   
-  // Cache'li veri çek
-  const { product, relatedProducts, disabledDates } = await getCachedProductData(productId);
+  // Ürün bilgileri cache'ten çekilir
+  const { product, relatedProducts } = await getCachedProductData(productId);
+  
+  // Disabled dates HER ZAMAN güncel çekilir (cache yok)
+  const disabledDates = product ? await getDisabledDates(product.title) : [];
   
   return (
     <ProductDetail 

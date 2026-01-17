@@ -25,6 +25,8 @@ export default function MessagesPage() {
     isDeleting,
     confirmDeleteMessage,
     handleDeleteMessage,
+    refreshMessages,
+    loading,
   } = useMessages();
 
   return (
@@ -35,6 +37,16 @@ export default function MessagesPage() {
         </h2>
 
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          {/* Verileri Yenile Butonu */}
+          <button
+            onClick={refreshMessages}
+            disabled={loading}
+            className="p-2 rounded-full font-medium transition-colors bg-gray-700 text-white hover:bg-gray-600 disabled:opacity-50"
+            title="Verileri Yenile"
+          >
+            <i className={`ri-refresh-line ${loading ? 'animate-spin' : ''}`}></i>
+          </button>
+
           {/* Arama Butonu */}
           <button
             onClick={() => {

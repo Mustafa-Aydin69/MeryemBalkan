@@ -1,13 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createClient } from "@supabase/supabase-js";
 import { toast } from "sonner";
+import { 
+  getCache, 
+  setCache, 
+  hasCache, 
+  updateCacheItem,
+  type CacheKey 
+} from '../lib/adminCache';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
+
+const CACHE_KEY: CacheKey = 'orders';
 
 export interface Order {
   id: number;
@@ -23,10 +32,32 @@ export interface Order {
   address: string;
   price: string;
   shippingCode: string;
+  paymentMethod: string;
+}
+
+// Transform raw data to Order format
+function transformOrderData(item: any): Order {
+  return {
+    id: item.id,
+    customerName: item.customerName,
+    productName: item.productName,
+    size: item.size,
+    color: item.color,
+    eventDate: item.eventDate,
+    orderDate: item.orderDate,
+    status: item.status,
+    phone: item.phone || "",
+    email: item.email || "",
+    address: item.address,
+    paymentMethod: item.paymentMethod || "Online",
+    price: item.price,
+    shippingCode: item.shippingCode || "",
+  };
 }
 
 export function useOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTermOrders, setSearchTermOrders] = useState('');
   const [searchOpenOrders, setSearchOpenOrders] = useState(false);
   const [ordersCurrentPage, setOrdersCurrentPage] = useState(1);
@@ -34,38 +65,40 @@ export function useOrders() {
   const [editingOrder, setEditingOrder] = useState<any>(null);
   const [viewingOrder, setViewingOrder] = useState<any>(null);
 
-  // Fetch orders
-  useEffect(() => {
-    async function getOrders() {
-      const { data, error } = await supabase
-        .from("siparisler")
-        .select("id, customerName, address, productName, size, color, eventDate, orderDate, status, price, phone, email, shippingCode");
-
-      if (error) {
-        console.error("Siparişler alınamadı:", error.message);
-      } else if (data) {
-        setOrders(
-          data.map((item) => ({
-            id: item.id,
-            customerName: item.customerName,
-            productName: item.productName,
-            size: item.size,
-            color: item.color,
-            eventDate: item.eventDate,
-            orderDate: item.orderDate,
-            status: item.status,
-            phone: item.phone || "",
-            email: item.email || "",
-            address: item.address,
-            price: item.price,
-            shippingCode: item.shippingCode || "",
-          }))
-        );
+  // Fetch orders with caching
+  const fetchOrders = useCallback(async (forceRefresh = false) => {
+    // Check cache first (unless force refresh)
+    if (!forceRefresh && hasCache(CACHE_KEY)) {
+      const cachedData = getCache<Order>(CACHE_KEY);
+      if (cachedData) {
+        setOrders(cachedData);
+        setLoading(false);
+        return;
       }
     }
 
-    getOrders();
+    setLoading(true);
+    
+    const { data, error } = await supabase
+      .from("siparisler")
+      .select("id, customerName, address, productName, size, color, eventDate, orderDate, status, price, phone, email, shippingCode, paymentMethod");
+
+    if (error) {
+      console.error("Siparişler alınamadı:", error.message);
+      setLoading(false);
+    } else if (data) {
+      const transformedOrders = data.map(transformOrderData);
+      setOrders(transformedOrders);
+      // Update cache
+      setCache(CACHE_KEY, transformedOrders);
+      setLoading(false);
+    }
   }, []);
+
+  // Initial fetch - uses cache if available
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
 
   // Filtered orders
   const filteredOrders = orders.filter(
@@ -204,52 +237,32 @@ export function useOrders() {
       }
     }
 
-    // Frontend listesini güncelle
+    // Frontend listesini ve cache'i güncelle
+    const updatedOrder = { ...editingOrder, ...updateData };
     setOrders((prev) =>
       prev.map((order) =>
-        order.id === editingOrder.id ? { ...order, ...updateData } : order
+        order.id === editingOrder.id ? updatedOrder : order
       )
     );
+    
+    // Update cache
+    updateCacheItem<Order>(CACHE_KEY, editingOrder.id, (item) => ({
+      ...item,
+      ...updateData,
+    }));
 
     setEditingOrder(null);
     toast.success("Sipariş başarıyla güncellendi ✅");
   };
 
-  const handleGenerateFatura = async (orderId: number) => {
-    if (!orderId) {
-      toast.error("Fatura oluşturmak için geçerli bir sipariş seçin!");
-      return;
-    }
-
-    const loading = toast.loading("Fatura oluşturuluyor...");
-
-    try {
-      const res = await fetch("/api/generate-fatura", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId }),
-      });
-
-      if (res.ok) {
-        const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
-        window.open(url, "_blank");
-        toast.success("Fatura oluşturuldu!");
-      } else {
-        toast.error("Fatura oluşturulamadı.");
-      }
-    } catch (error) {
-      console.error("Fatura oluşturma hatası:", error);
-      toast.error("Bir hata oluştu. Lütfen tekrar deneyin.");
-    } finally {
-      toast.dismiss(loading);
-    }
-  };
+  // Force refresh function (for manual refresh)
+  const refreshOrders = () => fetchOrders(true);
 
   return {
     orders,
     filteredOrders,
     currentOrders,
+    loading,
     searchTermOrders,
     setSearchTermOrders,
     searchOpenOrders,
@@ -266,7 +279,7 @@ export function useOrders() {
     handleUpdateOrder,
     viewingOrder,
     setViewingOrder,
-    handleGenerateFatura,
+    refreshOrders,
   };
 }
 

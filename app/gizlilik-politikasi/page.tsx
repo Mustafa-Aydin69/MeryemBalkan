@@ -7,14 +7,16 @@ import LoginModal from '../components/LoginModal';
 export default function GizlilikPolitikasi() {
   const [scrollY, setScrollY] = useState(0);
   const [isClient, setIsClient] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
     const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-      setIsDarkMode(true);
+    if (savedTheme === 'light') {
+      setIsDarkMode(false);
+      document.documentElement.classList.remove('dark');
+    } else {
       document.documentElement.classList.add('dark');
     }
   }, []);
@@ -95,7 +97,7 @@ export default function GizlilikPolitikasi() {
 
         <div className="prose prose-gray max-w-none">
           <p className={`text-base sm:text-lg mb-6 sm:mb-8 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-            Son Güncelleme Tarihi: 1 Ocak 2025
+            Son Güncelleme Tarihi: 1 Ocak 2026
           </p>
 
           <section className="mb-6 sm:mb-8">
@@ -113,7 +115,6 @@ export default function GizlilikPolitikasi() {
               <li>E-posta adresi</li>
               <li>Telefon numarası</li>
               <li>Adres bilgileri</li>
-              <li>Ödeme bilgileri (güvenli ödeme işleyiciler aracılığıyla)</li>
             </ul>
 
             <h4 className="text-lg font-medium mb-3">2.2 Teknik Bilgiler</h4>
@@ -229,7 +230,7 @@ export default function GizlilikPolitikasi() {
           </div>
 
           <div className={`border-t mt-8 sm:mt-12 pt-6 sm:pt-8 text-center text-xs sm:text-sm transition-colors ${isDarkMode ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-500'}`}>
-            <p>&copy; 2025 Meryem Balkan.</p>
+            <p>&copy; Meryem Balkan.</p>
           </div>
         </div>
       </footer>

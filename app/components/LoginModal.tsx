@@ -112,17 +112,20 @@ export default function LoginModal({ isOpen, onClose, isDarkMode }: LoginModalPr
 
         // Kullanıcı bilgilerini kaydet
         localStorage.setItem('userEmail', email);
+        localStorage.setItem('verificationCodeVerified', 'true');
         localStorage.setItem('user', JSON.stringify({
           email,
           loginTime: new Date().toISOString(),
           isLoggedIn: true
         }));
 
-        // Modal'ı kapat
-        handleClose();
-
-        // Siparişler sayfasına yönlendir
+        // Önce siparişler sayfasına yönlendir, sonra modal'ı kapat
         router.push('/siparisler');
+        
+        // Kısa gecikme ile modal'ı kapat (yönlendirme başladıktan sonra)
+        setTimeout(() => {
+          handleClose();
+        }, 100);
       } else {
         const data = await response.json();
         setError(data.error || 'Doğrulama kodu hatalı');
@@ -132,17 +135,20 @@ export default function LoginModal({ isOpen, onClose, isDarkMode }: LoginModalPr
       if (verificationCode === '123456') {
         // Kullanıcı bilgilerini kaydet
         localStorage.setItem('userEmail', email);
+        localStorage.setItem('verificationCodeVerified', 'true');
         localStorage.setItem('user', JSON.stringify({
           email: email,
           loginTime: new Date().toISOString(),
           isLoggedIn: true
         }));
 
-        // Modal'ı kapat
-        handleClose();
-
-        // Siparişler sayfasına yönlendir
+        // Önce siparişler sayfasına yönlendir, sonra modal'ı kapat
         router.push('/siparisler');
+        
+        // Kısa gecikme ile modal'ı kapat
+        setTimeout(() => {
+          handleClose();
+        }, 100);
       } else {
         setError('Doğrulama kodu hatalı');
       }

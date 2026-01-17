@@ -12,9 +12,10 @@ const supabase = createClient(
 
 export default function Portfolio() {
   const [activeFilter, setActiveFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
   const [scrollY, setScrollY] = useState(0);
   const [isClient, setIsClient] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true);
   const [visibleProducts, setVisibleProducts] = useState(new Set());
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [hasCartItems, setHasCartItems] = useState(false);
@@ -46,8 +47,6 @@ export default function Portfolio() {
         return;
       }
 
-      console.log("Çekilen veri:", data); // Debug için
-
       if (!data || data.length === 0) {
         console.log("Hiç veri bulunamadı");
         setProducts([]);
@@ -72,7 +71,6 @@ export default function Portfolio() {
             : "/images/AnaSayfa/Meryem_Balkan_Logo.jpg",
       }));
 
-      console.log("Mapped data:", mapped); // Debug için
       setProducts(mapped);
       setLoading(false);
     };
@@ -80,15 +78,21 @@ export default function Portfolio() {
     fetchProducts();
   }, []);
 
-  const filteredItems = activeFilter === 'all'
-    ? products
-    : products.filter(item => item.category === activeFilter);
+  // Kategori ve arama filtresi uygula
+  const filteredItems = products.filter(item => {
+    const matchesCategory = activeFilter === 'all' || item.category === activeFilter;
+    const matchesSearch = searchTerm === '' || 
+      item.title.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   useEffect(() => {
     setIsClient(true);
     const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-      setIsDarkMode(true);
+    if (savedTheme === 'light') {
+      setIsDarkMode(false);
+      document.documentElement.classList.remove('dark');
+    } else {
       document.documentElement.classList.add('dark');
     }
 
@@ -321,9 +325,36 @@ export default function Portfolio() {
         </div>
       </nav>
 
-      {/* Filter Menu */}
+      {/* Search & Filter Menu */}
       <section className={`pb-8 sm:pb-12 px-4 sm:px-8 pt-28 sm:pt-32 transition-colors duration-300 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
         <div className="max-w-6xl mx-auto">
+          {/* Search Input */}
+          <div className="flex justify-center mb-6">
+            <div className="relative w-full max-w-md">
+              <i className={`ri-search-line absolute left-4 top-1/2 -translate-y-1/2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}></i>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Elbise ara..."
+                className={`w-full pl-11 pr-10 py-3 rounded-full border focus:outline-none focus:ring-2 transition-all ${
+                  isDarkMode 
+                    ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:border-gray-600 focus:ring-gray-600/30' 
+                    : 'bg-gray-50 border-gray-200 text-black placeholder-gray-400 focus:border-gray-400 focus:ring-gray-400/30'
+                }`}
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className={`absolute right-4 top-1/2 -translate-y-1/2 ${isDarkMode ? 'text-gray-500 hover:text-white' : 'text-gray-400 hover:text-black'}`}
+                >
+                  <i className="ri-close-line"></i>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Filter Buttons */}
           <div
             ref={scrollContainerRef}
             className="flex items-center gap-3 sm:gap-6 overflow-x-auto scrollbar-hide whitespace-nowrap px-2 sm:px-0 pb-1 justify-start sm:justify-center scroll-smooth"
@@ -370,7 +401,25 @@ export default function Portfolio() {
             </div>
           ) : filteredItems.length === 0 ? (
             <div className="text-center py-20">
-              <p className={isDarkMode ? 'text-white' : 'text-black'}>Henüz ürün bulunmamaktadır.</p>
+              <i className={`ri-search-line text-5xl mb-4 block ${isDarkMode ? 'text-gray-600' : 'text-gray-300'}`}></i>
+              <p className={`text-lg mb-2 ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                {searchTerm ? `"${searchTerm}" için sonuç bulunamadı` : 'Bu kategoride ürün bulunmamaktadır'}
+              </p>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                {searchTerm ? 'Farklı bir arama terimi deneyin' : 'Lütfen başka bir kategori seçin'}
+              </p>
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className={`mt-4 px-6 py-2 rounded-full text-sm font-medium transition-colors ${
+                    isDarkMode 
+                      ? 'bg-white text-black hover:bg-gray-100' 
+                      : 'bg-black text-white hover:bg-gray-800'
+                  }`}
+                >
+                  Aramayı Temizle
+                </button>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
@@ -513,7 +562,7 @@ export default function Portfolio() {
           </div>
 
           <div className={`border-t mt-8 sm:mt-12 pt-6 sm:pt-8 text-center text-xs sm:text-sm transition-colors ${isDarkMode ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-500'}`}>
-            <p>&copy; 2025 Meryem Balkan.</p>
+            <p>&copy; Meryem Balkan.</p>
           </div>
         </div>
       </footer>

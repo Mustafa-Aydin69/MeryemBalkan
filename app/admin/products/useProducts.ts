@@ -1,13 +1,25 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createClient } from "@supabase/supabase-js";
 import { toast } from "sonner";
+import {
+  getCache,
+  setCache,
+  hasCache,
+  updateCacheItem,
+  addToCacheEnd,
+  removeFromCache,
+  replaceCache,
+  type CacheKey,
+} from '../lib/adminCache';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
+
+const CACHE_KEY: CacheKey = 'products';
 
 export interface Product {
   id: number;
@@ -38,8 +50,28 @@ export interface NewProduct {
   images: (string | File)[];
 }
 
+// Transform raw data to Product format
+function transformProductData(item: any): Product {
+  return {
+    id: item.id,
+    title: item.title,
+    collection: item.collection,
+    category: item.category,
+    price: item.price,
+    status: item.status,
+    createdDate: item.createdDate,
+    year: item.year,
+    features: item.features || [],
+    size: item.size || [],
+    colors: item.colors || [],
+    images: item.images || [],
+    description: item.description || '',
+  };
+}
+
 export function useProducts() {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTermProducts, setSearchTermProducts] = useState('');
   const [searchOpenProducts, setSearchOpenProducts] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -68,35 +100,38 @@ export function useProducts() {
     images: [],
   });
 
-  // Fetch products
-  useEffect(() => {
-    async function getProducts() {
-      const { data, error } = await supabase.from("urunler").select("*");
-
-      if (error) {
-        console.error("Ürünler alınamadı:", error.message);
-      } else if (data) {
-        setAllProducts(
-          data.map((item) => ({
-            id: item.id,
-            title: item.title,
-            collection: item.collection,
-            category: item.category,
-            price: item.price,
-            status: item.status,
-            createdDate: item.createdDate,
-            year: item.year,
-            features: item.features || [],
-            size: item.size || [],
-            colors: item.colors || [],
-            images: item.images || [],
-            description: item.description || '',
-          }))
-        );
+  // Fetch products with caching
+  const fetchProducts = useCallback(async (forceRefresh = false) => {
+    // Check cache first (unless force refresh)
+    if (!forceRefresh && hasCache(CACHE_KEY)) {
+      const cachedData = getCache<Product>(CACHE_KEY);
+      if (cachedData) {
+        setAllProducts(cachedData);
+        setLoading(false);
+        return;
       }
     }
-    getProducts();
+
+    setLoading(true);
+    
+    const { data, error } = await supabase.from("urunler").select("*");
+
+    if (error) {
+      console.error("Ürünler alınamadı:", error.message);
+      setLoading(false);
+    } else if (data) {
+      const transformedProducts = data.map(transformProductData);
+      setAllProducts(transformedProducts);
+      // Update cache
+      setCache(CACHE_KEY, transformedProducts);
+      setLoading(false);
+    }
   }, []);
+
+  // Initial fetch - uses cache if available
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
   // Filtering
   const filteredProducts = allProducts.filter(
@@ -299,26 +334,13 @@ export function useProducts() {
     setUploadError("");
     setIsAddProductModalOpen(false);
     
-    // Refresh products
+    // Refresh products and update cache
     const { data } = await supabase.from("urunler").select("*");
     if (data) {
-      setAllProducts(
-        data.map((item) => ({
-          id: item.id,
-          title: item.title,
-          collection: item.collection,
-          category: item.category,
-          price: item.price,
-          status: item.status,
-          createdDate: item.createdDate,
-          year: item.year,
-          features: item.features || [],
-          size: item.size || [],
-          colors: item.colors || [],
-          images: item.images || [],
-          description: item.description || '',
-        }))
-      );
+      const transformedProducts = data.map(transformProductData);
+      setAllProducts(transformedProducts);
+      // Replace cache with fresh data
+      replaceCache(CACHE_KEY, transformedProducts);
     }
   };
 
@@ -456,11 +478,16 @@ export function useProducts() {
       }
     }
 
+    const updatedProduct = { ...editingProduct, images: uploadedNames };
+    
     setAllProducts((prev) =>
       prev.map((product) =>
-        product.id === editingProduct.id ? { ...editingProduct, images: uploadedNames } : product
+        product.id === editingProduct.id ? updatedProduct : product
       )
     );
+
+    // Update cache
+    updateCacheItem<Product>(CACHE_KEY, editingProduct.id, () => updatedProduct);
 
     setEditingProduct(null);
     toast.success("Ürün başarıyla güncellendi! ✅");
@@ -510,16 +537,24 @@ export function useProducts() {
     }
 
     setAllProducts((prev) => prev.filter((p) => p.id !== deleteProductId));
+    
+    // Update cache
+    removeFromCache(CACHE_KEY, deleteProductId);
+    
     setIsDeleteModalOpen(false);
     setDeleteProductId(null);
     toast.success("Ürün ve fotoğrafları başarıyla silindi! ✅");
   };
+
+  // Force refresh function (for manual refresh)
+  const refreshProducts = () => fetchProducts(true);
 
   return {
     allProducts,
     filteredProducts,
     sortedProducts,
     currentProducts,
+    loading,
     searchTermProducts,
     setSearchTermProducts,
     searchOpenProducts,
@@ -561,6 +596,7 @@ export function useProducts() {
     deleteProductId,
     confirmDeleteProduct,
     handleDeleteProduct,
+    refreshProducts,
   };
 }
 

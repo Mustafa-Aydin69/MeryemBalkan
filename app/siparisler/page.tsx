@@ -10,7 +10,7 @@ const supabase = createClient(
 );
 
 export default function OrdersPage() {
-    const [isDarkMode, setIsDarkMode] = useState(false);
+    const [isDarkMode, setIsDarkMode] = useState(true);
     const [orders, setOrders] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
@@ -18,8 +18,10 @@ export default function OrdersPage() {
     useEffect(() => {
         // Dark mode kontrolü
         const savedTheme = localStorage.getItem('theme');
-        if (savedTheme === 'dark') {
-            setIsDarkMode(true);
+        if (savedTheme === 'light') {
+            setIsDarkMode(false);
+            document.documentElement.classList.remove('dark');
+        } else {
             document.documentElement.classList.add('dark');
         }
 
@@ -217,7 +219,7 @@ export default function OrdersPage() {
                                             <strong>Telefon:</strong> {order.phone}
                                         </p>
                                         <p>
-                                            <strong>Kargo Kodu:</strong> {"Yurtiçi Kargo -> " + order.shippingCode || '-'}
+                                            <strong>Kargo Kodu:</strong> {order.shippingCode ? `Yurtiçi Kargo → ${order.shippingCode}` : 'Henüz kargoya verilmedi'}
                                         </p>
                                     </div>
                                 </div>
@@ -265,7 +267,7 @@ export default function OrdersPage() {
                     </div>
 
                     <div className={`border-t mt-8 sm:mt-12 pt-6 sm:pt-8 text-center text-xs sm:text-sm transition-colors ${isDarkMode ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-500'}`}>
-                        <p>&copy; 2025 Meryem Balkan.</p>
+                        <p>&copy; Meryem Balkan.</p>
                     </div>
                 </div>
             </footer>

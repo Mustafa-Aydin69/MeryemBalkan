@@ -3,12 +3,21 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
+import {
+  getCache,
+  setCache,
+  hasCache,
+  replaceCache,
+  type CacheKey,
+} from '../lib/adminCache';
 
 // Supabase client
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
+
+const CACHE_KEY: CacheKey = 'rentals';
 
 // Supabase storage base URL
 const IMAGE_BASE_URL = 'https://orplwznpdpwnyflkbuoy.supabase.co/storage/v1/object/public/urunler/';
@@ -127,10 +136,10 @@ function parseCustomerName(fullName: string): { firstName: string; lastName: str
   return { firstName, lastName };
 }
 
-// Gecikme durumunu kontrol et (eventDate + 5 gün geçmişse gecikti)
+// Gecikme durumunu kontrol et (eventDate + 3 gün geçmişse gecikti)
 function checkIfOverdue(eventDate: string): boolean {
   if (!eventDate) return false;
-  const returnDate = addDays(new Date(eventDate), 5);
+  const returnDate = addDays(new Date(eventDate), 3);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return returnDate < today;
@@ -143,11 +152,11 @@ function addDays(date: Date, days: number): Date {
   return result;
 }
 
-// eventDate + 5 gün hesapla ve string olarak döndür
+// eventDate + 3 gün hesapla ve string olarak döndür
 function calculateReturnDate(eventDate: string): string {
   if (!eventDate) return '';
   const event = new Date(eventDate);
-  const returnDate = addDays(event, 5);
+  const returnDate = addDays(event, 3);
   return returnDate.toISOString().split('T')[0];
 }
 
@@ -161,8 +170,18 @@ export function useRentals() {
   const [viewingRental, setViewingRental] = useState<Rental | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  // Verileri Supabase'den çek
-  const fetchRentals = useCallback(async () => {
+  // Verileri Supabase'den çek (with caching)
+  const fetchRentals = useCallback(async (forceRefresh = false) => {
+    // Check cache first (unless force refresh)
+    if (!forceRefresh && hasCache(CACHE_KEY)) {
+      const cachedData = getCache<Rental>(CACHE_KEY);
+      if (cachedData) {
+        setRentals(cachedData);
+        setLoading(false);
+        return;
+      }
+    }
+
     setLoading(true);
     setError(null);
 
@@ -240,6 +259,8 @@ export function useRentals() {
       });
 
       setRentals(rentalsData);
+      // Update cache
+      setCache(CACHE_KEY, rentalsData);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Bilinmeyen bir hata oluştu';
       setError(errorMessage);
@@ -338,14 +359,18 @@ export function useRentals() {
       createdAt: new Date().toISOString(),
     };
 
-    setRentals((prev) => [newRental, ...prev]);
+    const updatedRentals = [newRental, ...rentals];
+    setRentals(updatedRentals);
+    // Update cache
+    replaceCache(CACHE_KEY, updatedRentals);
+    
     setIsCreateModalOpen(false);
     toast.success('Kiralama kaydı oluşturuldu');
   };
 
-  // Verileri yenile
+  // Verileri yenile (force refresh)
   const refreshRentals = () => {
-    fetchRentals();
+    fetchRentals(true);
   };
 
   // Kiralama tamamlandı olarak işaretle
@@ -363,18 +388,43 @@ export function useRentals() {
       throw error;
     }
 
-    // Local state'den kaldır
-    setRentals((prev) => prev.filter((r) => r.rentalId !== rentalId));
+    // Local state'den kaldır ve cache güncelle
+    const updatedRentals = rentals.filter((r) => r.rentalId !== rentalId);
+    setRentals(updatedRentals);
+    replaceCache(CACHE_KEY, updatedRentals);
+    
     setViewingRental(null);
     toast.success('Kiralama tamamlandı olarak işaretlendi');
   };
 
-  // Hatırlatma maili gönder (backend henüz yok, sadece frontend)
+  // Hatırlatma maili gönder
   const sendNotification = async (rental: Rental) => {
-    // TODO: Backend implementasyonu yapılacak
-    // Şimdilik sadece simülasyon
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    toast.success(`Hatırlatma maili gönderildi: ${rental.customer.email}`);
+    try {
+      const response = await fetch('/api/send-rental-reminder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerName: `${rental.customer.firstName} ${rental.customer.lastName}`,
+          customerEmail: rental.customer.email,
+          productName: rental.product.name,
+          eventDate: rental.rentalPeriod.etkinlikTarihi,
+          returnDate: rental.rentalPeriod.enGecIadeTarihi,
+          status: rental.status, // 'musteride' veya 'gecikti'
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'E-posta gönderilemedi');
+      }
+
+      const emailType = data.type === 'overdue' ? 'Gecikme hatırlatması' : 'İade hatırlatması';
+      toast.success(`${emailType} gönderildi: ${rental.customer.email}`);
+    } catch (error: any) {
+      console.error('Hatırlatma maili gönderim hatası:', error);
+      toast.error(error.message || 'E-posta gönderilemedi');
+    }
   };
 
   return {

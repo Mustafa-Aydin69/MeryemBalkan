@@ -19,7 +19,8 @@ export default function OrdersPage() {
     handleUpdateOrder,
     viewingOrder,
     setViewingOrder,
-    handleGenerateFatura,
+    refreshOrders,
+    loading,
   } = useOrders();
 
   return (
@@ -31,6 +32,16 @@ export default function OrdersPage() {
         </h2>
 
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          {/* Verileri Yenile Butonu */}
+          <button
+            onClick={refreshOrders}
+            disabled={loading}
+            className="p-2 rounded-full font-medium transition-colors bg-gray-700 text-white hover:bg-gray-600 disabled:opacity-50"
+            title="Verileri Yenile"
+          >
+            <i className={`ri-refresh-line ${loading ? 'animate-spin' : ''}`}></i>
+          </button>
+
           {/* Arama Butonu */}
           <button
             onClick={() => {
@@ -151,20 +162,24 @@ export default function OrdersPage() {
                   <p>{viewingOrder.shippingCode || '—'}</p>
                 </div>
               </div>
+              
+              <div className="border-t border-gray-700 pt-3">
+                <p className="text-gray-500 text-xs mb-1">Ödeme Şekli</p>
+                <p className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                  viewingOrder.paymentMethod === 'Mağazadan' 
+                    ? 'bg-purple-500/20 text-purple-400' 
+                    : 'bg-blue-500/20 text-blue-400'
+                }`}>
+                  <i className={viewingOrder.paymentMethod === 'Mağazadan' ? 'ri-store-2-line' : 'ri-bank-card-line'}></i>
+                  {viewingOrder.paymentMethod || 'Online'}
+                </p>
+              </div>
             </div>
 
-            <div className="mt-6 flex flex-col sm:flex-row gap-3">
-              <button
-                onClick={() => handleGenerateFatura(viewingOrder.id)}
-                className="flex-1 py-3 px-4 rounded-full font-medium transition-colors bg-white text-black hover:bg-gray-100 flex items-center justify-center gap-2"
-              >
-                <i className="ri-printer-line"></i>
-                Fatura Oluştur
-              </button>
-
+            <div className="mt-6 flex justify-end">
               <button
                 onClick={() => setViewingOrder(null)}
-                className="flex-1 py-3 px-4 rounded-full border font-medium transition-colors border-gray-600 text-white hover:bg-gray-700"
+                className="py-3 px-8 rounded-full border font-medium transition-colors border-gray-600 text-white hover:bg-gray-700"
               >
                 Kapat
               </button>

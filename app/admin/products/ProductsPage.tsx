@@ -47,6 +47,9 @@ export default function ProductsPage() {
     setIsDeleteModalOpen,
     confirmDeleteProduct,
     handleDeleteProduct,
+    // Refresh
+    refreshProducts,
+    loading,
   } = useProducts();
 
   return (
@@ -59,6 +62,16 @@ export default function ProductsPage() {
 
         {/* Üst Butonlar + Arama */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto">
+          {/* Verileri Yenile Butonu */}
+          <button
+            onClick={refreshProducts}
+            disabled={loading}
+            className="p-2.5 rounded-full font-medium transition-colors bg-gray-700 text-white hover:bg-gray-600 disabled:opacity-50"
+            title="Verileri Yenile"
+          >
+            <i className={`ri-refresh-line ${loading ? 'animate-spin' : ''}`}></i>
+          </button>
+
           {/* Yeni Ürün Ekle */}
           <button
             onClick={() => setIsAddProductModalOpen(true)}

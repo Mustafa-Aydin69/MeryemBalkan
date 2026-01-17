@@ -1,7 +1,9 @@
 'use client';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import LoginModal from '../components/LoginModal';
 import { useState, useEffect } from 'react';
+import { checkCartConflicts } from '../utils/rentalConflict';
 
 // Sepet öğesi için tip tanımı
 interface CartItem {
@@ -15,26 +17,75 @@ interface CartItem {
   image: string;
 }
 
+interface ConflictInfo {
+  itemTitle: string;
+  reason: string;
+}
+
 export default function Sepet() {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const router = useRouter();
+  const [isDarkMode, setIsDarkMode] = useState(true);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [scrollY, setScrollY] = useState(0);
   const [isClient, setIsClient] = useState(false);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [removedItem, setRemovedItem] = useState<CartItem | null>(null);
   const [showUndoMessage, setShowUndoMessage] = useState(false);
+  const [isCheckingConflicts, setIsCheckingConflicts] = useState(true);
+  const [conflictMessages, setConflictMessages] = useState<ConflictInfo[]>([]);
+  const [isProcessingCheckout, setIsProcessingCheckout] = useState(false);
+  const [showConflictModal, setShowConflictModal] = useState(false);
+  const [pendingConflicts, setPendingConflicts] = useState<ConflictInfo[]>([]);
+  const [hasValidItemsRemaining, setHasValidItemsRemaining] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
     const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-      setIsDarkMode(true);
+    if (savedTheme === 'light') {
+      setIsDarkMode(false);
+      document.documentElement.classList.remove('dark');
+    } else {
       document.documentElement.classList.add('dark');
     }
 
-    // 🔹 İlk açılışta cartItems'ı yükle
-    const initialCartItems = JSON.parse(localStorage.getItem('cartItems') || '[]');
-    setCartItems(initialCartItems);
+    // 🔹 İlk açılışta cartItems'ı yükle ve çakışma kontrolü yap
+    const loadAndCheckCart = async () => {
+      const initialCartItems = JSON.parse(localStorage.getItem('cartItems') || '[]');
+      
+      if (initialCartItems.length === 0) {
+        setCartItems([]);
+        setIsCheckingConflicts(false);
+        return;
+      }
+
+      setIsCheckingConflicts(true);
+      
+      try {
+        // Çakışma kontrolü yap
+        const { conflicts, validItems } = await checkCartConflicts(initialCartItems);
+        
+        if (conflicts.length > 0) {
+          // Çakışan ürünleri göster
+          setConflictMessages(conflicts.map(c => ({
+            itemTitle: c.item.title,
+            reason: c.reason
+          })));
+          
+          // Sadece geçerli ürünleri sepette tut
+          setCartItems(validItems);
+          localStorage.setItem('cartItems', JSON.stringify(validItems));
+        } else {
+          setCartItems(initialCartItems);
+        }
+      } catch (error) {
+        console.error('Çakışma kontrolü hatası:', error);
+        setCartItems(initialCartItems);
+      } finally {
+        setIsCheckingConflicts(false);
+      }
+    };
+
+    loadAndCheckCart();
 
     const handleScroll = () => {
       setScrollY(window.scrollY);
@@ -149,6 +200,62 @@ export default function Sepet() {
     return sum + (isNaN(cleanPrice) ? 0 : cleanPrice);
   }, 0);
 
+  // Ödeme yap butonu - checkout'a gitmeden önce çakışma kontrolü yap
+  const handleCheckout = async () => {
+    if (cartItems.length === 0) return;
+    
+    setIsProcessingCheckout(true);
+    setConflictMessages([]);
+    
+    try {
+      // Çakışma kontrolü yap
+      const { conflicts, validItems } = await checkCartConflicts(cartItems);
+      
+      if (conflicts.length > 0) {
+        // Çakışma var - modal göster
+        const conflictMsgs = conflicts.map(c => ({
+          itemTitle: c.item.title,
+          reason: c.reason
+        }));
+        
+        setPendingConflicts(conflictMsgs);
+        setHasValidItemsRemaining(validItems.length > 0);
+        
+        // Geçerli ürünleri güncelle (ama henüz localStorage'a kaydetme - modal sonucuna göre)
+        setCartItems(validItems);
+        localStorage.setItem('cartItems', JSON.stringify(validItems));
+        
+        // Modal göster
+        setShowConflictModal(true);
+        setIsProcessingCheckout(false);
+        return;
+      }
+      
+      // Çakışma yoksa checkout'a git
+      router.push('/checkout');
+    } catch (error) {
+      console.error('Checkout hatası:', error);
+      setIsProcessingCheckout(false);
+    }
+  };
+
+  // Modal'da "Evet" - Checkout'a devam et
+  const handleConflictContinue = () => {
+    setShowConflictModal(false);
+    setPendingConflicts([]);
+    
+    if (hasValidItemsRemaining) {
+      router.push('/checkout');
+    }
+  };
+
+  // Modal'da "Hayır" - Sepette kal ve uyarıyı göster
+  const handleConflictStay = () => {
+    setShowConflictModal(false);
+    setConflictMessages(pendingConflicts);
+    setPendingConflicts([]);
+  };
+
   return (
     <div
       className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'dark bg-gray-900' : 'bg-white'
@@ -239,6 +346,45 @@ export default function Sepet() {
           <div className="text-center mb-8 sm:mb-12">
             <h1 className={`text-2xl sm:text-4xl font-light tracking-wide font-serif transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>Sepet</h1>
           </div>
+
+          {/* Conflict Messages */}
+          {conflictMessages.length > 0 && (
+            <div className={`mb-6 p-4 rounded-lg border transition-colors ${isDarkMode ? 'bg-red-900/30 border-red-800' : 'bg-red-50 border-red-200'}`}>
+              <div className="flex items-start space-x-3">
+                <i className={`ri-error-warning-line text-xl flex-shrink-0 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}></i>
+                <div className="flex-1">
+                  <p className={`font-medium mb-2 ${isDarkMode ? 'text-red-300' : 'text-red-700'}`}>
+                    Bazı ürünler sepetten kaldırıldı
+                  </p>
+                  <ul className="space-y-2">
+                    {conflictMessages.map((conflict, index) => (
+                      <li key={index} className={`text-sm ${isDarkMode ? 'text-red-200' : 'text-red-600'}`}>
+                        <span className="font-medium">{conflict.itemTitle}:</span> {conflict.reason}
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    onClick={() => setConflictMessages([])}
+                    className={`mt-3 text-sm underline ${isDarkMode ? 'text-red-300 hover:text-red-200' : 'text-red-600 hover:text-red-700'}`}
+                  >
+                    Kapat
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Loading state for conflict check */}
+          {isCheckingConflicts && (
+            <div className={`mb-6 p-4 rounded-lg border transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
+              <div className="flex items-center space-x-3">
+                <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
+                  Ürün müsaitlik durumu kontrol ediliyor...
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Undo Message */}
           {showUndoMessage && removedItem && (
@@ -339,12 +485,31 @@ export default function Sepet() {
               </p>
 
               <div className="space-y-4">
-                <Link
-                  href="/checkout"
-                  className={`w-full py-3 sm:py-4 px-6 sm:px-8 rounded-full font-medium transition-colors whitespace-nowrap block text-center ${isDarkMode ? 'bg-white text-black hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-900'}`}
+                <button
+                  onClick={handleCheckout}
+                  disabled={isProcessingCheckout || cartItems.length === 0}
+                  className={`w-full py-3 sm:py-4 px-6 sm:px-8 rounded-full font-medium transition-colors whitespace-nowrap flex items-center justify-center gap-2 ${
+                    isProcessingCheckout || cartItems.length === 0
+                      ? isDarkMode 
+                        ? 'bg-gray-700 text-gray-500 cursor-not-allowed' 
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : isDarkMode 
+                        ? 'bg-white text-black hover:bg-gray-100' 
+                        : 'bg-black text-white hover:bg-gray-900'
+                  }`}
                 >
-                  Ödeme yap
-                </Link>
+                  {isProcessingCheckout ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Kontrol ediliyor...
+                    </>
+                  ) : (
+                    'Ödeme yap'
+                  )}
+                </button>
 
                 <div className="text-center">
                   <Link
@@ -399,10 +564,70 @@ export default function Sepet() {
           </div>
 
           <div className={`border-t mt-8 sm:mt-12 pt-6 sm:pt-8 text-center text-sm transition-colors ${isDarkMode ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-500'}`}>
-            <p>&copy; 2025 Meryem Balkan.</p>
+            <p>&copy; Meryem Balkan.</p>
           </div>
         </div>
       </footer>
+
+      {/* Conflict Modal */}
+      {showConflictModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className={`rounded-xl w-full max-w-md p-6 shadow-2xl ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-black'}`}>
+            <div className="text-center mb-6">
+              <div className={`w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center ${isDarkMode ? 'bg-red-500/20' : 'bg-red-100'}`}>
+                <i className={`ri-error-warning-line text-3xl ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}></i>
+              </div>
+              <h3 className="text-xl font-medium mb-2">Ürün Müsaitlik Sorunu</h3>
+            </div>
+
+            <div className={`max-h-48 overflow-y-auto mb-6 space-y-3 ${isDarkMode ? 'bg-gray-900/50' : 'bg-gray-50'} rounded-lg p-4`}>
+              {pendingConflicts.map((conflict, index) => (
+                <div key={index} className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>{conflict.itemTitle}:</span>
+                  <p className="mt-0.5">{conflict.reason}</p>
+                  <p className={`mt-1 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    Bu ürün sepetinizden kaldırılacaktır.
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {hasValidItemsRemaining ? (
+              <>
+                <p className={`text-sm mb-4 text-center ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  Kalan ürünlerle devam etmek istiyor musunuz?
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleConflictStay}
+                    className={`flex-1 py-3 px-4 rounded-full font-medium transition-colors ${isDarkMode ? 'border border-gray-600 text-white hover:bg-gray-700' : 'border border-gray-300 text-black hover:bg-gray-100'}`}
+                  >
+                    Hayır, Sepette Kal
+                  </button>
+                  <button
+                    onClick={handleConflictContinue}
+                    className={`flex-1 py-3 px-4 rounded-full font-medium transition-colors ${isDarkMode ? 'bg-white text-black hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-800'}`}
+                  >
+                    Evet, Devam Et
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className={`text-sm mb-4 text-center ${isDarkMode ? 'text-red-300' : 'text-red-600'}`}>
+                  Sepetinizdeki tüm ürünler artık müsait değil.
+                </p>
+                <button
+                  onClick={handleConflictStay}
+                  className={`w-full py-3 px-4 rounded-full font-medium transition-colors ${isDarkMode ? 'bg-white text-black hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-800'}`}
+                >
+                  Tamam
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Login Modal */}
       <LoginModal
