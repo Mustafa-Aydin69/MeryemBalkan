@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import {
   getCache,
@@ -10,12 +9,6 @@ import {
   replaceCache,
   type CacheKey,
 } from '../lib/adminCache';
-
-// Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 const CACHE_KEY: CacheKey = 'rentals';
 
@@ -170,7 +163,7 @@ export function useRentals() {
   const [viewingRental, setViewingRental] = useState<Rental | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  // Verileri Supabase'den çek (with caching)
+  // Verileri API route üzerinden çek (with caching)
   const fetchRentals = useCallback(async (forceRefresh = false) => {
     // Check cache first (unless force refresh)
     if (!forceRefresh && hasCache(CACHE_KEY)) {
@@ -187,14 +180,15 @@ export function useRentals() {
 
     try {
       // 1. Kirada olan siparişleri çek
-      const { data: ordersData, error: ordersError } = await supabase
-        .from('siparisler')
-        .select('id, customerName, productName, size, color, eventDate, orderDate, status, phone, email, address, price, shippingCode')
-        .eq('status', 'Kirada');
+      const ordersResponse = await fetch('/api/admin/siparisler?status=Kirada', {
+        credentials: 'include',
+      });
 
-      if (ordersError) {
-        throw new Error('Siparişler alınamadı: ' + ordersError.message);
+      if (!ordersResponse.ok) {
+        throw new Error('Siparişler alınamadı');
       }
+
+      const { data: ordersData } = await ordersResponse.json();
 
       if (!ordersData || ordersData.length === 0) {
         setRentals([]);
@@ -203,21 +197,21 @@ export function useRentals() {
       }
 
       // 2. Tüm ürünleri çek (productName eşleştirmesi için)
-      const { data: productsData, error: productsError } = await supabase
-        .from('urunler')
-        .select('id, title, images');
+      const productsResponse = await fetch('/api/admin/urunler?fields=id,title,images', {
+        credentials: 'include',
+      });
 
-      if (productsError) {
-        console.error('Ürünler alınamadı:', productsError.message);
+      let productsData: SupabaseProduct[] = [];
+      if (productsResponse.ok) {
+        const productsResult = await productsResponse.json();
+        productsData = productsResult.data || [];
       }
 
       // Ürün map'i oluştur (title -> product)
       const productMap = new Map<string, SupabaseProduct>();
-      if (productsData) {
-        productsData.forEach((product: SupabaseProduct) => {
-          productMap.set(product.title.toLowerCase(), product);
-        });
-      }
+      productsData.forEach((product: SupabaseProduct) => {
+        productMap.set(product.title.toLowerCase(), product);
+      });
 
       // 3. Siparişleri Rental formatına dönüştür
       const rentalsData: Rental[] = (ordersData as SupabaseOrder[]).map((order) => {
@@ -378,23 +372,32 @@ export function useRentals() {
     // rentalId formatı: KR-001 -> sipariş ID: 1
     const orderId = parseInt(rentalId.replace('KR-', ''));
     
-    const { error } = await supabase
-      .from('siparisler')
-      .update({ status: 'Tamamlandı' })
-      .eq('id', orderId);
+    try {
+      const response = await fetch('/api/admin/siparisler', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          id: orderId,
+          updates: { status: 'Tamamlandı' },
+        }),
+      });
 
-    if (error) {
+      if (!response.ok) {
+        throw new Error('Durum güncellenemedi');
+      }
+
+      // Local state'den kaldır ve cache güncelle
+      const updatedRentals = rentals.filter((r) => r.rentalId !== rentalId);
+      setRentals(updatedRentals);
+      replaceCache(CACHE_KEY, updatedRentals);
+      
+      setViewingRental(null);
+      toast.success('Kiralama tamamlandı olarak işaretlendi');
+    } catch (error: any) {
       toast.error('Durum güncellenemedi: ' + error.message);
       throw error;
     }
-
-    // Local state'den kaldır ve cache güncelle
-    const updatedRentals = rentals.filter((r) => r.rentalId !== rentalId);
-    setRentals(updatedRentals);
-    replaceCache(CACHE_KEY, updatedRentals);
-    
-    setViewingRental(null);
-    toast.success('Kiralama tamamlandı olarak işaretlendi');
   };
 
   // Hatırlatma maili gönder

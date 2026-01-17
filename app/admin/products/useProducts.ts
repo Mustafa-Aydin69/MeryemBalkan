@@ -1,25 +1,19 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { createClient } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import {
   getCache,
   setCache,
   hasCache,
   updateCacheItem,
-  addToCacheEnd,
   removeFromCache,
   replaceCache,
   type CacheKey,
 } from '../lib/adminCache';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 const CACHE_KEY: CacheKey = 'products';
+const STORAGE_BASE_URL = 'https://orplwznpdpwnyflkbuoy.supabase.co/storage/v1/object/public/urunler/';
 
 export interface Product {
   id: number;
@@ -100,7 +94,7 @@ export function useProducts() {
     images: [],
   });
 
-  // Fetch products with caching
+  // Fetch products with caching - API route üzerinden
   const fetchProducts = useCallback(async (forceRefresh = false) => {
     // Check cache first (unless force refresh)
     if (!forceRefresh && hasCache(CACHE_KEY)) {
@@ -114,16 +108,26 @@ export function useProducts() {
 
     setLoading(true);
     
-    const { data, error } = await supabase.from("urunler").select("*");
+    try {
+      const response = await fetch('/api/admin/urunler', {
+        credentials: 'include',
+      });
 
-    if (error) {
+      if (!response.ok) {
+        throw new Error('Ürünler alınamadı');
+      }
+
+      const { data } = await response.json();
+
+      if (data) {
+        const transformedProducts = data.map(transformProductData);
+        setAllProducts(transformedProducts);
+        setCache(CACHE_KEY, transformedProducts);
+      }
+    } catch (error: any) {
       console.error("Ürünler alınamadı:", error.message);
-      setLoading(false);
-    } else if (data) {
-      const transformedProducts = data.map(transformProductData);
-      setAllProducts(transformedProducts);
-      // Update cache
-      setCache(CACHE_KEY, transformedProducts);
+      toast.error('Ürünler yüklenemedi');
+    } finally {
       setLoading(false);
     }
   }, []);
@@ -267,93 +271,111 @@ export function useProducts() {
     setNewProduct((prev) => ({ ...prev, imagePreviews: reordered }));
   };
 
+  // Upload file to storage via API
+  async function uploadFileViaAPI(file: File): Promise<string | null> {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('bucket', 'urunler');
+      formData.append('fileName', `${Date.now()}_${file.name}`);
+
+      const response = await fetch('/api/admin/storage', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Dosya yüklenemedi');
+      }
+
+      const result = await response.json();
+      return result.fileName;
+    } catch (error: any) {
+      console.error('Dosya yükleme hatası:', error);
+      return null;
+    }
+  }
+
   // Product submit handler
   const handleProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setUploadError("");
 
-    const bucket = "urunler";
     const uploadedNames: string[] = [];
 
     for (const item of newProduct.images) {
       if (item instanceof File) {
-        const uniqueName = `${Date.now()}_${item.name}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from(bucket)
-          .upload(uniqueName, item);
-
-        if (uploadError) {
-          console.error("Fotoğraf yüklenemedi:", uploadError.message);
-          setUploadError(`Fotoğraf yüklenemedi: ${uploadError.message}`);
-          continue;
+        const fileName = await uploadFileViaAPI(item);
+        if (fileName) {
+          uploadedNames.push(fileName);
+        } else {
+          setUploadError('Bazı fotoğraflar yüklenemedi');
         }
-
-        uploadedNames.push(uniqueName);
       } else if (typeof item === "string") {
         uploadedNames.push(item);
       }
     }
 
-    const { error: insertError } = await supabase.from("urunler").insert([
-      {
-        title: newProduct.title,
-        collection: newProduct.category + " Koleksiyonu",
-        category: newProduct.category,
-        price: newProduct.price,
-        size: newProduct.size,
-        colors: newProduct.colors,
-        features: [newProduct.features],
-        description: newProduct.description,
-        images: uploadedNames,
-        year: new Date().getFullYear(),
-        createdDate: new Date().toISOString(),
-      },
-    ]);
+    try {
+      const response = await fetch('/api/admin/urunler', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          title: newProduct.title,
+          collection: newProduct.category + " Koleksiyonu",
+          category: newProduct.category,
+          price: newProduct.price,
+          size: newProduct.size,
+          colors: newProduct.colors,
+          features: [newProduct.features],
+          description: newProduct.description,
+          images: uploadedNames,
+          year: new Date().getFullYear(),
+          createdDate: new Date().toISOString(),
+        }),
+      });
 
-    if (insertError) {
-      console.error("Ürün eklenemedi:", insertError.message);
+      if (!response.ok) {
+        throw new Error('Ürün eklenemedi');
+      }
+
+      toast.success("Ürün başarıyla eklendi! ✅");
+
+      setNewProduct({
+        title: "",
+        collection: "",
+        category: "",
+        price: "",
+        size: [],
+        colors: [],
+        features: [],
+        description: "",
+        images: [],
+        imagePreviews: [],
+      });
+      setUploadError("");
+      setIsAddProductModalOpen(false);
+      
+      // Refresh products
+      fetchProducts(true);
+    } catch (error: any) {
+      console.error("Ürün eklenemedi:", error.message);
       toast.error("Ürün eklenemedi! ❌");
-      return;
-    }
-
-    toast.success("Ürün başarıyla eklendi! ✅");
-
-    setNewProduct({
-      title: "",
-      collection: "",
-      category: "",
-      price: "",
-      size: [],
-      colors: [],
-      features: [],
-      description: "",
-      images: [],
-      imagePreviews: [],
-    });
-    setUploadError("");
-    setIsAddProductModalOpen(false);
-    
-    // Refresh products and update cache
-    const { data } = await supabase.from("urunler").select("*");
-    if (data) {
-      const transformedProducts = data.map(transformProductData);
-      setAllProducts(transformedProducts);
-      // Replace cache with fresh data
-      replaceCache(CACHE_KEY, transformedProducts);
     }
   };
 
   // Edit product handlers
   const handleEditProduct = (product: Product) => {
-    const bucket = "urunler";
-
     const imagePreviews =
       (product.images || [])
         .filter((img) => typeof img === "string" && img.trim() !== "")
-        .map(
-          (img) => supabase.storage.from(bucket).getPublicUrl(img).data.publicUrl
-        );
+        .map((img) => {
+          if (img.startsWith('http')) return img;
+          return STORAGE_BASE_URL + img;
+        });
 
     setEditingProduct({
       ...product,
@@ -401,21 +423,21 @@ export function useProducts() {
   const handleUpdateProduct = async () => {
     if (!editingProduct) return;
 
-    const bucket = "urunler";
-
-    const { data: oldData, error: fetchError } = await supabase
-      .from("urunler")
-      .select("images")
-      .eq("id", editingProduct.id)
-      .single();
-
-    if (fetchError) {
-      console.error("Eski ürün alınamadı:", fetchError.message);
-      toast.error("Ürün bilgisi alınamadı.");
-      return;
+    // Önce eski resimleri al (API üzerinden)
+    let oldImages: string[] = [];
+    try {
+      const oldProductResponse = await fetch(`/api/admin/urunler?fields=images`, {
+        credentials: 'include',
+      });
+      if (oldProductResponse.ok) {
+        const { data } = await oldProductResponse.json();
+        const oldProduct = data?.find((p: any) => p.id === editingProduct.id);
+        oldImages = oldProduct?.images || [];
+      }
+    } catch (error) {
+      console.error('Eski ürün bilgisi alınamadı');
     }
 
-    const oldImages = oldData?.images || [];
     const uploadedNames: string[] = [];
 
     for (const img of editingProduct.images) {
@@ -426,13 +448,10 @@ export function useProducts() {
           continue;
         }
 
-        const uniqueName = `${Date.now()}_${img.name}`;
-        const { error } = await supabase.storage.from(bucket).upload(uniqueName, img);
-        if (error) {
-          console.error("Fotoğraf yüklenemedi:", error.message);
-          continue;
+        const fileName = await uploadFileViaAPI(img);
+        if (fileName) {
+          uploadedNames.push(fileName);
         }
-        uploadedNames.push(uniqueName);
       } else {
         uploadedNames.push(img);
       }
@@ -454,43 +473,55 @@ export function useProducts() {
       description: editingProduct.description || "",
     };
 
-    const { error: updateError } = await supabase
-      .from("urunler")
-      .update(updateData)
-      .eq("id", editingProduct.id);
+    try {
+      const response = await fetch('/api/admin/urunler', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          id: editingProduct.id,
+          updates: updateData,
+        }),
+      });
 
-    if (updateError) {
-      console.error("Ürün güncellenemedi:", updateError.message);
-      toast.error("Ürün güncellenirken bir hata oluştu! ❌");
-      return;
-    }
-
-    if (removedImages.length > 0) {
-      const { error: deleteError } = await supabase.storage
-        .from(bucket)
-        .remove(removedImages);
-
-      if (deleteError) {
-        console.error("Storage silme hatası:", deleteError.message);
-        toast.error("Bazı fotoğraflar storage'tan silinemedi.");
-      } else {
-        console.log("Silinen gereksiz dosyalar:", removedImages);
+      if (!response.ok) {
+        throw new Error('Ürün güncellenemedi');
       }
+
+      // Silinen resimleri storage'dan kaldır
+      if (removedImages.length > 0) {
+        try {
+          await fetch('/api/admin/storage', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              files: removedImages,
+              bucket: 'urunler',
+            }),
+          });
+        } catch (error) {
+          console.warn('Bazı fotoğraflar storage\'tan silinemedi');
+        }
+      }
+
+      const updatedProduct = { ...editingProduct, images: uploadedNames };
+      
+      setAllProducts((prev) =>
+        prev.map((product) =>
+          product.id === editingProduct.id ? updatedProduct : product
+        )
+      );
+
+      // Update cache
+      updateCacheItem<Product>(CACHE_KEY, editingProduct.id, () => updatedProduct);
+
+      setEditingProduct(null);
+      toast.success("Ürün başarıyla güncellendi! ✅");
+    } catch (error: any) {
+      console.error("Ürün güncellenemedi:", error.message);
+      toast.error("Ürün güncellenirken bir hata oluştu! ❌");
     }
-
-    const updatedProduct = { ...editingProduct, images: uploadedNames };
-    
-    setAllProducts((prev) =>
-      prev.map((product) =>
-        product.id === editingProduct.id ? updatedProduct : product
-      )
-    );
-
-    // Update cache
-    updateCacheItem<Product>(CACHE_KEY, editingProduct.id, () => updatedProduct);
-
-    setEditingProduct(null);
-    toast.success("Ürün başarıyla güncellendi! ✅");
   };
 
   // Delete product handlers
@@ -502,48 +533,26 @@ export function useProducts() {
   const handleDeleteProduct = async () => {
     if (deleteProductId === null) return;
 
-    const { data: productData, error: fetchError } = await supabase
-      .from("urunler")
-      .select("images")
-      .eq("id", deleteProductId)
-      .single();
+    try {
+      const response = await fetch(`/api/admin/urunler?id=${deleteProductId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
 
-    if (fetchError) {
-      console.error("Ürün bilgisi alınamadı:", fetchError.message);
-      toast.error("Ürün bilgisi alınamadı! ❌");
-      return;
-    }
-
-    if (productData?.images && Array.isArray(productData.images) && productData.images.length > 0) {
-      const { error: storageError } = await supabase.storage
-        .from("urunler")
-        .remove(productData.images);
-
-      if (storageError) {
-        console.warn("Bazı fotoğraflar silinemedi:", storageError.message);
-        toast.warning("Bazı fotoğraflar Buckets'tan silinemedi ⚠️");
+      if (!response.ok) {
+        throw new Error('Ürün silinemedi');
       }
-    }
 
-    const { error } = await supabase
-      .from("urunler")
-      .delete()
-      .eq("id", deleteProductId);
-
-    if (error) {
+      setAllProducts((prev) => prev.filter((p) => p.id !== deleteProductId));
+      removeFromCache(CACHE_KEY, deleteProductId);
+      
+      setIsDeleteModalOpen(false);
+      setDeleteProductId(null);
+      toast.success("Ürün ve fotoğrafları başarıyla silindi! ✅");
+    } catch (error: any) {
       console.error("Ürün silinemedi:", error.message);
       toast.error("Ürün silinirken bir hata oluştu! ❌");
-      return;
     }
-
-    setAllProducts((prev) => prev.filter((p) => p.id !== deleteProductId));
-    
-    // Update cache
-    removeFromCache(CACHE_KEY, deleteProductId);
-    
-    setIsDeleteModalOpen(false);
-    setDeleteProductId(null);
-    toast.success("Ürün ve fotoğrafları başarıyla silindi! ✅");
   };
 
   // Force refresh function (for manual refresh)
@@ -599,4 +608,3 @@ export function useProducts() {
     refreshProducts,
   };
 }
-

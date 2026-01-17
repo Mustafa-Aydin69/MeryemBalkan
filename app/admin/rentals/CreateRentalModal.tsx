@@ -1,15 +1,9 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getCache, setCache, hasCache } from '../lib/adminCache';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 const IMAGE_BASE_URL = 'https://orplwznpdpwnyflkbuoy.supabase.co/storage/v1/object/public/urunler/';
 
@@ -21,15 +15,6 @@ interface Product {
   size: string[];
   colors: string[];
   images: string[];
-}
-
-interface SelectedProduct {
-  id: number;
-  title: string;
-  price: number;
-  image: string;
-  size: string;
-  color: string;
 }
 
 interface CustomerForm {
@@ -303,7 +288,7 @@ export default function CreateRentalModal({ onClose, onSuccess }: CreateRentalMo
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  // Fetch products from cache or database
+  // Fetch products from cache or API
   useEffect(() => {
     async function fetchProducts() {
       setLoadingProducts(true);
@@ -312,32 +297,41 @@ export default function CreateRentalModal({ onClose, onSuccess }: CreateRentalMo
       if (hasCache('products')) {
         const cached = getCache<Product>('products');
         if (cached) {
-          setProducts(cached);
+          // Filter only published products
+          const publishedProducts = cached.filter((p: any) => p.status === 'Yayında');
+          setProducts(publishedProducts);
           setLoadingProducts(false);
           return;
         }
       }
 
-      // Fetch from database
-      const { data, error } = await supabase
-        .from('urunler')
-        .select('id, title, price, size, colors, images')
-        .eq('status', 'Yayında');
+      // Fetch from API
+      try {
+        const response = await fetch('/api/admin/urunler?status=Yayında&fields=id,title,price,size,colors,images', {
+          credentials: 'include',
+        });
 
-      if (error) {
+        if (!response.ok) {
+          throw new Error('Ürünler alınamadı');
+        }
+
+        const { data } = await response.json();
+
+        if (data) {
+          const formattedProducts = data.map((item: any) => ({
+            id: item.id,
+            title: item.title,
+            price: item.price,
+            size: item.size || [],
+            colors: item.colors || [],
+            images: item.images || [],
+          }));
+          setProducts(formattedProducts);
+          setCache('products', formattedProducts);
+        }
+      } catch (error) {
         console.error('Ürünler alınamadı:', error);
         toast.error('Ürünler yüklenemedi');
-      } else if (data) {
-        const formattedProducts = data.map(item => ({
-          id: item.id,
-          title: item.title,
-          price: item.price,
-          size: item.size || [],
-          colors: item.colors || [],
-          images: item.images || [],
-        }));
-        setProducts(formattedProducts);
-        setCache('products', formattedProducts);
       }
       
       setLoadingProducts(false);
@@ -354,31 +348,35 @@ export default function CreateRentalModal({ onClose, onSuccess }: CreateRentalMo
       const product = products.find(p => p.id === selectedProductId);
       if (!product) return;
 
-      const { data, error } = await supabase
-        .from('siparisler')
-        .select('eventDate')
-        .eq('productName', product.title);
+      try {
+        const response = await fetch(`/api/admin/siparisler?productName=${encodeURIComponent(product.title)}`, {
+          credentials: 'include',
+        });
 
-      if (error) {
-        console.error('Dolu tarihler alınamadı:', error);
-        return;
-      }
-
-      const dates: string[] = [];
-      data?.forEach(({ eventDate }) => {
-        if (!eventDate) return;
-        const event = new Date(eventDate);
-        for (let i = -7; i <= 7; i++) {
-          const d = new Date(event);
-          d.setDate(event.getDate() + i);
-          const year = d.getFullYear();
-          const month = String(d.getMonth() + 1).padStart(2, '0');
-          const day = String(d.getDate()).padStart(2, '0');
-          dates.push(`${year}-${month}-${day}`);
+        if (!response.ok) {
+          throw new Error('Dolu tarihler alınamadı');
         }
-      });
 
-      setDisabledDates([...new Set(dates)]);
+        const { data } = await response.json();
+
+        const dates: string[] = [];
+        data?.forEach(({ eventDate }: { eventDate: string }) => {
+          if (!eventDate) return;
+          const event = new Date(eventDate);
+          for (let i = -7; i <= 7; i++) {
+            const d = new Date(event);
+            d.setDate(event.getDate() + i);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            dates.push(`${year}-${month}-${day}`);
+          }
+        });
+
+        setDisabledDates([...new Set(dates)]);
+      } catch (error) {
+        console.error('Dolu tarihler alınamadı:', error);
+      }
     }
 
     if (currentStep === 2) {
@@ -413,12 +411,6 @@ export default function CreateRentalModal({ onClose, onSuccess }: CreateRentalMo
       ? parseFloat(price.replace(/[^\d.,]/g, '').replace(/\./g, '').replace(',', '.'))
       : price;
     return num.toLocaleString('tr-TR') + ' ₺';
-  };
-
-  // Parse price to number
-  const parsePrice = (price: string | number) => {
-    if (typeof price === 'number') return price;
-    return parseFloat(price.replace(/[^\d.,]/g, '').replace(/\./g, '').replace(',', '.')) || 0;
   };
 
   // Handle product card click
@@ -479,23 +471,30 @@ export default function CreateRentalModal({ onClose, onSuccess }: CreateRentalMo
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase.from('siparisler').insert({
-        customerName: `${customerForm.firstName} ${customerForm.lastName}`,
-        productName: selectedProduct.title,
-        size: selectedSize,
-        color: selectedColor,
-        eventDate: selectedDate,
-        orderDate: new Date().toISOString().split('T')[0],
-        status: 'Hazırlanıyor',
-        phone: customerForm.phone,
-        email: customerForm.email || null,
-        address: customerForm.address || null,
-        price: selectedProduct.price,
-        shippingCode: null,
-        paymentMethod: 'Mağazadan',
+      const response = await fetch('/api/admin/siparisler', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          customerName: `${customerForm.firstName} ${customerForm.lastName}`,
+          productName: selectedProduct.title,
+          size: selectedSize,
+          color: selectedColor,
+          eventDate: selectedDate,
+          orderDate: new Date().toISOString().split('T')[0],
+          status: 'Hazırlanıyor',
+          phone: customerForm.phone,
+          email: customerForm.email || null,
+          address: customerForm.address || null,
+          price: selectedProduct.price,
+          shippingCode: null,
+          paymentMethod: 'Mağazadan',
+        }),
       });
 
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error('Sipariş oluşturulamadı');
+      }
 
       toast.success('Kiralama başarıyla oluşturuldu!');
       onSuccess();

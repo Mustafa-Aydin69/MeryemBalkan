@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { createClient } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { 
   getCache, 
@@ -10,11 +9,6 @@ import {
   updateCacheItem,
   type CacheKey 
 } from '../lib/adminCache';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 const CACHE_KEY: CacheKey = 'orders';
 
@@ -65,7 +59,7 @@ export function useOrders() {
   const [editingOrder, setEditingOrder] = useState<any>(null);
   const [viewingOrder, setViewingOrder] = useState<any>(null);
 
-  // Fetch orders with caching
+  // Fetch orders with caching - API route üzerinden
   const fetchOrders = useCallback(async (forceRefresh = false) => {
     // Check cache first (unless force refresh)
     if (!forceRefresh && hasCache(CACHE_KEY)) {
@@ -79,18 +73,26 @@ export function useOrders() {
 
     setLoading(true);
     
-    const { data, error } = await supabase
-      .from("siparisler")
-      .select("id, customerName, address, productName, size, color, eventDate, orderDate, status, price, phone, email, shippingCode, paymentMethod");
+    try {
+      const response = await fetch('/api/admin/siparisler', {
+        credentials: 'include',
+      });
 
-    if (error) {
+      if (!response.ok) {
+        throw new Error('Siparişler alınamadı');
+      }
+
+      const { data } = await response.json();
+      
+      if (data) {
+        const transformedOrders = data.map(transformOrderData);
+        setOrders(transformedOrders);
+        setCache(CACHE_KEY, transformedOrders);
+      }
+    } catch (error: any) {
       console.error("Siparişler alınamadı:", error.message);
-      setLoading(false);
-    } else if (data) {
-      const transformedOrders = data.map(transformOrderData);
-      setOrders(transformedOrders);
-      // Update cache
-      setCache(CACHE_KEY, transformedOrders);
+      toast.error('Siparişler yüklenemedi');
+    } finally {
       setLoading(false);
     }
   }, []);
@@ -202,57 +204,58 @@ export function useOrders() {
           : null;
     }
 
-    console.log("🟩 Supabase'e gönderilen:", updateData);
+    try {
+      const response = await fetch('/api/admin/siparisler', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          id: editingOrder.id,
+          updates: updateData,
+        }),
+      });
 
-    const { data, error } = await supabase
-      .from("siparisler")
-      .update(updateData)
-      .eq("id", editingOrder.id)
-      .select();
-
-    if (error) {
-      console.error("Sipariş güncellenemedi:", error.message);
-      alert("Bir hata oluştu: " + error.message);
-      return;
-    }
-
-    // E-posta gönder (Kirada durumunda)
-    if (editingOrder.status === "Kirada" && editingOrder.shippingCode) {
-      try {
-        console.log("📦 Kargo maili gönderiliyor...");
-
-        await fetch("/api/send-shipment", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            orderId: editingOrder.id,
-            customerEmail: editingOrder.email,
-            trackingCode: editingOrder.shippingCode,
-          }),
-        });
-
-        console.log("✅ Kargo maili gönderildi.");
-      } catch (err) {
-        console.error("Mail gönderim hatası:", err);
+      if (!response.ok) {
+        throw new Error('Sipariş güncellenemedi');
       }
+
+      // E-posta gönder (Kirada durumunda)
+      if (editingOrder.status === "Kirada" && editingOrder.shippingCode) {
+        try {
+          await fetch("/api/send-shipment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              orderId: editingOrder.id,
+              customerEmail: editingOrder.email,
+              trackingCode: editingOrder.shippingCode,
+            }),
+          });
+        } catch (err) {
+          console.error("Mail gönderim hatası:", err);
+        }
+      }
+
+      // Frontend listesini ve cache'i güncelle
+      const updatedOrder = { ...editingOrder, ...updateData };
+      setOrders((prev) =>
+        prev.map((order) =>
+          order.id === editingOrder.id ? updatedOrder : order
+        )
+      );
+      
+      // Update cache
+      updateCacheItem<Order>(CACHE_KEY, editingOrder.id, (item) => ({
+        ...item,
+        ...updateData,
+      }));
+
+      setEditingOrder(null);
+      toast.success("Sipariş başarıyla güncellendi ✅");
+    } catch (error: any) {
+      console.error("Sipariş güncellenemedi:", error.message);
+      toast.error("Bir hata oluştu: " + error.message);
     }
-
-    // Frontend listesini ve cache'i güncelle
-    const updatedOrder = { ...editingOrder, ...updateData };
-    setOrders((prev) =>
-      prev.map((order) =>
-        order.id === editingOrder.id ? updatedOrder : order
-      )
-    );
-    
-    // Update cache
-    updateCacheItem<Order>(CACHE_KEY, editingOrder.id, (item) => ({
-      ...item,
-      ...updateData,
-    }));
-
-    setEditingOrder(null);
-    toast.success("Sipariş başarıyla güncellendi ✅");
   };
 
   // Force refresh function (for manual refresh)
@@ -282,4 +285,3 @@ export function useOrders() {
     refreshOrders,
   };
 }
-

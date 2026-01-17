@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { createClient } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import {
   getCache,
@@ -11,11 +10,6 @@ import {
   removeFromCache,
   type CacheKey,
 } from '../lib/adminCache';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 const CACHE_KEY: CacheKey = 'messages';
 
@@ -57,7 +51,7 @@ export function useMessages() {
   const [isDeleteMessageModalOpen, setIsDeleteMessageModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Fetch messages with caching
+  // Fetch messages with caching - API route üzerinden
   const fetchMessages = useCallback(async (forceRefresh = false) => {
     // Check cache first (unless force refresh)
     if (!forceRefresh && hasCache(CACHE_KEY)) {
@@ -71,17 +65,26 @@ export function useMessages() {
 
     setLoading(true);
     
-    const { data, error } = await supabase.from("mesajlar").select("*");
-    if (error) {
-      console.error(error);
-      setLoading(false);
-      return;
-    }
-    if (data) {
-      const transformedMessages = data.map(transformMessageData);
-      setMessages(transformedMessages);
-      // Update cache
-      setCache(CACHE_KEY, transformedMessages);
+    try {
+      const response = await fetch('/api/admin/mesajlar', {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Mesajlar alınamadı');
+      }
+
+      const { data } = await response.json();
+      
+      if (data) {
+        const transformedMessages = data.map(transformMessageData);
+        setMessages(transformedMessages);
+        setCache(CACHE_KEY, transformedMessages);
+      }
+    } catch (error: any) {
+      console.error('Mesajlar alınamadı:', error.message);
+      toast.error('Mesajlar yüklenemedi');
+    } finally {
       setLoading(false);
     }
   }, []);
@@ -145,26 +148,29 @@ export function useMessages() {
     if (!deleteMessageId) return;
 
     setIsDeleting(true);
-    const { error } = await supabase
-      .from("mesajlar")
-      .delete()
-      .eq("id", deleteMessageId);
+    
+    try {
+      const response = await fetch(`/api/admin/mesajlar?id=${deleteMessageId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
 
-    setIsDeleting(false);
+      if (!response.ok) {
+        throw new Error('Mesaj silinemedi');
+      }
 
-    if (error) {
+      setMessages((prev) => prev.filter((m) => m.id !== deleteMessageId));
+      removeFromCache(CACHE_KEY, deleteMessageId);
+      
+      setIsDeleteMessageModalOpen(false);
+      setDeleteMessageId(null);
+      toast.success('Mesaj silindi');
+    } catch (error: any) {
       console.error("Mesaj silinirken hata oluştu:", error.message);
-      alert("Mesaj silinemedi: " + error.message);
-      return;
+      toast.error("Mesaj silinemedi: " + error.message);
+    } finally {
+      setIsDeleting(false);
     }
-
-    setMessages((prev) => prev.filter((m) => m.id !== deleteMessageId));
-    
-    // Update cache
-    removeFromCache(CACHE_KEY, deleteMessageId);
-    
-    setIsDeleteMessageModalOpen(false);
-    setDeleteMessageId(null);
   };
 
   // Reply handler
@@ -193,36 +199,37 @@ export function useMessages() {
       const mailResult = await mailResponse.json();
 
       if (mailResult.success) {
-        // Supabase'de durumu güncelle
-        const updateResult = await supabase
-          .from('mesajlar')
-          .update({ cevap: 'Verildi' })
-          .eq('id', selectedMessage.id)
-          .select();
+        // API route üzerinden durumu güncelle
+        const updateResponse = await fetch('/api/admin/mesajlar', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            id: selectedMessage.id,
+            updates: { cevap: 'Verildi' },
+          }),
+        });
 
-        console.log('Supabase güncelleme sonucu:', updateResult);
-
-        if (updateResult.error) {
-          console.error('Supabase güncelleme hatası:', updateResult.error);
-          alert('Mail gönderildi ancak durum güncellenemedi! Hata: ' + updateResult.error.message);
-        } else {
-          // State'i güncelle
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === selectedMessage.id ? { ...m, status: 'Verildi' } : m
-            )
-          );
-          
-          // Update cache
-          updateCacheItem<Message>(CACHE_KEY, selectedMessage.id, (msg) => ({
-            ...msg,
-            status: 'Verildi',
-          }));
-
-          toast.success("Yanıt başarıyla gönderildi! ✅");
-          setReply('');
-          setSelectedMessage(null);
+        if (!updateResponse.ok) {
+          throw new Error('Durum güncellenemedi');
         }
+
+        // State'i güncelle
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === selectedMessage.id ? { ...m, status: 'Verildi' } : m
+          )
+        );
+        
+        // Update cache
+        updateCacheItem<Message>(CACHE_KEY, selectedMessage.id, (msg) => ({
+          ...msg,
+          status: 'Verildi',
+        }));
+
+        toast.success("Yanıt başarıyla gönderildi! ✅");
+        setReply('');
+        setSelectedMessage(null);
       } else {
         throw new Error(mailResult.error || 'Mail gönderilemedi');
       }
@@ -262,4 +269,3 @@ export function useMessages() {
     refreshMessages,
   };
 }
-
