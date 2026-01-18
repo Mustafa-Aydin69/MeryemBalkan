@@ -9,6 +9,16 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
+const getR2BaseUrl = () => {
+  const base =
+    process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL ||
+    "https://cdn.meryembalkan.com.tr";
+
+  const bucket =
+    process.env.NEXT_PUBLIC_R2_BUCKET_NAME || "urunler";
+
+  return `${base.replace(/\/$/, "")}/${bucket.replace(/^\//, "")}/`;
+};
 
 export default function Portfolio() {
   const [activeFilter, setActiveFilter] = useState('all');
@@ -54,8 +64,7 @@ export default function Portfolio() {
         return;
       }
 
-      // Cloudflare R2 storage URL
-      const IMAGE_BASE_URL = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || "https://cdn.meryembalkan.com.tr/urunler/";
+
 
       const mapped = data.map((item: any) => {
         let parsedImages: string[] = [];
@@ -81,11 +90,11 @@ export default function Portfolio() {
           images: parsedImages,
           image:
             parsedImages.length > 0
-              ? `${IMAGE_BASE_URL}${parsedImages[0]}`
-              : "https://cdn.meryembalkan.com.tr/urunler/1760034813002_Meryem_Balkan_Logo.jpg",
+              ? `${getR2BaseUrl()}${parsedImages[0]}`
+              : `${getR2BaseUrl()}1760034813002_Meryem_Balkan_Logo.jpg`,
+
         };
       });
-
 
       setProducts(mapped);
       setLoading(false);
@@ -242,12 +251,13 @@ export default function Portfolio() {
   };
 
   const getImageUrl = (item: any, index: number) => {
-    // Cloudflare R2 storage URL
-    const IMAGE_BASE_URL = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || "https://cdn.meryembalkan.com.tr/urunler/";
+    const BASE_URL = getR2BaseUrl();
+
     if (!item.images || !item.images[index]) {
-      return "https://cdn.meryembalkan.com.tr/urunler/1760034813002_Meryem_Balkan_Logo.jpg";
+      return `${BASE_URL}1760034813002_Meryem_Balkan_Logo.jpg`;
     }
-    return `${IMAGE_BASE_URL}${item.images[index]}`;
+
+    return `${BASE_URL}${item.images[index]}`;
   };
 
   const toggleTheme = () => {
@@ -355,8 +365,8 @@ export default function Portfolio() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Elbise ara..."
                 className={`w-full pl-11 pr-10 py-3 rounded-full border focus:outline-none focus:ring-2 transition-all ${isDarkMode
-                    ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:border-gray-600 focus:ring-gray-600/30'
-                    : 'bg-gray-50 border-gray-200 text-black placeholder-gray-400 focus:border-gray-400 focus:ring-gray-400/30'
+                  ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:border-gray-600 focus:ring-gray-600/30'
+                  : 'bg-gray-50 border-gray-200 text-black placeholder-gray-400 focus:border-gray-400 focus:ring-gray-400/30'
                   }`}
               />
               {searchTerm && (
@@ -428,8 +438,8 @@ export default function Portfolio() {
                 <button
                   onClick={() => setSearchTerm('')}
                   className={`mt-4 px-6 py-2 rounded-full text-sm font-medium transition-colors ${isDarkMode
-                      ? 'bg-white text-black hover:bg-gray-100'
-                      : 'bg-black text-white hover:bg-gray-800'
+                    ? 'bg-white text-black hover:bg-gray-100'
+                    : 'bg-black text-white hover:bg-gray-800'
                     }`}
                 >
                   Aramayı Temizle
@@ -464,6 +474,10 @@ export default function Portfolio() {
                               key={imgIndex}
                               src={getImageUrl(item, imgIndex)}
                               alt={`${item.title} - ${imgIndex + 1}`}
+                              onError={(e) => {
+                                e.currentTarget.src =
+                                  "https://cdn.meryembalkan.com.tr/urunler/1760034813002_Meryem_Balkan_Logo.jpg";
+                              }}
                               className={`absolute inset-0 w-full h-full object-contain object-center transition-all duration-[1500ms] ease-out ${imgIndex === currentIndex
                                 ? 'opacity-100 scale-100'
                                 : 'opacity-0 scale-105'
@@ -472,7 +486,7 @@ export default function Portfolio() {
                           ))
                         ) : (
                           <img
-                            src="/images/AnaSayfa/Meryem_Balkan_Logo.jpg"
+                            src="/images/Anasayfa/Meryem_Balkan_Logo.jpg"
                             alt={item.title}
                             className={`absolute inset-0 w-full h-full object-contain object-center transition-all duration-[3000ms] ease-out ${visibleProducts.has(item.id)
                               ? 'opacity-100 scale-100'
