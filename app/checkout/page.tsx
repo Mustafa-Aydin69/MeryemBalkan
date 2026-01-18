@@ -5,6 +5,20 @@ import LoginModal from '../components/LoginModal';
 import { useState, useEffect } from 'react';
 import { checkCartConflicts, createPendingOrders } from '../utils/rentalConflict';
 
+// Cloudflare R2 URL helper
+const getR2BaseUrl = () => {
+  const base = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || "https://cdn.meryembalkan.com.tr";
+  const bucket = process.env.NEXT_PUBLIC_R2_BUCKET_NAME || "urunler";
+  return `${base.replace(/\/$/, "")}/${bucket.replace(/^\//, "")}/`;
+};
+
+// Resim URL'ini düzeltme (eski localStorage verileri için)
+const getImageUrl = (image: string | undefined) => {
+  if (!image) return `${getR2BaseUrl()}1760034813002_Meryem_Balkan_Logo.jpg`;
+  if (image.startsWith('http')) return image;
+  return `${getR2BaseUrl()}${image}`;
+};
+
 interface CartItem {
   id: string;
   productId: string;
@@ -1191,7 +1205,7 @@ export default function Checkout() {
                     >
                       <div className="w-14 h-18 sm:w-16 sm:h-20 flex-shrink-0 overflow-hidden rounded-md">
                         <img
-                          src={item.image}
+                          src={getImageUrl(item.image)}
                           alt={item.title}
                           className="w-full h-full object-cover object-top"
                         />

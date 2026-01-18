@@ -6,6 +6,27 @@ import { addToCart } from '../../utils/cartUtils';
 import { motion } from "framer-motion";
 import CustomCalendar from '../../components/CustomCalendar';
 
+// Cloudflare R2 URL oluşturma (Portfolio sayfasıyla uyumlu)
+const getR2BaseUrl = () => {
+  const base = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || "https://cdn.meryembalkan.com.tr";
+  const bucket = process.env.NEXT_PUBLIC_R2_BUCKET_NAME || "urunler";
+  return `${base.replace(/\/$/, "")}/${bucket.replace(/^\//, "")}/`;
+};
+
+const getImageUrl = (images: string[] | null, index = 0) => {
+  const R2_BASE = getR2BaseUrl();
+  
+  if (!images || !images[index]) {
+    return `${R2_BASE}1760034813002_Meryem_Balkan_Logo.jpg`;
+  }
+  const img = images[index];
+  // ZATEN TAM URL İSE
+  if (img.startsWith("http")) {
+    return img;
+  }
+  // SADECE DOSYA ADI İSE
+  return `${R2_BASE}${img}`;
+};
 // Renk isimleri -> CSS renk kodu eşleştirmesi
 const colorMap: Record<string, string> = {
   // Temel renkler
@@ -313,7 +334,7 @@ export default function ProductDetail({
           onClick={() => setFullscreen(false)}
         >
           <img
-            src={product.images[currentImageIndex]}
+            src={getImageUrl(product.images, currentImageIndex)}
             alt={product.title}
             className="max-h-screen w-auto object-contain"
           />
@@ -363,7 +384,7 @@ export default function ProductDetail({
                       } hover:border-gray-400 transition-all rounded-md overflow-hidden`}
                   >
                     <img
-                      src={image}
+                      src={getImageUrl(product.images, index)}
                       alt={`${product.title} ${index + 1}`}
                       className="w-full h-32 object-cover object-top"
                     />
@@ -374,7 +395,7 @@ export default function ProductDetail({
               {/* Ana resim (desktop) */}
               <div className="hidden lg:block flex-1">
                 <img
-                  src={product.images[currentImageIndex]}
+                  src={getImageUrl(product.images, currentImageIndex)}
                   alt={product.title}
                   className="w-full h-[400px] sm:h-[500px] lg:h-[600px] object-cover object-top rounded-md cursor-pointer"
                   onClick={() => setFullscreen(true)}
@@ -396,7 +417,7 @@ export default function ProductDetail({
                 }}
               >
                 <img
-                  src={product.images[currentImageIndex]}
+                  src={getImageUrl(product.images, currentImageIndex)}
                   alt={product.title}
                   className="w-full h-[55vh] sm:h-[65vh] md:h-[70vh] object-cover object-top cursor-pointer transition-all duration-500 ease-out"
                   onClick={() => setFullscreen(true)}
@@ -658,7 +679,10 @@ export default function ProductDetail({
                     <div className="relative overflow-hidden mb-3 w-full rounded-lg shadow-sm group">
                       {/* Ürün Görseli */}
                       <motion.img
-                        src={item.images}
+                        src={item.images.startsWith("http")
+                          ? item.images
+                          : `${getR2BaseUrl()}${item.images}`
+                        }
                         alt={item.title}
                         className="w-full h-80 object-cover object-top transition-transform duration-700 group-hover:scale-110"
                       />

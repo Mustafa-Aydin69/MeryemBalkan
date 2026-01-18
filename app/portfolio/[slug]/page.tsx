@@ -8,8 +8,12 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!  
 );
 
-// Cloudflare R2 storage URL
-const IMAGE_BASE_URL = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || "https://cdn.meryembalkan.com.tr/urunler/";
+// Cloudflare R2 URL oluşturma (Portfolio sayfasıyla uyumlu)
+const getR2BaseUrl = () => {
+  const base = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || "https://cdn.meryembalkan.com.tr";
+  const bucket = process.env.NEXT_PUBLIC_R2_BUCKET_NAME || "urunler";
+  return `${base.replace(/\/$/, "")}/${bucket.replace(/^\//, "")}/`;
+};
 
 export async function generateStaticParams() {
   const { data } = await supabase
@@ -49,6 +53,8 @@ const getCachedProductData = unstable_cache(
       .neq("id", productId)
       .limit(4);
 
+      const R2_BASE = getR2BaseUrl();
+    
     // Ürün formatla
     const product = {
       id: productData.id,
@@ -67,22 +73,27 @@ const getCachedProductData = unstable_cache(
         ? productData.colors
         : ['Siyah', 'Lacivert'],
       images: productData.images?.length > 0
-        ? productData.images.map((img: string) => `${IMAGE_BASE_URL}${img}`)
-        : ['/images/AnaSayfa/Meryem_Balkan_Logo.jpg'],
+        ? productData.images.map((img: string) => 
+            img.startsWith('http') ? img : `${R2_BASE}${img}`
+          )
+        : [`${R2_BASE}1760034813002_Meryem_Balkan_Logo.jpg`],
       category: productData.category,
     };
 
     // Related products formatla
-    const relatedProducts = relatedResult.data?.map((item: any) => ({
-      id: item.id,
-      title: item.title,
-      collection: item.collection,
-      price: item.price,
-      images: item.images?.[0]
-        ? `${IMAGE_BASE_URL}${item.images[0]}`
-        : '/images/AnaSayfa/Meryem_Balkan_Logo.jpg',
-      slug: createSlug(item.id, item.title)
-    })) || [];
+    const relatedProducts = relatedResult.data?.map((item: any) => {
+      const firstImage = item.images?.[0];
+      return {
+        id: item.id,
+        title: item.title,
+        collection: item.collection,
+        price: item.price,
+        images: firstImage 
+          ? (firstImage.startsWith('http') ? firstImage : `${R2_BASE}${firstImage}`)
+          : `${R2_BASE}1760034813002_Meryem_Balkan_Logo.jpg`,
+        slug: createSlug(item.id, item.title)
+      };
+    }) || [];
 
     return { product, relatedProducts };
   },

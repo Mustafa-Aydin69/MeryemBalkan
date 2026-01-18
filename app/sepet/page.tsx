@@ -5,6 +5,20 @@ import LoginModal from '../components/LoginModal';
 import { useState, useEffect } from 'react';
 import { checkCartConflicts } from '../utils/rentalConflict';
 
+// Cloudflare R2 URL helper
+const getR2BaseUrl = () => {
+  const base = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || "https://cdn.meryembalkan.com.tr";
+  const bucket = process.env.NEXT_PUBLIC_R2_BUCKET_NAME || "urunler";
+  return `${base.replace(/\/$/, "")}/${bucket.replace(/^\//, "")}/`;
+};
+
+// Resim URL'ini düzeltme (eski localStorage verileri için)
+const getImageUrl = (image: string | undefined) => {
+  if (!image) return `${getR2BaseUrl()}1760034813002_Meryem_Balkan_Logo.jpg`;
+  if (image.startsWith('http')) return image;
+  return `${getR2BaseUrl()}${image}`;
+};
+
 // Sepet öğesi için tip tanımı
 interface CartItem {
   id: string; // Unique identifier (productId_variantId_date)
@@ -413,7 +427,7 @@ export default function Sepet() {
                 <div key={item.id} className={`flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-6 p-4 sm:p-6 rounded-lg transition-colors ${isDarkMode ? 'bg-gray-800' : 'bg-gray-50'}`}>
                   <div className="w-full sm:w-32 h-40 sm:h-40 flex-shrink-0 overflow-hidden rounded-lg">
                     <img
-                      src={item.image}
+                      src={getImageUrl(item.image)}
                       alt={item.title}
                       className="w-full h-full object-cover object-top"
                     />

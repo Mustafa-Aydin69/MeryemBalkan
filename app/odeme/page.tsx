@@ -5,6 +5,20 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import CreditCardPreview from '../components/CreditCardPreview';
 import { deletePendingOrders, confirmOrders } from '../utils/rentalConflict';
 
+// Cloudflare R2 URL helper
+const getR2BaseUrl = () => {
+  const base = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || "https://cdn.meryembalkan.com.tr";
+  const bucket = process.env.NEXT_PUBLIC_R2_BUCKET_NAME || "urunler";
+  return `${base.replace(/\/$/, "")}/${bucket.replace(/^\//, "")}/`;
+};
+
+// Resim URL'ini düzeltme (eski localStorage verileri için)
+const getImageUrl = (image: string | undefined) => {
+  if (!image) return `${getR2BaseUrl()}1760034813002_Meryem_Balkan_Logo.jpg`;
+  if (image.startsWith('http')) return image;
+  return `${getR2BaseUrl()}${image}`;
+};
+
 // 5 dakika = 300 saniye
 const PAYMENT_TIMEOUT_SECONDS = 300;
 
@@ -780,7 +794,7 @@ export default function Payment() {
               {orderData.items.map((item, index) => (
                 <div key={index} className="flex items-center gap-3 sm:gap-4">
                   <div className="w-14 h-18 sm:w-16 sm:h-20 rounded-md overflow-hidden flex-shrink-0">
-                    <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                    <img src={getImageUrl(item.image)} alt={item.title} className="w-full h-full object-cover" />
                   </div>
                   <div className="flex-1">
                     <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>{item.title}</p>
