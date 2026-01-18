@@ -57,19 +57,35 @@ export default function Portfolio() {
       // Cloudflare R2 storage URL
       const IMAGE_BASE_URL = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || "https://cdn.meryembalkan.com.tr/urunler/";
 
-      const mapped = data.map((item: any) => ({
-        id: item.id,
-        category: item.category,
-        title: item.title,
-        collection: item.collection,
-        year: item.year,
-        price: `${item.price.toLocaleString('tr-TR')} ₺`,
-        images: item.images && Array.isArray(item.images) ? item.images : [],
-        image:
-          item.images && Array.isArray(item.images) && item.images.length > 0
-            ? `${IMAGE_BASE_URL}${item.images[0]}`
-            : "https://cdn.meryembalkan.com.tr/urunler/1760034813002_Meryem_Balkan_Logo.jpg",
-      }));
+      const mapped = data.map((item: any) => {
+        let parsedImages: string[] = [];
+
+        if (typeof item.images === "string") {
+          try {
+            parsedImages = JSON.parse(item.images);
+          } catch (err) {
+            console.error("Images parse edilemedi:", item.images);
+            parsedImages = [];
+          }
+        } else if (Array.isArray(item.images)) {
+          parsedImages = item.images;
+        }
+
+        return {
+          id: item.id,
+          category: item.category,
+          title: item.title,
+          collection: item.collection,
+          year: item.year,
+          price: `${item.price.toLocaleString("tr-TR")} ₺`,
+          images: parsedImages,
+          image:
+            parsedImages.length > 0
+              ? `${IMAGE_BASE_URL}${parsedImages[0]}`
+              : "https://cdn.meryembalkan.com.tr/urunler/1760034813002_Meryem_Balkan_Logo.jpg",
+        };
+      });
+
 
       setProducts(mapped);
       setLoading(false);
@@ -81,7 +97,7 @@ export default function Portfolio() {
   // Kategori ve arama filtresi uygula
   const filteredItems = products.filter(item => {
     const matchesCategory = activeFilter === 'all' || item.category === activeFilter;
-    const matchesSearch = searchTerm === '' || 
+    const matchesSearch = searchTerm === '' ||
       item.title.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesCategory && matchesSearch;
   });
@@ -229,7 +245,7 @@ export default function Portfolio() {
     // Cloudflare R2 storage URL
     const IMAGE_BASE_URL = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || "https://cdn.meryembalkan.com.tr/urunler/";
     if (!item.images || !item.images[index]) {
-      return "/images/AnaSayfa/Meryem_Balkan_Logo.jpg";
+      return "https://cdn.meryembalkan.com.tr/urunler/1760034813002_Meryem_Balkan_Logo.jpg";
     }
     return `${IMAGE_BASE_URL}${item.images[index]}`;
   };
@@ -338,11 +354,10 @@ export default function Portfolio() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Elbise ara..."
-                className={`w-full pl-11 pr-10 py-3 rounded-full border focus:outline-none focus:ring-2 transition-all ${
-                  isDarkMode 
-                    ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:border-gray-600 focus:ring-gray-600/30' 
+                className={`w-full pl-11 pr-10 py-3 rounded-full border focus:outline-none focus:ring-2 transition-all ${isDarkMode
+                    ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:border-gray-600 focus:ring-gray-600/30'
                     : 'bg-gray-50 border-gray-200 text-black placeholder-gray-400 focus:border-gray-400 focus:ring-gray-400/30'
-                }`}
+                  }`}
               />
               {searchTerm && (
                 <button
@@ -412,11 +427,10 @@ export default function Portfolio() {
               {searchTerm && (
                 <button
                   onClick={() => setSearchTerm('')}
-                  className={`mt-4 px-6 py-2 rounded-full text-sm font-medium transition-colors ${
-                    isDarkMode 
-                      ? 'bg-white text-black hover:bg-gray-100' 
+                  className={`mt-4 px-6 py-2 rounded-full text-sm font-medium transition-colors ${isDarkMode
+                      ? 'bg-white text-black hover:bg-gray-100'
                       : 'bg-black text-white hover:bg-gray-800'
-                  }`}
+                    }`}
                 >
                   Aramayı Temizle
                 </button>
@@ -451,8 +465,8 @@ export default function Portfolio() {
                               src={getImageUrl(item, imgIndex)}
                               alt={`${item.title} - ${imgIndex + 1}`}
                               className={`absolute inset-0 w-full h-full object-contain object-center transition-all duration-[1500ms] ease-out ${imgIndex === currentIndex
-                                  ? 'opacity-100 scale-100'
-                                  : 'opacity-0 scale-105'
+                                ? 'opacity-100 scale-100'
+                                : 'opacity-0 scale-105'
                                 } ${visibleProducts.has(item.id) ? '' : 'scale-110'}`}
                             />
                           ))
@@ -461,8 +475,8 @@ export default function Portfolio() {
                             src="/images/AnaSayfa/Meryem_Balkan_Logo.jpg"
                             alt={item.title}
                             className={`absolute inset-0 w-full h-full object-contain object-center transition-all duration-[3000ms] ease-out ${visibleProducts.has(item.id)
-                                ? 'opacity-100 scale-100'
-                                : 'opacity-0 scale-110'
+                              ? 'opacity-100 scale-100'
+                              : 'opacity-0 scale-110'
                               }`}
                           />
                         )}
