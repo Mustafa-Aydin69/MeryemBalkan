@@ -68,7 +68,7 @@ export default function Portfolio() {
         image:
           item.images && Array.isArray(item.images) && item.images.length > 0
             ? `${IMAGE_BASE_URL}${item.images[0]}`
-            : "/images/AnaSayfa/Meryem_Balkan_Logo.jpg",
+            : "/images/Anasayfa/Meryem_Balkan_Logo.jpg",
       }));
 
       setProducts(mapped);
