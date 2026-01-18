@@ -49,18 +49,18 @@ const colorMap: Record<string, string> = {
 const getColorCode = (colorName: string): string => {
   // Tam eşleşme ara
   if (colorMap[colorName]) return colorMap[colorName];
-  
+
   // Küçük harfle ara
   const lowerName = colorName.toLowerCase();
   for (const [key, value] of Object.entries(colorMap)) {
     if (key.toLowerCase() === lowerName) return value;
   }
-  
+
   // Kısmi eşleşme ara (ör: "Açık Mavi" -> "Mavi")
   for (const [key, value] of Object.entries(colorMap)) {
     if (colorName.includes(key) || key.includes(colorName)) return value;
   }
-  
+
   // Varsayılan gri
   return '#9CA3AF';
 };
@@ -94,10 +94,10 @@ interface ProductDetailProps {
   disabledDates: string[]; // ISO string formatında
 }
 
-export default function ProductDetail({ 
-  product, 
-  relatedProducts, 
-  disabledDates: disabledDatesStr 
+export default function ProductDetail({
+  product,
+  relatedProducts,
+  disabledDates: disabledDatesStr
 }: ProductDetailProps) {
   const [selectedSize, setSelectedSize] = useState('');
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -435,7 +435,7 @@ export default function ProductDetail({
                     const isLight = ['Beyaz', 'Krem', 'Şampanya', 'Sarı', 'Pudra', 'Bej'].some(
                       c => color.toLowerCase().includes(c.toLowerCase())
                     );
-                    
+
                     return (
                       <button
                         key={color}
@@ -446,7 +446,7 @@ export default function ProductDetail({
                             ? 'ring-2 ring-offset-2 ring-black dark:ring-white'
                             : 'hover:scale-110'
                           }`}
-                        style={{ 
+                        style={{
                           backgroundColor: colorCode,
                           boxShadow: '0 0 0 1px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,255,255,0.1)'
                         }}
@@ -535,20 +535,41 @@ export default function ProductDetail({
                 </div>
               </div>
               {/* Beden Ölçme */}
-              <div className={`border-t pt-4 sm:pt-6 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <div
+                className={`border-t pt-4 sm:pt-6 ${isDarkMode ? "border-gray-700" : "border-gray-200"
+                  }`}
+              >
                 <button
                   onClick={() => setShowSizeImage(!showSizeImage)}
-                  className={`flex justify-between items-center w-full text-left ${isDarkMode ? 'text-white' : 'text-black'}`}
+                  aria-expanded={showSizeImage}
+                  aria-controls="size-guide"
+                  className={`flex justify-between items-center w-full text-left transition-colors ${isDarkMode ? "text-white" : "text-black"
+                    }`}
                 >
-                  <span className="text-sm sm:text-base font-medium">Bedenimi Nasıl Ölçerim?</span>
-                  <i className={`ri-arrow-${showSizeImage ? 'up' : 'down'}-s-line`}></i>
+                  <span className="text-sm sm:text-base font-medium">
+                    Bedenimi Nasıl Ölçerim?
+                  </span>
+
+                  <i
+                    className={`ri-arrow-down-s-line transition-transform duration-300 ${showSizeImage ? "rotate-180" : ""
+                      }`}
+                  />
                 </button>
-                {showSizeImage && (
-                  <div className="mt-3 sm:mt-4">
-                    <img src="/images/AnaSayfa/Beden.jpg" alt="Beden Ölçme Tablosu" className="rounded-lg shadow-md w-full" />
-                  </div>
-                )}
+
+                <div
+                  id="size-guide"
+                  className={`overflow-hidden transition-all duration-300 ease-in-out ${showSizeImage ? "max-h-[600px] mt-3 sm:mt-4" : "max-h-0"
+                    }`}
+                >
+                  <img
+                    src="https://cdn.meryembalkan.com.tr/urunler/Bedenimi_Nasil_Olcerim.jpeg"
+                    alt="Beden Ölçme Tablosu"
+                    loading="lazy"
+                    className="rounded-lg shadow-md w-full"
+                  />
+                </div>
               </div>
+
               {/* Takvim Bilgisi */}
               <div className={`border-t pt-4 sm:pt-6 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                 <button
