@@ -68,7 +68,7 @@ export default function Portfolio() {
         image:
           item.images && Array.isArray(item.images) && item.images.length > 0
             ? `${IMAGE_BASE_URL}${item.images[0]}`
-            : "/images/Anasayfa/Meryem_Balkan_Logo.jpg",
+            : "https://cdn.meryembalkan.com.tr/urunler/1760034813002_Meryem_Balkan_Logo.jpg",
       }));
 
       setProducts(mapped);
