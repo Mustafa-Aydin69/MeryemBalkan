@@ -180,6 +180,28 @@ export default function ProductDetail({
     return () => window.removeEventListener('scroll', handleScroll);
   }, [isClient]);
 
+  // Fullscreen modda klavye desteği
+  useEffect(() => {
+    if (!fullscreen) return;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setFullscreen(false);
+      } else if (e.key === 'ArrowLeft') {
+        setCurrentImageIndex((prev) => 
+          prev === 0 ? product.images.length - 1 : prev - 1
+        );
+      } else if (e.key === 'ArrowRight') {
+        setCurrentImageIndex((prev) => 
+          prev === product.images.length - 1 ? 0 : prev + 1
+        );
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [fullscreen, product.images.length]);
+
   const toggleTheme = () => {
     const newDarkMode = !isDarkMode;
     setIsDarkMode(newDarkMode);
@@ -330,20 +352,81 @@ export default function ProductDetail({
 
       {fullscreen && (
         <div
-          className="fixed inset-0 z-50 bg-black flex items-center justify-center"
+          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
           onClick={() => setFullscreen(false)}
         >
+          {/* Ana resim */}
           <img
             src={getImageUrl(product.images, currentImageIndex)}
             alt={product.title}
-            className="max-h-screen w-auto object-contain"
+            className="max-h-[85vh] max-w-[90vw] object-contain"
+            onClick={(e) => e.stopPropagation()}
           />
+
+          {/* Önceki buton */}
+          {product.images.length > 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setCurrentImageIndex((prev) => 
+                  prev === 0 ? product.images.length - 1 : prev - 1
+                );
+              }}
+              className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 w-12 h-12 sm:w-14 sm:h-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all"
+            >
+              <i className="ri-arrow-left-s-line text-2xl sm:text-3xl"></i>
+            </button>
+          )}
+
+          {/* Sonraki buton */}
+          {product.images.length > 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setCurrentImageIndex((prev) => 
+                  prev === product.images.length - 1 ? 0 : prev + 1
+                );
+              }}
+              className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 w-12 h-12 sm:w-14 sm:h-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all"
+            >
+              <i className="ri-arrow-right-s-line text-2xl sm:text-3xl"></i>
+            </button>
+          )}
+
+          {/* Kapatma butonu */}
           <button
             onClick={() => setFullscreen(false)}
-            className="absolute top-6 right-6 text-white text-3xl"
+            className="absolute top-4 right-4 sm:top-6 sm:right-6 w-10 h-10 sm:w-12 sm:h-12 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all"
           >
-            ×
+            <i className="ri-close-line text-xl sm:text-2xl"></i>
           </button>
+
+          {/* Sayaç */}
+          {product.images.length > 1 && (
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full text-white text-sm">
+              {currentImageIndex + 1} / {product.images.length}
+            </div>
+          )}
+
+          {/* Thumbnail'ler */}
+          {product.images.length > 1 && (
+            <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex gap-2">
+              {product.images.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentImageIndex(i);
+                  }}
+                  className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all ${
+                    currentImageIndex === i 
+                      ? 'bg-white scale-125' 
+                      : 'bg-white/40 hover:bg-white/60'
+                  }`}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 

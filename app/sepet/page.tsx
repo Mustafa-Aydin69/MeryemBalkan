@@ -425,11 +425,11 @@ export default function Sepet() {
             <div className="space-y-6 sm:space-y-8">
               {cartItems.map((item) => (
                 <div key={item.id} className={`flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-6 p-4 sm:p-6 rounded-lg transition-colors ${isDarkMode ? 'bg-gray-800' : 'bg-gray-50'}`}>
-                  <div className="w-full sm:w-32 h-40 sm:h-40 flex-shrink-0 overflow-hidden rounded-lg">
+                  <div className="w-full sm:w-32 sm:h-40 flex-shrink-0 overflow-hidden rounded-lg bg-gray-900/20">
                     <img
                       src={getImageUrl(item.image)}
                       alt={item.title}
-                      className="w-full h-full object-cover object-top"
+                      className="w-full h-auto max-h-64 object-contain sm:h-full sm:max-h-none sm:object-cover sm:object-top mx-auto"
                     />
                   </div>
 
