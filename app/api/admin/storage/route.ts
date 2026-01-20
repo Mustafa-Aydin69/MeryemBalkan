@@ -95,8 +95,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Environment variable guard
-    if (!process.env.R2_BUCKET_NAME) {
+    // Environment variable guard - R2_BUCKET_NAME veya fallback olarak NEXT_PUBLIC versiyonu
+    const bucketName = process.env.R2_BUCKET_NAME || process.env.NEXT_PUBLIC_R2_BUCKET_NAME;
+    if (!bucketName) {
       console.error("R2_BUCKET_NAME is missing");
       return NextResponse.json({ error: 'R2_BUCKET_NAME is missing' }, { status: 500 });
     }
@@ -110,7 +111,6 @@ export async function POST(request: NextRequest) {
     }
 
     const r2 = getR2Client();
-    const bucketName = process.env.R2_BUCKET_NAME;
     
     // File'ı buffer'a çevir
     const arrayBuffer = await file.arrayBuffer();
@@ -154,7 +154,8 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Environment variable guard
-    if (!process.env.R2_BUCKET_NAME) {
+    const bucketName = process.env.R2_BUCKET_NAME || process.env.NEXT_PUBLIC_R2_BUCKET_NAME;
+    if (!bucketName) {
       console.error("R2_BUCKET_NAME is missing");
       return NextResponse.json({ error: 'R2_BUCKET_NAME is missing' }, { status: 500 });
     }
@@ -167,7 +168,6 @@ export async function DELETE(request: NextRequest) {
     }
 
     const r2 = getR2Client();
-    const bucketName = process.env.R2_BUCKET_NAME;
 
     // Object keys: urunler/<fileName> formatında
     const objectKeys = files.map((fileName: string) => ({ Key: `urunler/${fileName}` }));
@@ -198,13 +198,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Environment variable guard
-    if (!process.env.R2_BUCKET_NAME) {
+    const bucketName = process.env.R2_BUCKET_NAME || process.env.NEXT_PUBLIC_R2_BUCKET_NAME;
+    if (!bucketName) {
       console.error("R2_BUCKET_NAME is missing");
       return NextResponse.json({ error: 'R2_BUCKET_NAME is missing' }, { status: 500 });
     }
 
     const r2 = getR2Client();
-    const bucketName = process.env.R2_BUCKET_NAME;
 
     const command = new ListObjectsV2Command({
       Bucket: bucketName,

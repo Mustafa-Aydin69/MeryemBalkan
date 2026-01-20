@@ -5,8 +5,12 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getCache, setCache, hasCache } from '../lib/adminCache';
 
-// Cloudflare R2 storage URL
-const IMAGE_BASE_URL = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || 'https://cdn.meryembalkan.com.tr/urunler/';
+// Cloudflare R2 URL helper
+const getR2BaseUrl = () => {
+  const base = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || "https://cdn.meryembalkan.com.tr";
+  const bucket = process.env.NEXT_PUBLIC_R2_BUCKET_NAME || "urunler";
+  return `${base.replace(/\/$/, "")}/${bucket.replace(/^\//, "")}/`;
+};
 
 // Types
 interface Product {
@@ -403,7 +407,7 @@ export default function CreateRentalModal({ onClose, onSuccess }: CreateRentalMo
     if (!images || images.length === 0) return '/images/Anasayfa/Meryem_Balkan_Logo.jpg';
     const img = images[0];
     if (img.startsWith('http')) return img;
-    return IMAGE_BASE_URL + img;
+    return getR2BaseUrl() + img;
   };
 
   // Format price

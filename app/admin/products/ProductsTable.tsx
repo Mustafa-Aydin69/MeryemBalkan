@@ -3,8 +3,12 @@
 import { useState } from 'react';
 import { Product } from './useProducts';
 
-// Cloudflare R2 storage URL
-const IMAGE_BASE_URL = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || "https://cdn.meryembalkan.com.tr/urunler/";
+// Cloudflare R2 URL helper
+const getR2BaseUrl = () => {
+  const base = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || "https://cdn.meryembalkan.com.tr";
+  const bucket = process.env.NEXT_PUBLIC_R2_BUCKET_NAME || "urunler";
+  return `${base.replace(/\/$/, "")}/${bucket.replace(/^\//, "")}/`;
+};
 
 // Ürün görseli bileşeni - farklı veri formatlarını handle eder
 function ProductImage({ images, title }: { images: string[] | string | undefined; title: string }) {
@@ -31,7 +35,7 @@ function ProductImage({ images, title }: { images: string[] | string | undefined
   
   // Eğer URL tam değilse base URL ekle
   if (imageUrl && !imageUrl.startsWith('http')) {
-    imageUrl = IMAGE_BASE_URL + imageUrl;
+    imageUrl = getR2BaseUrl() + imageUrl;
   }
   
   if (!imageUrl || hasError) {

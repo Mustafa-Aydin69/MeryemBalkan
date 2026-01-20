@@ -74,7 +74,7 @@ export default function Checkout() {
       // ✅ Sepeti localStorage'dan çek
       const storedCart = localStorage.getItem("cartItems");
       if (storedCart) {
-        const parsed = JSON.parse(storedCart);
+        const parsed: CartItem[] = JSON.parse(storedCart);
         setCartItems(parsed);
 
         if (parsed.length > 0) {
@@ -83,13 +83,13 @@ export default function Checkout() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              productIds: parsed.map((item) => item.productId),
+              productIds: parsed.map((item: CartItem) => item.productId),
             }),
           })
             .then((res) => res.json())
             .then((data) => {
               if (Array.isArray(data)) {
-                const merged = parsed.map((item) => {
+                const merged = parsed.map((item: CartItem) => {
                   // "5_Altın_Sarısı_36_2025-10-22" → "5"
                   const realId = String(item.productId).split('_')[0];
 
@@ -356,7 +356,7 @@ export default function Checkout() {
     deliveryMethod === 'pickup'
       ? 0
       : deliveryMethod === 'shipping'
-        ? 50
+        ? 500
         : 0;
 
   // ✅ Güvenli alt toplam (string, "12.000", "12,000" gibi tüm formatları destekler)
@@ -629,7 +629,7 @@ export default function Checkout() {
                         className={`font-medium transition-colors ${isDarkMode ? 'text-white' : 'text-black'
                           }`}
                       >
-                        50TL
+                        500TL
                       </span>
                     </div>
                   </div>
@@ -1283,7 +1283,7 @@ export default function Checkout() {
                         {deliveryMethod === 'pickup'
                           ? 'Ücretsiz'
                           : deliveryMethod === 'shipping'
-                            ? '50TL'
+                            ? '500TL'
                             : 'Seçiniz'}
                       </span>
                     </div>

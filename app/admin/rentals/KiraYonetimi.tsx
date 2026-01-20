@@ -5,6 +5,20 @@ import { useRentals, RentalStatus, Rental } from './useRentals';
 import RentalsTable from './RentalsTable';
 import CreateRentalModal from './CreateRentalModal';
 
+// Cloudflare R2 URL helper
+const getR2BaseUrl = () => {
+  const base = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || "https://cdn.meryembalkan.com.tr";
+  const bucket = process.env.NEXT_PUBLIC_R2_BUCKET_NAME || "urunler";
+  return `${base.replace(/\/$/, "")}/${bucket.replace(/^\//, "")}/`;
+};
+
+// Resim URL'ini düzeltme
+const getImageUrl = (imageUrl: string | undefined) => {
+  if (!imageUrl) return '/images/Anasayfa/Meryem_Balkan_Logo.jpg';
+  if (imageUrl.startsWith('http')) return imageUrl;
+  return getR2BaseUrl() + imageUrl;
+};
+
 // Tarih formatlama
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
@@ -160,7 +174,7 @@ function RentalDetailModal({
               <div className="flex items-center gap-4 p-4 bg-gray-700/50 rounded-lg">
                 <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-700 flex-shrink-0">
                   <img
-                    src={rental.product.imageUrl}
+                    src={getImageUrl(rental.product.imageUrl)}
                     alt={rental.product.name}
                     className="w-full h-full object-cover"
                     onError={(e) => {

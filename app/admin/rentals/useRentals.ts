@@ -12,8 +12,12 @@ import {
 
 const CACHE_KEY: CacheKey = 'rentals';
 
-// Cloudflare R2 storage URL
-const IMAGE_BASE_URL = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || 'https://cdn.meryembalkan.com.tr/urunler/';
+// Cloudflare R2 URL helper
+const getR2BaseUrl = () => {
+  const base = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || "https://cdn.meryembalkan.com.tr";
+  const bucket = process.env.NEXT_PUBLIC_R2_BUCKET_NAME || "urunler";
+  return `${base.replace(/\/$/, "")}/${bucket.replace(/^\//, "")}/`;
+};
 const FALLBACK_IMAGE = '/images/Anasayfa/Meryem_Balkan_Logo.jpg';
 
 // ==================== DATA MODEL ====================
@@ -115,7 +119,7 @@ function getImageUrl(images: string | string[] | undefined | null): string {
   }
 
   // Değilse base URL ekle
-  return IMAGE_BASE_URL + firstImage;
+  return getR2BaseUrl() + firstImage;
 }
 
 // Müşteri adını ad ve soyad olarak ayır

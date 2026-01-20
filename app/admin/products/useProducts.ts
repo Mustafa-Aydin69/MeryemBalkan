@@ -13,8 +13,13 @@ import {
 } from '../lib/adminCache';
 
 const CACHE_KEY: CacheKey = 'products';
-// Cloudflare R2 storage URL
-const STORAGE_BASE_URL = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || 'https://cdn.meryembalkan.com.tr/urunler/';
+
+// Cloudflare R2 URL helper
+const getR2BaseUrl = () => {
+  const base = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || "https://cdn.meryembalkan.com.tr";
+  const bucket = process.env.NEXT_PUBLIC_R2_BUCKET_NAME || "urunler";
+  return `${base.replace(/\/$/, "")}/${bucket.replace(/^\//, "")}/`;
+};
 
 export interface Product {
   id: number;
@@ -378,7 +383,7 @@ export function useProducts() {
         .filter((img) => typeof img === "string" && img.trim() !== "")
         .map((img) => {
           if (img.startsWith('http')) return img;
-          return STORAGE_BASE_URL + img;
+          return getR2BaseUrl() + img;
         });
 
     setEditingProduct({
