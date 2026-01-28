@@ -50,6 +50,20 @@ export interface NewProduct {
   images: (string | File)[];
 }
 
+// Toplu ürün ekleme için geçici ürün tipi
+export interface BulkProductItem {
+  id: string; // Geçici benzersiz ID
+  title: string;
+  category: string;
+  price: string;
+  description: string;
+  size: string[];
+  colors: string[];
+  features: string[] | string;
+  imagePreviews: string[]; // Frontend için önizleme URL'leri
+  images: File[]; // Yüklenecek dosyalar
+}
+
 // Transform raw data to Product format
 function transformProductData(item: any): Product {
   return {
@@ -74,6 +88,7 @@ export function useProducts() {
   const [loading, setLoading] = useState(true);
   const [searchTermProducts, setSearchTermProducts] = useState('');
   const [searchOpenProducts, setSearchOpenProducts] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'Yayında' | 'Yayında Değil'>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [productsPerPage] = useState(10);
   const [editingProduct, setEditingProduct] = useState<any>(null);
@@ -99,6 +114,24 @@ export function useProducts() {
     imagePreviews: [],
     images: [],
   });
+
+  // Toplu ürün ekleme state'leri
+  const [isBulkAddModalOpen, setIsBulkAddModalOpen] = useState(false);
+  const [bulkProducts, setBulkProducts] = useState<BulkProductItem[]>([]);
+  const [bulkProduct, setBulkProduct] = useState<NewProduct>({
+    title: '',
+    collection: '',
+    price: '',
+    description: '',
+    category: '',
+    size: [],
+    colors: [],
+    features: [],
+    imagePreviews: [],
+    images: [],
+  });
+  const [bulkUploadError, setBulkUploadError] = useState('');
+  const [isPublishingBulk, setIsPublishingBulk] = useState(false);
 
   // Fetch products with caching - API route üzerinden
   const fetchProducts = useCallback(async (forceRefresh = false) => {
@@ -143,13 +176,26 @@ export function useProducts() {
     fetchProducts();
   }, [fetchProducts]);
 
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, searchTermProducts]);
+
   // Filtering
-  const filteredProducts = allProducts.filter(
-    (product) =>
+  const filteredProducts = allProducts.filter((product) => {
+    // Status filter
+    if (statusFilter !== 'all' && product.status !== statusFilter) {
+      return false;
+    }
+    
+    // Search filter
+    const searchMatch =
       product.title.toLowerCase().includes(searchTermProducts.toLowerCase()) ||
       product.collection.toLowerCase().includes(searchTermProducts.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchTermProducts.toLowerCase())
-  );
+      product.category.toLowerCase().includes(searchTermProducts.toLowerCase());
+    
+    return searchMatch;
+  });
 
   // Sorting
   const sortedProducts = [...filteredProducts].sort((a, b) => {
@@ -599,6 +645,250 @@ export function useProducts() {
     setPendingRemovedImages([]);
   };
 
+  // ============== TOPLU ÜRÜN EKLEME FONKSİYONLARI ==============
+
+  // Toplu ürün formu için input değişikliği
+  const handleBulkInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setBulkProduct((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Toplu ürün için beden ekle
+  const addBulkSize = (size: string) => {
+    if (!bulkProduct.size.includes(size)) {
+      setBulkProduct((prev) => ({ ...prev, size: [...prev.size, size] }));
+    }
+  };
+
+  // Toplu ürün için beden kaldır
+  const removeBulkSize = (size: string) => {
+    setBulkProduct((prev) => ({ ...prev, size: prev.size.filter((s) => s !== size) }));
+  };
+
+  // Toplu ürün için renk ekle
+  const addBulkColor = (color: string) => {
+    if (!bulkProduct.colors.includes(color)) {
+      setBulkProduct((prev) => ({ ...prev, colors: [...prev.colors, color] }));
+    }
+  };
+
+  // Toplu ürün için renk kaldır
+  const removeBulkColor = (color: string) => {
+    setBulkProduct((prev) => ({ ...prev, colors: prev.colors.filter((c) => c !== color) }));
+  };
+
+  // Toplu ürün için resim ekle
+  const addBulkImage = (files: FileList) => {
+    const fileArray = Array.from(files);
+    const currentCount = bulkProduct.imagePreviews.length;
+
+    if (currentCount + fileArray.length > 5) {
+      setBulkUploadError('En fazla 5 fotoğraf yükleyebilirsiniz');
+      return;
+    }
+
+    setBulkUploadError('');
+
+    const newPreviews = fileArray.map((file) => URL.createObjectURL(file));
+    const newFiles = fileArray;
+
+    setBulkProduct((prev) => ({
+      ...prev,
+      imagePreviews: [...prev.imagePreviews, ...newPreviews],
+      images: [...prev.images, ...newFiles],
+    }));
+  };
+
+  // Toplu ürün için resim kaldır
+  const removeBulkImage = (index: number) => {
+    setBulkProduct((prev) => ({
+      ...prev,
+      imagePreviews: prev.imagePreviews.filter((_, i) => i !== index),
+      images: prev.images.filter((_, i) => i !== index),
+    }));
+    setBulkUploadError('');
+  };
+
+  // Toplu ürün için sürükle bırak
+  const handleBulkDragEnd = (result: any) => {
+    if (!result.destination) return;
+
+    const reorderedPreviews = Array.from(bulkProduct.imagePreviews);
+    const reorderedImages = Array.from(bulkProduct.images);
+
+    const [removedPreview] = reorderedPreviews.splice(result.source.index, 1);
+    const [removedImage] = reorderedImages.splice(result.source.index, 1);
+
+    reorderedPreviews.splice(result.destination.index, 0, removedPreview);
+    reorderedImages.splice(result.destination.index, 0, removedImage);
+
+    setBulkProduct((prev) => ({
+      ...prev,
+      imagePreviews: reorderedPreviews,
+      images: reorderedImages,
+    }));
+  };
+
+  // Ürünü board'a ekle (veritabanına değil, sadece geçici listeye)
+  const addProductToBoard = () => {
+    if (!bulkProduct.title || !bulkProduct.category || !bulkProduct.price) {
+      toast.error('Ürün Adı, Kategori ve Fiyat zorunludur');
+      return;
+    }
+
+    if (bulkProduct.images.length === 0) {
+      toast.error('En az bir fotoğraf eklemelisiniz');
+      return;
+    }
+
+    const newBulkItem: BulkProductItem = {
+      id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      title: bulkProduct.title,
+      category: bulkProduct.category,
+      price: bulkProduct.price,
+      description: bulkProduct.description,
+      size: bulkProduct.size,
+      colors: bulkProduct.colors,
+      features: bulkProduct.features,
+      imagePreviews: bulkProduct.imagePreviews,
+      images: bulkProduct.images as File[],
+    };
+
+    setBulkProducts((prev) => [...prev, newBulkItem]);
+    toast.success('Ürün board\'a eklendi');
+
+    // Formu sıfırla
+    setBulkProduct({
+      title: '',
+      collection: '',
+      price: '',
+      description: '',
+      category: '',
+      size: [],
+      colors: [],
+      features: [],
+      imagePreviews: [],
+      images: [],
+    });
+    setBulkUploadError('');
+  };
+
+  // Board'dan ürün kaldır
+  const removeProductFromBoard = (id: string) => {
+    setBulkProducts((prev) => prev.filter((p) => p.id !== id));
+    toast.success('Ürün board\'dan kaldırıldı');
+  };
+
+  // Tüm board'u temizle
+  const clearBoard = () => {
+    setBulkProducts([]);
+    toast.success('Board temizlendi');
+  };
+
+  // Board'daki tüm ürünleri yayınla (veritabanına + R2'ye kaydet)
+  const publishBulkProducts = async () => {
+    if (bulkProducts.length === 0) {
+      toast.error('Board\'da yayınlanacak ürün yok');
+      return;
+    }
+
+    setIsPublishingBulk(true);
+
+    try {
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const product of bulkProducts) {
+        // 1. Fotoğrafları R2'ye yükle
+        const uploadedNames: string[] = [];
+
+        for (const file of product.images) {
+          const fileName = await uploadFileViaAPI(file);
+          if (fileName) {
+            uploadedNames.push(fileName);
+          } else {
+            console.error(`Fotoğraf yüklenemedi: ${file.name}`);
+          }
+        }
+
+        if (uploadedNames.length === 0) {
+          console.error(`Ürün için fotoğraf yüklenemedi: ${product.title}`);
+          failCount++;
+          continue;
+        }
+
+        // 2. Veritabanına kaydet
+        try {
+          const response = await fetch('/api/admin/urunler', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              title: product.title,
+              collection: product.category + " Koleksiyonu",
+              category: product.category,
+              price: product.price,
+              size: product.size,
+              colors: product.colors,
+              features: [product.features],
+              description: product.description,
+              images: uploadedNames,
+              year: new Date().getFullYear(),
+              createdDate: new Date().toISOString(),
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error('Ürün eklenemedi');
+          }
+
+          successCount++;
+        } catch (error) {
+          console.error(`Ürün eklenemedi: ${product.title}`, error);
+          failCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        toast.success(`${successCount} ürün başarıyla yayınlandı! ✅`);
+        // Board'u temizle
+        setBulkProducts([]);
+        // Ürünleri yenile
+        fetchProducts(true);
+        // Modalı kapat
+        setIsBulkAddModalOpen(false);
+      }
+
+      if (failCount > 0) {
+        toast.error(`${failCount} ürün yayınlanamadı`);
+      }
+    } catch (error) {
+      console.error('Toplu yayınlama hatası:', error);
+      toast.error('Ürünler yayınlanırken bir hata oluştu');
+    } finally {
+      setIsPublishingBulk(false);
+    }
+  };
+
+  // Toplu ekleme modalını kapat ve temizle
+  const closeBulkAddModal = () => {
+    setIsBulkAddModalOpen(false);
+    setBulkProduct({
+      title: '',
+      collection: '',
+      price: '',
+      description: '',
+      category: '',
+      size: [],
+      colors: [],
+      features: [],
+      imagePreviews: [],
+      images: [],
+    });
+    setBulkUploadError('');
+    // Board'u silme - kullanıcı isterse tekrar açtığında görsün
+  };
+
   return {
     allProducts,
     filteredProducts,
@@ -609,6 +899,8 @@ export function useProducts() {
     setSearchTermProducts,
     searchOpenProducts,
     setSearchOpenProducts,
+    statusFilter,
+    setStatusFilter,
     currentPage,
     totalProductsPages,
     indexOfFirstProduct,
@@ -649,5 +941,28 @@ export function useProducts() {
     confirmDeleteProduct,
     handleDeleteProduct,
     refreshProducts,
+    // Bulk add product
+    isBulkAddModalOpen,
+    setIsBulkAddModalOpen,
+    bulkProducts,
+    setBulkProducts,
+    bulkProduct,
+    setBulkProduct,
+    bulkUploadError,
+    setBulkUploadError,
+    isPublishingBulk,
+    handleBulkInputChange,
+    addBulkSize,
+    removeBulkSize,
+    addBulkColor,
+    removeBulkColor,
+    addBulkImage,
+    removeBulkImage,
+    handleBulkDragEnd,
+    addProductToBoard,
+    removeProductFromBoard,
+    clearBoard,
+    publishBulkProducts,
+    closeBulkAddModal,
   };
 }
