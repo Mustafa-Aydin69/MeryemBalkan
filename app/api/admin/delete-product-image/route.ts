@@ -104,12 +104,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Environment variable guard
-    if (!process.env.R2_BUCKET_NAME) {
-      console.error("R2_BUCKET_NAME is missing");
-      return NextResponse.json({ error: 'R2_BUCKET_NAME is missing' }, { status: 500 });
+    if (!process.env.NEXT_PUBLIC_R2_BUCKET_NAME) {
+      console.error("NEXT_PUBLIC_R2_BUCKET_NAME is missing");
+      return NextResponse.json({ error: 'NEXT_  PUBLIC_R2_BUCKET_NAME is missing' }, { status: 500 });
     }
 
-    const bucketName = process.env.R2_BUCKET_NAME;
+    const bucketName = process.env.NEXT_PUBLIC_R2_BUCKET_NAME;
     
     // Object key: urunler/<imagePath>
     const objectKey = `urunler/${imagePath}`;

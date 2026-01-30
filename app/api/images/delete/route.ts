@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Environment variable guard
-    if (!process.env.R2_BUCKET_NAME) {
+    if (!process.env.NEXT_PUBLIC_R2_BUCKET_NAME) {
       console.error("R2_BUCKET_NAME is missing");
       return NextResponse.json({ error: 'R2_BUCKET_NAME is missing' }, { status: 500 });
     }
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'image parameter is required' }, { status: 400 });
     }
 
-    const bucketName = process.env.R2_BUCKET_NAME;
+    const bucketName = process.env.NEXT_PUBLIC_R2_BUCKET_NAME;
     
     // Object key: urunler/<image>
     const objectKey = `urunler/${image}`;

@@ -212,12 +212,12 @@ export async function DELETE(request: NextRequest) {
     // Cloudflare R2'den resimleri sil
     if (productData?.images && Array.isArray(productData.images) && productData.images.length > 0) {
       try {
-        if (!process.env.R2_BUCKET_NAME) {
-          throw new Error("R2_BUCKET_NAME is missing");
+        if (!process.env.NEXT_PUBLIC_R2_BUCKET_NAME) {
+          throw new Error("NEXT_PUBLIC_R2_BUCKET_NAME is missing");
         }
 
         const r2 = getR2Client();
-        const bucketName = process.env.R2_BUCKET_NAME;
+        const bucketName = process.env.NEXT_PUBLIC_R2_BUCKET_NAME;
 
         // Object keys: urunler/<fileName> formatında
         const objectKeys = productData.images.map((fileName: string) => ({ Key: `urunler/${fileName}` }));

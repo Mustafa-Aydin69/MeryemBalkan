@@ -76,7 +76,19 @@ export default function ProductsPage() {
     clearBoard,
     publishBulkProducts,
     closeBulkAddModal,
+    // Publish all products
+    isPublishAllModalOpen,
+    setIsPublishAllModalOpen,
+    isPublishingAll,
+    unpublishedCount,
+    publishAllProducts,
   } = useProducts();
+
+  // Video dosyası mı kontrol et
+  const isVideoFile = (fileName: string) => {
+    const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv'];
+    return videoExtensions.some(ext => fileName.toLowerCase().endsWith(ext));
+  };
 
   return (
     <div>
@@ -113,6 +125,16 @@ export default function ProductsPage() {
           >
             <i className="ri-stack-line mr-2"></i> TOPLU ÜRÜN EKLE
           </button>
+
+          {/* Yayına Al Butonu */}
+          {unpublishedCount > 0 && (
+            <button
+              onClick={() => setIsPublishAllModalOpen(true)}
+              className="w-full sm:w-auto px-4 py-2 sm:px-6 sm:py-3 rounded-full font-medium text-sm sm:text-base transition-colors whitespace-nowrap bg-green-600 text-white hover:bg-green-700"
+            >
+              <i className="ri-upload-cloud-line mr-2"></i> YAYINA AL ({unpublishedCount})
+            </button>
+          )}
 
           {/* Arama Butonu + Input + Sayaç */}
           <div className="flex items-center justify-between sm:justify-start gap-2">
@@ -493,13 +515,13 @@ export default function ProductsPage() {
 
               <div>
                 <label className="block text-sm font-medium mb-2 text-white">
-                  Ürün Fotoğrafları (En fazla 5 adet)
+                  Ürün Fotoğraf/Video (En fazla 5 adet)
                 </label>
                 <div className="space-y-4">
                   <input
                     type="file"
                     id="product-images"
-                    accept="image/*"
+                    accept="image/*,video/mp4,video/webm,video/quicktime"
                     multiple
                     className="hidden"
                     onChange={(e) => {
@@ -521,10 +543,10 @@ export default function ProductsPage() {
                   >
                     <i className="ri-image-add-line text-2xl mb-2"></i>
                     <span className="text-sm">
-                      {newProduct.imagePreviews.length >= 5 ? 'Maksimum Limit Aşıldı' : 'Fotoğraf Seç'}
+                      {newProduct.imagePreviews.length >= 5 ? 'Maksimum Limit Aşıldı' : 'Fotoğraf/Video Seç'}
                     </span>
                     <span className="text-xs mt-1">
-                      {newProduct.imagePreviews.length}/5 fotoğraf
+                      {newProduct.imagePreviews.length}/5 medya
                     </span>
                   </button>
 
@@ -544,31 +566,50 @@ export default function ProductsPage() {
                             {...provided.droppableProps}
                             ref={provided.innerRef}
                           >
-                            {newProduct.imagePreviews.map((preview, index) => (
-                              <Draggable key={index} draggableId={index.toString()} index={index}>
-                                {(provided) => (
-                                  <div
-                                    ref={provided.innerRef}
-                                    {...provided.draggableProps}
-                                    {...provided.dragHandleProps}
-                                    className="relative group"
-                                  >
-                                    <img
-                                      src={preview}
-                                      alt={`Önizleme ${index + 1}`}
-                                      className="w-full h-20 object-cover rounded-lg border border-gray-600 transition-transform group-hover:scale-105 cursor-pointer"
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => removeImage(index)}
-                                      className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center cursor-pointer transition-all opacity-0 group-hover:opacity-100 shadow-md bg-red-600 text-white hover:bg-red-700"
+                            {newProduct.imagePreviews.map((preview, index) => {
+                              const file = newProduct.images[index];
+                              const fileName = file instanceof File ? file.name : (file || '');
+                              const isVideo = isVideoFile(fileName);
+                              
+                              return (
+                                <Draggable key={index} draggableId={index.toString()} index={index}>
+                                  {(provided) => (
+                                    <div
+                                      ref={provided.innerRef}
+                                      {...provided.draggableProps}
+                                      {...provided.dragHandleProps}
+                                      className="relative group"
                                     >
-                                      <i className="ri-close-line text-xs"></i>
-                                    </button>
-                                  </div>
-                                )}
-                              </Draggable>
-                            ))}
+                                      {isVideo ? (
+                                        <div className="w-full h-20 rounded-lg border border-gray-600 bg-gray-700 flex items-center justify-center relative overflow-hidden">
+                                          <video
+                                            src={preview}
+                                            className="w-full h-full object-cover"
+                                            muted
+                                          />
+                                          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                            <i className="ri-play-circle-line text-2xl text-white"></i>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <img
+                                          src={preview}
+                                          alt={`Önizleme ${index + 1}`}
+                                          className="w-full h-20 object-cover rounded-lg border border-gray-600 transition-transform group-hover:scale-105 cursor-pointer"
+                                        />
+                                      )}
+                                      <button
+                                        type="button"
+                                        onClick={() => removeImage(index)}
+                                        className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center cursor-pointer transition-all opacity-0 group-hover:opacity-100 shadow-md bg-red-600 text-white hover:bg-red-700"
+                                      >
+                                        <i className="ri-close-line text-xs"></i>
+                                      </button>
+                                    </div>
+                                  )}
+                                </Draggable>
+                              );
+                            })}
                             {provided.placeholder}
                           </div>
                         )}
@@ -579,7 +620,7 @@ export default function ProductsPage() {
                   {newProduct.imagePreviews.length > 0 && (
                     <div className="flex justify-between items-center text-sm">
                       <span className="text-gray-400">
-                        Toplam {newProduct.imagePreviews.length} fotoğraf seçildi
+                        Toplam {newProduct.imagePreviews.length} medya seçildi
                       </span>
                       <button
                         type="button"
@@ -747,16 +788,16 @@ export default function ProductsPage() {
                 ></textarea>
               </div>
 
-              {/* Ürün Fotoğrafları */}
+              {/* Ürün Fotoğrafları/Videoları */}
               <div>
                 <label className="block text-sm font-medium mb-2 text-white">
-                  Ürün Fotoğrafları (En fazla 5 adet)
+                  Ürün Fotoğraf/Video (En fazla 5 adet)
                 </label>
                 <div className="space-y-4">
                   <input
                     type="file"
                     id="edit-product-images"
-                    accept="image/*"
+                    accept="image/*,video/mp4,video/webm,video/quicktime"
                     multiple
                     className="hidden"
                     onChange={(e) => {
@@ -778,10 +819,10 @@ export default function ProductsPage() {
                     <span>
                       {editingProduct.images?.length >= 5
                         ? "Maksimum Limit Aşıldı"
-                        : "Fotoğraf Seç"}
+                        : "Fotoğraf/Video Seç"}
                     </span>
                     <span className="text-xs mt-1">
-                      {editingProduct.images?.length || 0}/5 fotoğraf
+                      {editingProduct.images?.length || 0}/5 medya
                     </span>
                   </button>
 
@@ -814,32 +855,51 @@ export default function ProductsPage() {
                             {...provided.droppableProps}
                             ref={provided.innerRef}
                           >
-                            {editingProduct.imagePreviews?.map((preview: string, index: number) => (
-                              <Draggable key={preview} draggableId={preview} index={index}>
-                                {(provided) => (
-                                  <div
-                                    ref={provided.innerRef}
-                                    {...provided.draggableProps}
-                                    {...provided.dragHandleProps}
-                                    className="relative group flex-shrink-0"
-                                  >
-                                    <img
-                                      src={preview}
-                                      alt={`Önizleme ${index + 1}`}
-                                      className="w-24 h-24 object-cover rounded-lg border border-gray-600 transition-transform group-hover:scale-105"
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => handleEditImageRemove(index)}
-                                      className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center cursor-pointer transition-all shadow-md opacity-0 group-hover:opacity-100 bg-red-600 text-white hover:bg-red-700"
-                                      title="Fotoğrafı Kaldır (Güncelle'ye basınca silinir)"
+                            {editingProduct.imagePreviews?.map((preview: string, index: number) => {
+                              const imageFile = editingProduct.images[index];
+                              const fileName = imageFile instanceof File ? imageFile.name : (imageFile || '');
+                              const isVideo = isVideoFile(fileName);
+                              
+                              return (
+                                <Draggable key={preview} draggableId={preview} index={index}>
+                                  {(provided) => (
+                                    <div
+                                      ref={provided.innerRef}
+                                      {...provided.draggableProps}
+                                      {...provided.dragHandleProps}
+                                      className="relative group flex-shrink-0"
                                     >
-                                      <i className="ri-close-line text-xs"></i>
-                                    </button>
-                                  </div>
-                                )}
-                              </Draggable>
-                            ))}
+                                      {isVideo ? (
+                                        <div className="w-24 h-24 rounded-lg border border-gray-600 bg-gray-700 flex items-center justify-center relative overflow-hidden">
+                                          <video
+                                            src={preview}
+                                            className="w-full h-full object-cover"
+                                            muted
+                                          />
+                                          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                            <i className="ri-play-circle-line text-2xl text-white"></i>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <img
+                                          src={preview}
+                                          alt={`Önizleme ${index + 1}`}
+                                          className="w-24 h-24 object-cover rounded-lg border border-gray-600 transition-transform group-hover:scale-105"
+                                        />
+                                      )}
+                                      <button
+                                        type="button"
+                                        onClick={() => handleEditImageRemove(index)}
+                                        className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center cursor-pointer transition-all shadow-md opacity-0 group-hover:opacity-100 bg-red-600 text-white hover:bg-red-700"
+                                        title="Medyayı Kaldır (Güncelle'ye basınca silinir)"
+                                      >
+                                        <i className="ri-close-line text-xs"></i>
+                                      </button>
+                                    </div>
+                                  )}
+                                </Draggable>
+                              );
+                            })}
                             {provided.placeholder}
                           </div>
                         )}
@@ -851,7 +911,7 @@ export default function ProductsPage() {
                   {editingProduct.images?.length > 0 && (
                     <div className="flex justify-between items-center text-sm">
                       <span className="text-gray-400">
-                        Toplam {editingProduct.images.length} fotoğraf seçildi
+                        Toplam {editingProduct.images.length} medya seçildi
                       </span>
                       <button
                         type="button"
@@ -1227,13 +1287,13 @@ export default function ProductsPage() {
 
                 <div>
                   <label className="block text-sm font-medium mb-2 text-white">
-                    Ürün Fotoğrafları (En fazla 5 adet)
+                    Ürün Fotoğraf/Video (En fazla 5 adet)
                   </label>
                   <div className="space-y-4">
                     <input
                       type="file"
                       id="bulk-product-images"
-                      accept="image/*"
+                      accept="image/*,video/mp4,video/webm,video/quicktime"
                       multiple
                       className="hidden"
                       onChange={(e) => {
@@ -1255,10 +1315,10 @@ export default function ProductsPage() {
                     >
                       <i className="ri-image-add-line text-2xl mb-2"></i>
                       <span className="text-sm">
-                        {bulkProduct.imagePreviews.length >= 5 ? 'Maksimum Limit Aşıldı' : 'Fotoğraf Seç'}
+                        {bulkProduct.imagePreviews.length >= 5 ? 'Maksimum Limit Aşıldı' : 'Fotoğraf/Video Seç'}
                       </span>
                       <span className="text-xs mt-1">
-                        {bulkProduct.imagePreviews.length}/5 fotoğraf
+                        {bulkProduct.imagePreviews.length}/5 medya
                       </span>
                     </button>
 
@@ -1278,31 +1338,50 @@ export default function ProductsPage() {
                               {...provided.droppableProps}
                               ref={provided.innerRef}
                             >
-                              {bulkProduct.imagePreviews.map((preview, index) => (
-                                <Draggable key={index} draggableId={`bulk-${index}`} index={index}>
-                                  {(provided) => (
-                                    <div
-                                      ref={provided.innerRef}
-                                      {...provided.draggableProps}
-                                      {...provided.dragHandleProps}
-                                      className="relative group"
-                                    >
-                                      <img
-                                        src={preview}
-                                        alt={`Önizleme ${index + 1}`}
-                                        className="w-full h-20 object-cover rounded-lg border border-gray-600 transition-transform group-hover:scale-105 cursor-pointer"
-                                      />
-                                      <button
-                                        type="button"
-                                        onClick={() => removeBulkImage(index)}
-                                        className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center cursor-pointer transition-all opacity-0 group-hover:opacity-100 shadow-md bg-red-600 text-white hover:bg-red-700"
+                              {bulkProduct.imagePreviews.map((preview, index) => {
+                                const file = bulkProduct.images[index];
+                                const fileName = file instanceof File ? file.name : (file || '');
+                                const isVideo = isVideoFile(fileName);
+                                
+                                return (
+                                  <Draggable key={index} draggableId={`bulk-${index}`} index={index}>
+                                    {(provided) => (
+                                      <div
+                                        ref={provided.innerRef}
+                                        {...provided.draggableProps}
+                                        {...provided.dragHandleProps}
+                                        className="relative group"
                                       >
-                                        <i className="ri-close-line text-xs"></i>
-                                      </button>
-                                    </div>
-                                  )}
-                                </Draggable>
-                              ))}
+                                        {isVideo ? (
+                                          <div className="w-full h-20 rounded-lg border border-gray-600 bg-gray-700 flex items-center justify-center relative overflow-hidden">
+                                            <video
+                                              src={preview}
+                                              className="w-full h-full object-cover"
+                                              muted
+                                            />
+                                            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                              <i className="ri-play-circle-line text-2xl text-white"></i>
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <img
+                                            src={preview}
+                                            alt={`Önizleme ${index + 1}`}
+                                            className="w-full h-20 object-cover rounded-lg border border-gray-600 transition-transform group-hover:scale-105 cursor-pointer"
+                                          />
+                                        )}
+                                        <button
+                                          type="button"
+                                          onClick={() => removeBulkImage(index)}
+                                          className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center cursor-pointer transition-all opacity-0 group-hover:opacity-100 shadow-md bg-red-600 text-white hover:bg-red-700"
+                                        >
+                                          <i className="ri-close-line text-xs"></i>
+                                        </button>
+                                      </div>
+                                    )}
+                                  </Draggable>
+                                );
+                              })}
                               {provided.placeholder}
                             </div>
                           )}
@@ -1313,7 +1392,7 @@ export default function ProductsPage() {
                     {bulkProduct.imagePreviews.length > 0 && (
                       <div className="flex justify-between items-center text-sm">
                         <span className="text-gray-400">
-                          Toplam {bulkProduct.imagePreviews.length} fotoğraf seçildi
+                          Toplam {bulkProduct.imagePreviews.length} medya seçildi
                         </span>
                         <button
                           type="button"
@@ -1342,6 +1421,40 @@ export default function ProductsPage() {
                   ÜRÜNÜ BOARD'A EKLE
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TOPLU YAYINA ALMA ONAY MODALI */}
+      {isPublishAllModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md shadow-lg">
+            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-green-900 text-green-400 mb-4 mx-auto">
+              <i className="ri-upload-cloud-line text-2xl"></i>
+            </div>
+            <h2 className="text-lg font-semibold text-white mb-4 text-center">
+              Ürünleri Yayına Al
+            </h2>
+            <p className="text-sm text-gray-300 mb-6 text-center">
+              <span className="font-bold text-green-400">{unpublishedCount}</span> adet yayında olmayan ürünü yayına almak istediğinize emin misiniz?
+            </p>
+            <div className="flex justify-center gap-3">
+              <button
+                onClick={() => setIsPublishAllModalOpen(false)}
+                disabled={isPublishingAll}
+                className="px-6 py-2 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
+              >
+                Hayır
+              </button>
+              <button
+                onClick={publishAllProducts}
+                disabled={isPublishingAll}
+                className="px-6 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+              >
+                {isPublishingAll && <i className="ri-loader-4-line animate-spin"></i>}
+                {isPublishingAll ? 'Yayınlanıyor...' : 'Evet, Yayına Al'}
+              </button>
             </div>
           </div>
         </div>

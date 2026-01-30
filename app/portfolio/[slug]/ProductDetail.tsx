@@ -27,6 +27,24 @@ const getImageUrl = (images: string[] | null, index = 0) => {
   // SADECE DOSYA ADI İSE
   return `${R2_BASE}${img}`;
 };
+
+// Video dosyası mı kontrol et
+const isVideoFile = (fileName: string | null | undefined) => {
+  if (!fileName) return false;
+  const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv'];
+  return videoExtensions.some(ext => fileName.toLowerCase().endsWith(ext));
+};
+
+// Medya URL'i al (video veya resim)
+const getMediaUrl = (images: string[] | null, index = 0) => {
+  return getImageUrl(images, index);
+};
+
+// Belirli bir index'teki medya video mu?
+const isMediaVideo = (images: string[] | null, index = 0) => {
+  if (!images || !images[index]) return false;
+  return isVideoFile(images[index]);
+};
 // Renk isimleri -> CSS renk kodu eşleştirmesi
 const colorMap: Record<string, string> = {
   // Temel renkler
@@ -189,18 +207,18 @@ export default function ProductDetail({
         setFullscreen(false);
       } else if (e.key === 'ArrowLeft') {
         setCurrentImageIndex((prev) => 
-          prev === 0 ? product.images.length - 1 : prev - 1
+          prev === 0 ? product!.images.length - 1 : prev - 1
         );
       } else if (e.key === 'ArrowRight') {
         setCurrentImageIndex((prev) => 
-          prev === product.images.length - 1 ? 0 : prev + 1
+          prev === product!.images.length - 1 ? 0 : prev + 1
         );
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [fullscreen, product.images.length]);
+  }, [fullscreen, product!.images.length]);
 
   const toggleTheme = () => {
     const newDarkMode = !isDarkMode;
@@ -355,13 +373,24 @@ export default function ProductDetail({
           className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
           onClick={() => setFullscreen(false)}
         >
-          {/* Ana resim */}
-          <img
-            src={getImageUrl(product.images, currentImageIndex)}
-            alt={product.title}
-            className="max-h-[85vh] max-w-[90vw] object-contain"
-            onClick={(e) => e.stopPropagation()}
-          />
+          {/* Ana resim veya video */}
+          {isMediaVideo(product.images, currentImageIndex) ? (
+            <video
+              src={getMediaUrl(product.images, currentImageIndex)}
+              className="max-h-[85vh] max-w-[90vw] object-contain"
+              onClick={(e) => e.stopPropagation()}
+              controls
+              autoPlay
+              playsInline
+            />
+          ) : (
+            <img
+              src={getImageUrl(product.images, currentImageIndex)}
+              alt={product.title}
+              className="max-h-[85vh] max-w-[90vw] object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          )}
 
           {/* Önceki buton */}
           {product.images.length > 1 && (
@@ -464,25 +493,48 @@ export default function ProductDetail({
                       : isDarkMode
                         ? "border-gray-600"
                         : "border-gray-200"
-                      } hover:border-gray-400 transition-all rounded-md overflow-hidden`}
+                      } hover:border-gray-400 transition-all rounded-md overflow-hidden relative`}
                   >
-                    <img
-                      src={getImageUrl(product.images, index)}
-                      alt={`${product.title} ${index + 1}`}
-                      className="w-full h-32 object-cover object-top"
-                    />
+                    {isMediaVideo(product.images, index) ? (
+                      <>
+                        <video
+                          src={getMediaUrl(product.images, index)}
+                          className="w-full h-32 object-cover object-top"
+                          muted
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                          <i className="ri-play-circle-line text-2xl text-white"></i>
+                        </div>
+                      </>
+                    ) : (
+                      <img
+                        src={getImageUrl(product.images, index)}
+                        alt={`${product.title} ${index + 1}`}
+                        className="w-full h-32 object-cover object-top"
+                      />
+                    )}
                   </button>
                 ))}
               </div>
 
-              {/* Ana resim (desktop) */}
+              {/* Ana resim/video (desktop) */}
               <div className="hidden lg:block flex-1">
-                <img
-                  src={getImageUrl(product.images, currentImageIndex)}
-                  alt={product.title}
-                  className="w-full h-[400px] sm:h-[500px] lg:h-[600px] object-cover object-top rounded-md cursor-pointer"
-                  onClick={() => setFullscreen(true)}
-                />
+                {isMediaVideo(product.images, currentImageIndex) ? (
+                  <video
+                    src={getMediaUrl(product.images, currentImageIndex)}
+                    className="w-full h-[400px] sm:h-[500px] lg:h-[600px] object-cover object-top rounded-md cursor-pointer"
+                    onClick={() => setFullscreen(true)}
+                    controls
+                    playsInline
+                  />
+                ) : (
+                  <img
+                    src={getImageUrl(product.images, currentImageIndex)}
+                    alt={product.title}
+                    className="w-full h-[400px] sm:h-[500px] lg:h-[600px] object-cover object-top rounded-md cursor-pointer"
+                    onClick={() => setFullscreen(true)}
+                  />
+                )}
               </div>
 
               {/* 📱 Mobil görünüm */}
@@ -499,23 +551,37 @@ export default function ProductDetail({
                   }
                 }}
               >
-                <img
-                  src={getImageUrl(product.images, currentImageIndex)}
-                  alt={product.title}
-                  className="w-full h-[55vh] sm:h-[65vh] md:h-[70vh] object-cover object-top cursor-pointer transition-all duration-500 ease-out"
-                  onClick={() => setFullscreen(true)}
-                />
+                {isMediaVideo(product.images, currentImageIndex) ? (
+                  <video
+                    src={getMediaUrl(product.images, currentImageIndex)}
+                    className="w-full h-[55vh] sm:h-[65vh] md:h-[70vh] object-cover object-top cursor-pointer transition-all duration-500 ease-out"
+                    onClick={() => setFullscreen(true)}
+                    controls
+                    playsInline
+                  />
+                ) : (
+                  <img
+                    src={getImageUrl(product.images, currentImageIndex)}
+                    alt={product.title}
+                    className="w-full h-[55vh] sm:h-[65vh] md:h-[70vh] object-cover object-top cursor-pointer transition-all duration-500 ease-out"
+                    onClick={() => setFullscreen(true)}
+                  />
+                )}
 
-                {/* Noktalar (dots) */}
+                {/* Noktalar (dots) - video ise play ikonu göster */}
                 <div className="absolute bottom-4 left-0 right-0 flex justify-center space-x-2">
                   {product.images.map((_, i) => (
                     <span
                       key={i}
-                      className={`w-2.5 h-2.5 rounded-full transition-all ${i === currentImageIndex
+                      className={`w-2.5 h-2.5 rounded-full transition-all flex items-center justify-center ${i === currentImageIndex
                         ? "bg-black dark:bg-white scale-110"
                         : "bg-gray-400 dark:bg-gray-600"
                         }`}
-                    ></span>
+                    >
+                      {isMediaVideo(product.images, i) && i === currentImageIndex && (
+                        <i className="ri-play-fill text-[8px]"></i>
+                      )}
+                    </span>
                   ))}
                 </div>
               </div>
