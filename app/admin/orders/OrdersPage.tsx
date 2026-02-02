@@ -84,14 +84,15 @@ export default function OrdersPage() {
       {/* SİPARİŞ DETAYLARI MODALI */}
       {viewingOrder && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) setViewingOrder(null);
           }}
         >
-          <div className="rounded-xl w-full max-w-lg p-6 shadow-2xl bg-gray-800 text-white border border-gray-700">
-            <div className="flex justify-between items-center border-b border-gray-700 pb-4 mb-4">
-              <h3 className="text-lg font-medium">Sipariş Detayları</h3>
+          <div className="rounded-xl w-full max-w-lg shadow-2xl bg-gray-800 text-white border border-gray-700 max-h-[95vh] overflow-hidden flex flex-col">
+            {/* Header - Sabit */}
+            <div className="flex justify-between items-center border-b border-gray-700 p-4 sm:p-6 pb-4 flex-shrink-0">
+              <h3 className="text-base sm:text-lg font-medium">Sipariş Detayları</h3>
               <button
                 onClick={() => setViewingOrder(null)}
                 className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
@@ -100,87 +101,91 @@ export default function OrdersPage() {
               </button>
             </div>
 
-            <div className="space-y-3 text-sm">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-gray-500 text-xs mb-1">Sipariş No</p>
-                  <p className="font-mono">#{viewingOrder.id.toString().padStart(4, '0')}</p>
+            {/* Content - Scrollable */}
+            <div className="p-4 sm:p-6 pt-4 overflow-y-auto flex-1">
+              <div className="space-y-3 text-sm">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-gray-500 text-xs mb-1">Sipariş No</p>
+                    <p className="font-mono">#{viewingOrder.id.toString().padStart(4, '0')}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 text-xs mb-1">Durum</p>
+                    <p>{viewingOrder.status}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-gray-500 text-xs mb-1">Durum</p>
-                  <p>{viewingOrder.status}</p>
+                
+                <div className="border-t border-gray-700 pt-3">
+                  <p className="text-gray-500 text-xs mb-1">Müşteri</p>
+                  <p className="font-medium">{viewingOrder.customerName}</p>
                 </div>
-              </div>
-              
-              <div className="border-t border-gray-700 pt-3">
-                <p className="text-gray-500 text-xs mb-1">Müşteri</p>
-                <p className="font-medium">{viewingOrder.customerName}</p>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-gray-500 text-xs mb-1">Telefon</p>
-                  <p>{viewingOrder.phone || "—"}</p>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-gray-500 text-xs mb-1">Telefon</p>
+                    <p>{viewingOrder.phone || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 text-xs mb-1">E-posta</p>
+                    <p className="truncate">{viewingOrder.email || "—"}</p>
+                  </div>
                 </div>
+                
                 <div>
-                  <p className="text-gray-500 text-xs mb-1">E-posta</p>
-                  <p className="truncate">{viewingOrder.email || "—"}</p>
+                  <p className="text-gray-500 text-xs mb-1">Adres</p>
+                  <p className="break-words">{viewingOrder.address}</p>
                 </div>
-              </div>
-              
-              <div>
-                <p className="text-gray-500 text-xs mb-1">Adres</p>
-                <p>{viewingOrder.address}</p>
-              </div>
-              
-              <div className="border-t border-gray-700 pt-3">
-                <p className="text-gray-500 text-xs mb-1">Ürün</p>
-                <p className="font-medium">{viewingOrder.productName}</p>
-              </div>
-              
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <p className="text-gray-500 text-xs mb-1">Beden</p>
-                  <p>{viewingOrder.size}</p>
+                
+                <div className="border-t border-gray-700 pt-3">
+                  <p className="text-gray-500 text-xs mb-1">Ürün</p>
+                  <p className="font-medium break-words">{viewingOrder.productName}</p>
                 </div>
-                <div>
-                  <p className="text-gray-500 text-xs mb-1">Renk</p>
-                  <p>{viewingOrder.color}</p>
+                
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                  <div>
+                    <p className="text-gray-500 text-xs mb-1">Beden</p>
+                    <p>{viewingOrder.size}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 text-xs mb-1">Renk</p>
+                    <p className="truncate">{viewingOrder.color}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 text-xs mb-1">Fiyat</p>
+                    <p className="font-medium text-green-400">{viewingOrder.price}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-gray-500 text-xs mb-1">Fiyat</p>
-                  <p className="font-medium text-green-400">{viewingOrder.price}</p>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-gray-500 text-xs mb-1">Etkinlik Tarihi</p>
+                    <p>{viewingOrder.eventDate}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 text-xs mb-1">Kargo Kodu</p>
+                    <p className="truncate">{viewingOrder.shippingCode || '—'}</p>
+                  </div>
                 </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-gray-500 text-xs mb-1">Etkinlik Tarihi</p>
-                  <p>{viewingOrder.eventDate}</p>
+                
+                <div className="border-t border-gray-700 pt-3">
+                  <p className="text-gray-500 text-xs mb-1">Ödeme Şekli</p>
+                  <p className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                    viewingOrder.paymentMethod === 'Mağazadan' 
+                      ? 'bg-purple-500/20 text-purple-400' 
+                      : 'bg-blue-500/20 text-blue-400'
+                  }`}>
+                    <i className={viewingOrder.paymentMethod === 'Mağazadan' ? 'ri-store-2-line' : 'ri-bank-card-line'}></i>
+                    {viewingOrder.paymentMethod || 'Online'}
+                  </p>
                 </div>
-                <div>
-                  <p className="text-gray-500 text-xs mb-1">Kargo Kodu</p>
-                  <p>{viewingOrder.shippingCode || '—'}</p>
-                </div>
-              </div>
-              
-              <div className="border-t border-gray-700 pt-3">
-                <p className="text-gray-500 text-xs mb-1">Ödeme Şekli</p>
-                <p className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                  viewingOrder.paymentMethod === 'Mağazadan' 
-                    ? 'bg-purple-500/20 text-purple-400' 
-                    : 'bg-blue-500/20 text-blue-400'
-                }`}>
-                  <i className={viewingOrder.paymentMethod === 'Mağazadan' ? 'ri-store-2-line' : 'ri-bank-card-line'}></i>
-                  {viewingOrder.paymentMethod || 'Online'}
-                </p>
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end">
+            {/* Footer - Sabit */}
+            <div className="p-4 sm:p-6 pt-4 border-t border-gray-700 flex-shrink-0">
               <button
                 onClick={() => setViewingOrder(null)}
-                className="py-3 px-8 rounded-full border font-medium transition-colors border-gray-600 text-white hover:bg-gray-700"
+                className="w-full sm:w-auto py-3 px-8 rounded-full border font-medium transition-colors border-gray-600 text-white hover:bg-gray-700"
               >
                 Kapat
               </button>
@@ -191,12 +196,12 @@ export default function OrdersPage() {
 
       {/* SİPARİŞ DÜZENLEME MODALI */}
       {editingOrder && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="rounded-xl max-w-md w-full overflow-y-auto max-h-[90vh] bg-gray-800 border border-gray-700">
-            {/* Üst Başlık */}
-            <div className="p-5 border-b border-gray-700">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4">
+          <div className="rounded-xl max-w-md w-full max-h-[95vh] bg-gray-800 border border-gray-700 flex flex-col overflow-hidden">
+            {/* Üst Başlık - Sabit */}
+            <div className="p-4 sm:p-5 border-b border-gray-700 flex-shrink-0">
               <div className="flex justify-between items-center">
-                <h3 className="text-lg font-medium text-white">
+                <h3 className="text-base sm:text-lg font-medium text-white">
                   Sipariş Durumu Güncelle
                 </h3>
                 <button
@@ -208,8 +213,8 @@ export default function OrdersPage() {
               </div>
             </div>
 
-            {/* İçerik */}
-            <div className="p-5 space-y-5">
+            {/* İçerik - Scrollable */}
+            <div className="p-4 sm:p-5 space-y-4 sm:space-y-5 overflow-y-auto flex-1">
               {/* Sipariş Bilgileri */}
               <div className="p-4 rounded-lg bg-gray-700/50 border border-gray-600">
                 <h4 className="font-medium mb-3 text-white text-sm">
@@ -291,17 +296,20 @@ export default function OrdersPage() {
                 </div>
               )}
 
-              {/* Alt Butonlar */}
-              <div className="flex gap-3 pt-2">
+            </div>
+
+            {/* Alt Butonlar - Sabit */}
+            <div className="p-4 sm:p-5 border-t border-gray-700 flex-shrink-0">
+              <div className="flex gap-3">
                 <button
                   onClick={() => setEditingOrder(null)}
-                  className="flex-1 py-3 px-4 rounded-full border font-medium border-gray-600 text-white hover:bg-gray-700 transition-colors"
+                  className="flex-1 py-2.5 sm:py-3 px-4 rounded-full border font-medium border-gray-600 text-white hover:bg-gray-700 transition-colors text-sm sm:text-base"
                 >
                   İptal
                 </button>
                 <button
                   onClick={handleUpdateOrder}
-                  className="flex-1 py-3 px-4 rounded-full font-medium bg-white text-black hover:bg-gray-100 transition-colors"
+                  className="flex-1 py-2.5 sm:py-3 px-4 rounded-full font-medium bg-white text-black hover:bg-gray-100 transition-colors text-sm sm:text-base"
                 >
                   Güncelle
                 </button>

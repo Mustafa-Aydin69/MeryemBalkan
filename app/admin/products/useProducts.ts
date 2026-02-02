@@ -101,6 +101,9 @@ export function useProducts() {
     images: [],
   });
 
+  // Ürün ekleme loading state
+  const [isSubmittingProduct, setIsSubmittingProduct] = useState(false);
+
   // Toplu yayın durumu değiştirme state'leri
   type BulkStatusAction = 'Yayına Al' | 'Yayından Kaldır' | null;
   const [isBulkStatusActionModalOpen, setIsBulkStatusActionModalOpen] = useState(false);
@@ -330,21 +333,28 @@ export function useProducts() {
   // Product submit handler
   const handleProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Çift tıklamayı önle
+    if (isSubmittingProduct) return;
+    
+    setIsSubmittingProduct(true);
     setUploadError("");
 
-    const uploadedNames: string[] = [];
-
-    for (const item of newProduct.images) {
+    // Fotoğrafları PARALEL olarak yükle (çok daha hızlı)
+    const uploadPromises = newProduct.images.map(async (item) => {
       if (item instanceof File) {
-        const fileName = await uploadFileViaAPI(item);
-        if (fileName) {
-          uploadedNames.push(fileName);
-        } else {
-          setUploadError('Bazı fotoğraflar yüklenemedi');
-        }
+        return await uploadFileViaAPI(item);
       } else if (typeof item === "string") {
-        uploadedNames.push(item);
+        return item;
       }
+      return null;
+    });
+
+    const results = await Promise.all(uploadPromises);
+    const uploadedNames = results.filter((name): name is string => name !== null);
+
+    if (uploadedNames.length < newProduct.images.length) {
+      setUploadError('Bazı fotoğraflar yüklenemedi');
     }
 
     try {
@@ -393,6 +403,8 @@ export function useProducts() {
     } catch (error: any) {
       console.error("Ürün eklenemedi:", error.message);
       toast.error("Ürün eklenemedi! ❌");
+    } finally {
+      setIsSubmittingProduct(false);
     }
   };
 
@@ -475,6 +487,9 @@ export function useProducts() {
 
   const handleUpdateProduct = async () => {
     if (!editingProduct) return;
+    
+    // Çift tıklamayı önle
+    if (isDeletingImage) return;
 
     setIsDeletingImage(true);
 
@@ -508,25 +523,29 @@ export function useProducts() {
       }
     }
 
-    // 2. Yeni resimleri yükle
-    const uploadedNames: string[] = [];
-
-    for (const img of editingProduct.images) {
-      if (img instanceof File) {
-        const turkishPattern = /[ıİğĞüÜşŞöÖçÇ]/;
-        if (turkishPattern.test(img.name)) {
-          toast.error("Dosya adında Türkçe karakter bulunuyor. Lütfen İngilizce karakterler kullanın.");
-          continue;
-        }
-
-        const fileName = await uploadFileViaAPI(img);
-        if (fileName) {
-          uploadedNames.push(fileName);
-        }
-      } else {
-        uploadedNames.push(img);
-      }
+    // 2. Yeni resimleri PARALEL olarak yükle (çok daha hızlı)
+    const turkishPattern = /[ıİğĞüÜşŞöÖçÇ]/;
+    
+    // Türkçe karakter kontrolü
+    const hasTurkishFile = editingProduct.images.some(
+      (img: File | string) => img instanceof File && turkishPattern.test(img.name)
+    );
+    if (hasTurkishFile) {
+      toast.error("Dosya adında Türkçe karakter bulunuyor. Lütfen İngilizce karakterler kullanın.");
+      setIsDeletingImage(false);
+      return;
     }
+
+    const uploadPromises = editingProduct.images.map(async (img: File | string) => {
+      if (img instanceof File) {
+        return await uploadFileViaAPI(img);
+      } else {
+        return img;
+      }
+    });
+
+    const results = await Promise.all(uploadPromises);
+    const uploadedNames = results.filter((name): name is string => name !== null);
 
     // 3. DB'yi güncelle
 
@@ -764,6 +783,7 @@ export function useProducts() {
     removeImage,
     handleDragEnd,
     handleProductSubmit,
+    isSubmittingProduct,
     // Edit product
     editingProduct,
     setEditingProduct,

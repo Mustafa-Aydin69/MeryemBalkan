@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { useProducts } from './useProducts';
 import ProductsTable from './ProductsTable';
@@ -12,6 +13,8 @@ const getR2BaseUrl = () => {
 };
 
 export default function ProductsPage() {
+  // Resim önizleme modalı için state
+  const [previewImage, setPreviewImage] = useState<{ src: string; isVideo: boolean } | null>(null);
   const {
     allProducts,
     filteredProducts,
@@ -43,6 +46,7 @@ export default function ProductsPage() {
     removeImage,
     handleDragEnd,
     handleProductSubmit,
+    isSubmittingProduct,
     // Edit product
     editingProduct,
     setEditingProduct,
@@ -570,7 +574,10 @@ export default function ProductsPage() {
                                       className="relative group"
                                     >
                                       {isVideo ? (
-                                        <div className="w-full h-20 rounded-lg border border-gray-600 bg-gray-700 flex items-center justify-center relative overflow-hidden">
+                                        <div 
+                                          onClick={() => setPreviewImage({ src: preview, isVideo: true })}
+                                          className="w-full h-20 rounded-lg border border-gray-600 bg-gray-700 flex items-center justify-center relative overflow-hidden cursor-pointer"
+                                        >
                                           <video
                                             src={preview}
                                             className="w-full h-full object-cover"
@@ -584,12 +591,13 @@ export default function ProductsPage() {
                                         <img
                                           src={preview}
                                           alt={`Önizleme ${index + 1}`}
+                                          onClick={() => setPreviewImage({ src: preview, isVideo: false })}
                                           className="w-full h-20 object-cover rounded-lg border border-gray-600 transition-transform group-hover:scale-105 cursor-pointer"
                                         />
                                       )}
                                       <button
                                         type="button"
-                                        onClick={() => removeImage(index)}
+                                        onClick={(e) => { e.stopPropagation(); removeImage(index); }}
                                         className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center cursor-pointer transition-all opacity-0 group-hover:opacity-100 shadow-md bg-red-600 text-white hover:bg-red-700"
                                       >
                                         <i className="ri-close-line text-xs"></i>
@@ -630,9 +638,21 @@ export default function ProductsPage() {
 
               <button
                 type="submit"
-                className="w-full py-4 tracking-wide font-medium transition-colors whitespace-nowrap rounded-full bg-white text-black hover:bg-gray-100"
+                disabled={isSubmittingProduct}
+                className={`w-full py-4 tracking-wide font-medium transition-colors whitespace-nowrap rounded-full flex items-center justify-center gap-2 ${
+                  isSubmittingProduct
+                    ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                    : 'bg-white text-black hover:bg-gray-100'
+                }`}
               >
-                ÜRÜNÜ EKLE
+                {isSubmittingProduct ? (
+                  <>
+                    <i className="ri-loader-4-line animate-spin"></i>
+                    ÜRÜN YÜKLENİYOR...
+                  </>
+                ) : (
+                  'ÜRÜNÜ EKLE'
+                )}
               </button>
             </form>
           </div>
@@ -859,7 +879,10 @@ export default function ProductsPage() {
                                       className="relative group flex-shrink-0"
                                     >
                                       {isVideo ? (
-                                        <div className="w-24 h-24 rounded-lg border border-gray-600 bg-gray-700 flex items-center justify-center relative overflow-hidden">
+                                        <div 
+                                          onClick={() => setPreviewImage({ src: preview, isVideo: true })}
+                                          className="w-24 h-24 rounded-lg border border-gray-600 bg-gray-700 flex items-center justify-center relative overflow-hidden cursor-pointer"
+                                        >
                                           <video
                                             src={preview}
                                             className="w-full h-full object-cover"
@@ -873,12 +896,13 @@ export default function ProductsPage() {
                                         <img
                                           src={preview}
                                           alt={`Önizleme ${index + 1}`}
-                                          className="w-24 h-24 object-cover rounded-lg border border-gray-600 transition-transform group-hover:scale-105"
+                                          onClick={() => setPreviewImage({ src: preview, isVideo: false })}
+                                          className="w-24 h-24 object-cover rounded-lg border border-gray-600 transition-transform group-hover:scale-105 cursor-pointer"
                                         />
                                       )}
                                       <button
                                         type="button"
-                                        onClick={() => handleEditImageRemove(index)}
+                                        onClick={(e) => { e.stopPropagation(); handleEditImageRemove(index); }}
                                         className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center cursor-pointer transition-all shadow-md opacity-0 group-hover:opacity-100 bg-red-600 text-white hover:bg-red-700"
                                         title="Medyayı Kaldır (Güncelle'ye basınca silinir)"
                                       >
@@ -1236,6 +1260,38 @@ export default function ProductsPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* RESİM/VİDEO ÖNİZLEME MODALI (Lightbox) */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4"
+          onClick={() => setPreviewImage(null)}
+        >
+          <button
+            onClick={() => setPreviewImage(null)}
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+          >
+            <i className="ri-close-line text-2xl"></i>
+          </button>
+          
+          {previewImage.isVideo ? (
+            <video
+              src={previewImage.src}
+              className="max-w-full max-h-[90vh] rounded-lg"
+              controls
+              autoPlay
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <img
+              src={previewImage.src}
+              alt="Önizleme"
+              className="max-w-full max-h-[90vh] object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+          )}
         </div>
       )}
     </div>
