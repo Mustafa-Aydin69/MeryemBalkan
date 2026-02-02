@@ -58,6 +58,35 @@ interface RentalsTableProps {
   getStatusColor: (status: string) => string;
   getStatusLabel: (status: string) => string;
   onViewRental: (rental: Rental) => void;
+  loading?: boolean;
+}
+
+// Loading Skeleton Bileşeni
+function RentalSkeleton() {
+  return (
+    <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden animate-pulse">
+      <div className="aspect-[4/3] bg-gray-700"></div>
+      <div className="p-4 space-y-3">
+        <div className="space-y-2">
+          <div className="h-5 bg-gray-700 rounded w-3/4"></div>
+          <div className="h-3 bg-gray-700 rounded w-1/3"></div>
+        </div>
+        <div className="pb-3 border-b border-gray-700 space-y-2">
+          <div className="h-3 bg-gray-700 rounded w-1/4"></div>
+          <div className="h-4 bg-gray-700 rounded w-1/2"></div>
+          <div className="h-3 bg-gray-700 rounded w-1/3"></div>
+        </div>
+        <div className="space-y-2">
+          <div className="h-3 bg-gray-700 rounded w-1/3"></div>
+          <div className="h-4 bg-gray-700 rounded w-2/3"></div>
+        </div>
+        <div className="flex justify-between items-center pt-2">
+          <div className="h-6 bg-gray-700 rounded w-1/4"></div>
+          <div className="h-4 bg-gray-700 rounded w-16"></div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function RentalsTable({
@@ -65,7 +94,19 @@ export default function RentalsTable({
   getStatusColor,
   getStatusLabel,
   onViewRental,
+  loading = false,
 }: RentalsTableProps) {
+  // Loading durumu
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[...Array(6)].map((_, i) => (
+          <RentalSkeleton key={i} />
+        ))}
+      </div>
+    );
+  }
+
   if (rentals.length === 0) {
     return (
       <div className="text-center py-12 text-gray-400">

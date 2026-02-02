@@ -61,6 +61,24 @@ interface ProductsTableProps {
   getProductStatusColor: (status: string) => string;
   onEditProduct: (product: Product) => void;
   onDeleteProduct: (id: number) => void;
+  loading?: boolean;
+}
+
+// Loading Skeleton Bileşeni
+function ProductSkeleton() {
+  return (
+    <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden animate-pulse">
+      <div className="aspect-[4/3] bg-gray-700"></div>
+      <div className="p-4 space-y-3">
+        <div className="h-5 bg-gray-700 rounded w-3/4"></div>
+        <div className="h-3 bg-gray-700 rounded w-1/2"></div>
+        <div className="flex justify-between items-center pt-2">
+          <div className="h-6 bg-gray-700 rounded w-1/3"></div>
+          <div className="h-4 bg-gray-700 rounded w-12"></div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function ProductsTable({
@@ -68,7 +86,19 @@ export default function ProductsTable({
   getProductStatusColor,
   onEditProduct,
   onDeleteProduct,
+  loading = false,
 }: ProductsTableProps) {
+  // Loading durumu
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[...Array(6)].map((_, i) => (
+          <ProductSkeleton key={i} />
+        ))}
+      </div>
+    );
+  }
+
   if (products.length === 0) {
     return (
       <div className="text-center py-12 text-gray-400">

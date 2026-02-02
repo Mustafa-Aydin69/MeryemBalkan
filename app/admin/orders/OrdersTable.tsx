@@ -10,6 +10,26 @@ interface OrdersTableProps {
   onEditOrder: (order: Order) => void;
   onViewOrder: (order: Order) => void;
   searchTerm: string;
+  loading?: boolean;
+}
+
+// Loading Skeleton Bileşeni
+function OrderSkeleton() {
+  return (
+    <div className="rounded-xl border border-gray-700 bg-gray-800/50 overflow-hidden animate-pulse">
+      <div className="p-4 flex items-center gap-4">
+        <div className="w-12 h-12 rounded-full bg-gray-700 flex-shrink-0"></div>
+        <div className="flex-1 space-y-2">
+          <div className="h-5 bg-gray-700 rounded w-1/3"></div>
+          <div className="h-3 bg-gray-700 rounded w-1/2"></div>
+        </div>
+        <div className="text-right space-y-2 hidden sm:block">
+          <div className="h-3 bg-gray-700 rounded w-20"></div>
+          <div className="h-5 bg-gray-700 rounded w-24"></div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // Müşteri gruplandırma için key oluştur
@@ -42,10 +62,11 @@ export default function OrdersTable({
   onEditOrder,
   onViewOrder,
   searchTerm,
+  loading = false,
 }: OrdersTableProps) {
   const [expandedCustomers, setExpandedCustomers] = useState<Set<string>>(new Set());
 
-  // Müşteri gruplarını oluştur
+  // Müşteri gruplarını oluştur - Hook'lar her zaman aynı sırada çağrılmalı
   const customerGroups = useMemo(() => {
     const groupMap = new Map<string, CustomerGroup>();
 
@@ -108,6 +129,17 @@ export default function OrdersTable({
 
   // Toplam sipariş sayısı
   const totalOrderCount = customerGroups.reduce((sum, g) => sum + g.orders.length, 0);
+
+  // Loading durumu - Hook'lardan sonra kontrol edilmeli
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        {[...Array(5)].map((_, i) => (
+          <OrderSkeleton key={i} />
+        ))}
+      </div>
+    );
+  }
 
   if (customerGroups.length === 0) {
     return (

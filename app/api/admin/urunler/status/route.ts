@@ -1,34 +1,11 @@
-// Image Delete API - Cloudflare R2
-// Basit resim silme endpoint'i
+// Admin Product Status Bulk Update API
+// Toplu ürün durumu değiştirme
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from 'next/server';
-import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
-
-// R2 Client oluştur
-function getR2Client() {
-  // Environment variable guards
-  if (!process.env.R2_ENDPOINT) {
-    throw new Error("R2_ENDPOINT is missing");
-  }
-  if (!process.env.R2_ACCESS_KEY_ID) {
-    throw new Error("R2_ACCESS_KEY_ID is missing");
-  }
-  if (!process.env.R2_SECRET_ACCESS_KEY) {
-    throw new Error("R2_SECRET_ACCESS_KEY is missing");
-  }
-
-  return new S3Client({
-    region: 'auto',
-    endpoint: process.env.R2_ENDPOINT,
-    credentials: {
-      accessKeyId: process.env.R2_ACCESS_KEY_ID,
-      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
-    },
-  });
-}
+import { getSupabaseAdmin } from '@/app/lib/supabaseAdmin';
 
 // Cookie'den token al (tutarlı authentication için)
 function getTokenFromRequest(request: NextRequest): string | null {
@@ -104,60 +81,59 @@ async function verifyAdminToken(request: NextRequest): Promise<boolean> {
   }
 }
 
-// POST: Resim silme
-// Body: { "image": "1768502027938_unnamed.jpg" }
-export async function POST(request: NextRequest) {
+// PATCH: Toplu ürün durumu güncelle
+export async function PATCH(request: NextRequest) {
   try {
     const isAdmin = await verifyAdminToken(request);
     if (!isAdmin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Environment variable guard
-    if (!process.env.NEXT_PUBLIC_R2_BUCKET_NAME) {
-      console.error("NEXT_PUBLIC_R2_BUCKET_NAME is missing");
-      return NextResponse.json({ error: 'NEXT_PUBLIC_R2_BUCKET_NAME is missing' }, { status: 500 });
-    }
-
     const body = await request.json();
-    const { image } = body;
+    const { urunIds, status } = body;
 
-    if (!image) {
-      return NextResponse.json({ error: 'image parameter is required' }, { status: 400 });
+    // Validation
+    if (!urunIds || !Array.isArray(urunIds) || urunIds.length === 0) {
+      return NextResponse.json(
+        { error: 'urunIds array gerekli ve boş olmamalı' },
+        { status: 400 }
+      );
     }
 
-    const bucketName = process.env.NEXT_PUBLIC_R2_BUCKET_NAME;
-    
-    // Object key: urunler/<image>
-    const objectKey = `urunler/${image}`;
-
-    const r2 = getR2Client();
-
-    // R2'den sil
-    const deleteCommand = new DeleteObjectCommand({
-      Bucket: bucketName,
-      Key: objectKey,
-    });
-
-    try {
-      await r2.send(deleteCommand);
-    } catch (r2Error: any) {
-      console.error('R2 silme hatası:', r2Error.message);
-      return NextResponse.json({ 
-        error: 'R2\'den dosya silinemedi', 
-        details: r2Error.message,
-        code: r2Error.Code || r2Error.name
-      }, { status: 500 });
+    if (!status || !['Yayında', 'Yayında Değil'].includes(status)) {
+      return NextResponse.json(
+        { error: 'status "Yayında" veya "Yayında Değil" olmalı' },
+        { status: 400 }
+      );
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Resim başarıyla silindi',
-      deletedKey: objectKey
-    });
+    const supabase = getSupabaseAdmin();
 
-  } catch (error: any) {
-    console.error('POST /api/images/delete error:', error);
-    return NextResponse.json({ error: 'Internal server error: ' + error.message }, { status: 500 });
+    // Toplu güncelleme
+    const { data, error } = await supabase
+      .from('urunler')
+      .update({ status })
+      .in('id', urunIds)
+      .select('id');
+
+    if (error) {
+      console.error('Toplu güncelleme hatası:', error);
+      return NextResponse.json(
+        { error: 'Ürünler güncellenirken bir hata oluştu' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `${data?.length || 0} ürün başarıyla güncellendi`,
+      updatedCount: data?.length || 0,
+    });
+  } catch (error) {
+    console.error('Status API Error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }

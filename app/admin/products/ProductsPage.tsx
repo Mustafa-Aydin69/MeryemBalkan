@@ -4,6 +4,13 @@ import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { useProducts } from './useProducts';
 import ProductsTable from './ProductsTable';
 
+// Cloudflare R2 URL helper
+const getR2BaseUrl = () => {
+  const base = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || "https://cdn.meryembalkan.com.tr";
+  const bucket = process.env.NEXT_PUBLIC_R2_BUCKET_NAME || "urunler";
+  return `${base.replace(/\/$/, "")}/${bucket.replace(/^\//, "")}/`;
+};
+
 export default function ProductsPage() {
   const {
     allProducts,
@@ -54,34 +61,23 @@ export default function ProductsPage() {
     // Refresh
     refreshProducts,
     loading,
-    // Bulk add product
-    isBulkAddModalOpen,
-    setIsBulkAddModalOpen,
-    bulkProducts,
-    bulkProduct,
-    setBulkProduct,
-    bulkUploadError,
-    setBulkUploadError,
-    isPublishingBulk,
-    handleBulkInputChange,
-    addBulkSize,
-    removeBulkSize,
-    addBulkColor,
-    removeBulkColor,
-    addBulkImage,
-    removeBulkImage,
-    handleBulkDragEnd,
-    addProductToBoard,
-    removeProductFromBoard,
-    clearBoard,
-    publishBulkProducts,
-    closeBulkAddModal,
-    // Publish all products
-    isPublishAllModalOpen,
-    setIsPublishAllModalOpen,
-    isPublishingAll,
+    // Bulk status change
+    isBulkStatusActionModalOpen,
+    setIsBulkStatusActionModalOpen,
+    bulkStatusAction,
+    isBulkStatusProductModalOpen,
+    selectedProductIds,
+    isBulkStatusConfirmModalOpen,
+    isProcessingBulkStatus,
+    handleBulkStatusActionSelect,
+    toggleProductSelection,
+    toggleSelectAll,
+    getFilteredProductsForBulkStatus,
+    openBulkStatusConfirmModal,
+    executeBulkStatusChange,
+    closeBulkStatusModals,
+    publishedCount,
     unpublishedCount,
-    publishAllProducts,
   } = useProducts();
 
   // Video dosyası mı kontrol et
@@ -118,23 +114,13 @@ export default function ProductsPage() {
             <i className="ri-add-line mr-2"></i> YENİ ÜRÜN EKLE
           </button>
 
-          {/* Toplu Ürün Ekle */}
+          {/* Toplu Yayın Değiştir */}
           <button
-            onClick={() => setIsBulkAddModalOpen(true)}
+            onClick={() => setIsBulkStatusActionModalOpen(true)}
             className="w-full sm:w-auto px-4 py-2 sm:px-6 sm:py-3 rounded-full font-medium text-sm sm:text-base transition-colors whitespace-nowrap bg-gray-700 text-white hover:bg-gray-600"
           >
-            <i className="ri-stack-line mr-2"></i> TOPLU ÜRÜN EKLE
+            <i className="ri-exchange-line mr-2"></i> TOPLU YAYIN DEĞİŞTİR
           </button>
-
-          {/* Yayına Al Butonu */}
-          {unpublishedCount > 0 && (
-            <button
-              onClick={() => setIsPublishAllModalOpen(true)}
-              className="w-full sm:w-auto px-4 py-2 sm:px-6 sm:py-3 rounded-full font-medium text-sm sm:text-base transition-colors whitespace-nowrap bg-green-600 text-white hover:bg-green-700"
-            >
-              <i className="ri-upload-cloud-line mr-2"></i> YAYINA AL ({unpublishedCount})
-            </button>
-          )}
 
           {/* Arama Butonu + Input + Sayaç */}
           <div className="flex items-center justify-between sm:justify-start gap-2">
@@ -256,6 +242,7 @@ export default function ProductsPage() {
           getProductStatusColor={getProductStatusColor}
           onEditProduct={handleEditProduct}
           onDeleteProduct={confirmDeleteProduct}
+          loading={loading}
         />
 
         {/* 🔢 Sayfalama */}
@@ -1008,417 +995,186 @@ export default function ProductsPage() {
         </div>
       )}
 
-      {/* TOPLU ÜRÜN EKLE MODALI */}
-      {isBulkAddModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="rounded-lg max-w-4xl w-full mx-4 max-h-[95vh] overflow-y-auto bg-gray-800">
+      {/* TOPLU YAYIN DEĞİŞTİR - AKSİYON SEÇİM MODALI */}
+      {isBulkStatusActionModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md shadow-lg">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-lg font-semibold text-white">
+                Toplu Yayın Değiştir
+              </h2>
+              <button
+                onClick={closeBulkStatusModals}
+                className="w-8 h-8 flex items-center justify-center rounded cursor-pointer hover:bg-gray-700 text-white"
+              >
+                <i className="ri-close-line text-lg"></i>
+              </button>
+            </div>
+            
+            <p className="text-sm text-gray-400 mb-6">
+              Yapmak istediğiniz işlemi seçin:
+            </p>
+            
+            <div className="space-y-3">
+              {/* Yayına Al Butonu */}
+              <button
+                onClick={() => handleBulkStatusActionSelect('Yayına Al')}
+                disabled={unpublishedCount === 0}
+                className={`w-full py-4 px-4 rounded-lg font-medium transition-colors flex items-center justify-between ${
+                  unpublishedCount === 0
+                    ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                    : 'bg-green-900 text-green-400 hover:bg-green-800'
+                }`}
+              >
+                <span className="flex items-center gap-3">
+                  <i className="ri-upload-cloud-line text-xl"></i>
+                  Yayına Al
+                </span>
+                <span className="text-sm bg-green-800 px-3 py-1 rounded-full">
+                  {unpublishedCount} ürün
+                </span>
+              </button>
+              
+              {/* Yayından Kaldır Butonu */}
+              <button
+                onClick={() => handleBulkStatusActionSelect('Yayından Kaldır')}
+                disabled={publishedCount === 0}
+                className={`w-full py-4 px-4 rounded-lg font-medium transition-colors flex items-center justify-between ${
+                  publishedCount === 0
+                    ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                    : 'bg-red-900 text-red-400 hover:bg-red-800'
+                }`}
+              >
+                <span className="flex items-center gap-3">
+                  <i className="ri-download-cloud-line text-xl"></i>
+                  Yayından Kaldır
+                </span>
+                <span className="text-sm bg-red-800 px-3 py-1 rounded-full">
+                  {publishedCount} ürün
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TOPLU YAYIN DEĞİŞTİR - ÜRÜN SEÇİM MODALI */}
+      {isBulkStatusProductModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
+          <div className="bg-gray-800 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-lg flex flex-col">
             {/* Modal Başlık */}
-            <div className="p-6 border-b border-gray-700 sticky top-0 bg-gray-800 z-10">
+            <div className="p-6 border-b border-gray-700 flex-shrink-0">
               <div className="flex justify-between items-center">
-                <h3 className="text-xl font-medium text-white">
-                  Toplu Ürün Ekle
-                </h3>
+                <div>
+                  <h2 className="text-lg font-semibold text-white">
+                    {bulkStatusAction === 'Yayına Al' ? 'Yayına Alınacak Ürünleri Seçin' : 'Yayından Kaldırılacak Ürünleri Seçin'}
+                  </h2>
+                  <p className="text-sm text-gray-400 mt-1">
+                    {selectedProductIds.length} / {getFilteredProductsForBulkStatus().length} ürün seçildi
+                  </p>
+                </div>
                 <button
-                  onClick={closeBulkAddModal}
+                  onClick={closeBulkStatusModals}
                   className="w-8 h-8 flex items-center justify-center rounded cursor-pointer hover:bg-gray-700 text-white"
                 >
                   <i className="ri-close-line text-lg"></i>
                 </button>
               </div>
+              
+              {/* Tümünü Seç */}
+              <div className="mt-4 flex items-center gap-3">
+                <button
+                  onClick={() => toggleSelectAll(getFilteredProductsForBulkStatus().map(p => p.id))}
+                  className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-2"
+                >
+                  <i className={`${selectedProductIds.length === getFilteredProductsForBulkStatus().length ? 'ri-checkbox-fill' : 'ri-checkbox-blank-line'}`}></i>
+                  {selectedProductIds.length === getFilteredProductsForBulkStatus().length ? 'Seçimi Kaldır' : 'Tümünü Seç'}
+                </button>
+              </div>
             </div>
-
-            <div className="p-6">
-              {/* BOARD (Geçici Ürün Listesi) */}
-              {bulkProducts.length > 0 && (
-                <div className="mb-6">
-                  <div className="flex justify-between items-center mb-3">
-                    <h4 className="text-sm font-medium text-white flex items-center gap-2">
-                      <i className="ri-dashboard-line"></i>
-                      Board ({bulkProducts.length} ürün)
-                    </h4>
-                    <button
-                      onClick={clearBoard}
-                      className="text-xs text-red-400 hover:text-red-300 underline"
-                    >
-                      Tümünü Temizle
-                    </button>
-                  </div>
-                  
-                  <div className="bg-gray-900 rounded-lg p-4 border border-gray-700">
-                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
-                      {bulkProducts.map((product) => (
-                        <div
-                          key={product.id}
-                          className="relative group"
-                        >
-                          {/* Ürün Kartı */}
-                          <div className="relative aspect-[3/4] rounded-lg overflow-hidden border border-gray-700 hover:border-gray-500 transition-all cursor-pointer">
-                            <img
-                              src={product.imagePreviews[0]}
-                              alt={product.title}
-                              className="w-full h-full object-cover object-top"
-                            />
-                            
-                            {/* Hover Overlay */}
-                            <div className="absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-center p-2">
-                              <p className="text-xs font-medium text-white truncate mb-1">{product.title}</p>
-                              <p className="text-[10px] text-gray-400 truncate">{product.category}</p>
-                              <p className="text-[10px] text-gray-400">{product.price}</p>
-                              {product.colors.length > 0 && (
-                                <p className="text-[10px] text-gray-500 truncate mt-1">
-                                  {product.colors.join(', ')}
-                                </p>
-                              )}
-                              {product.size.length > 0 && (
-                                <p className="text-[10px] text-gray-500">
-                                  {product.size.join(', ')}
-                                </p>
-                              )}
-                            </div>
-                            
-                            {/* Sil Butonu */}
-                            <button
-                              onClick={() => removeProductFromBoard(product.id)}
-                              className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center cursor-pointer transition-all opacity-0 group-hover:opacity-100 shadow-md bg-red-600 text-white hover:bg-red-700 z-10"
-                              title="Board'dan kaldır"
-                            >
-                              <i className="ri-close-line text-xs"></i>
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  {/* Yayınla Butonu */}
-                  <button
-                    onClick={publishBulkProducts}
-                    disabled={isPublishingBulk}
-                    className={`w-full mt-4 py-3 rounded-full font-medium transition-colors flex items-center justify-center gap-2 ${
-                      isPublishingBulk
-                        ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                        : 'bg-green-600 text-white hover:bg-green-700'
-                    }`}
-                  >
-                    {isPublishingBulk ? (
-                      <>
-                        <i className="ri-loader-4-line animate-spin"></i>
-                        Yayınlanıyor...
-                      </>
-                    ) : (
-                      <>
-                        <i className="ri-upload-cloud-line"></i>
-                        ÜRÜNLERİ YAYINLA ({bulkProducts.length})
-                      </>
-                    )}
-                  </button>
+            
+            {/* Ürün Listesi */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {getFilteredProductsForBulkStatus().length === 0 ? (
+                <div className="text-center py-12">
+                  <i className="ri-inbox-line text-4xl text-gray-500 mb-3"></i>
+                  <p className="text-gray-400">
+                    {bulkStatusAction === 'Yayına Al' 
+                      ? 'Yayına alınacak ürün bulunmuyor' 
+                      : 'Yayından kaldırılacak ürün bulunmuyor'}
+                  </p>
                 </div>
-              )}
-
-              {/* Form Alanı */}
-              <div className="space-y-6">
-                {bulkProducts.length > 0 && (
-                  <div className="border-t border-gray-700 pt-6">
-                    <h4 className="text-sm font-medium text-white mb-4 flex items-center gap-2">
-                      <i className="ri-add-circle-line"></i>
-                      Yeni Ürün Ekle
-                    </h4>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label htmlFor="bulk-title" className="block text-sm font-medium mb-2 text-white">
-                      Ürün Adı *
-                    </label>
-                    <input
-                      type="text"
-                      id="bulk-title"
-                      name="title"
-                      value={bulkProduct.title}
-                      onChange={handleBulkInputChange}
-                      required
-                      className="w-full px-4 py-3 border focus:outline-none text-sm bg-gray-700 border-gray-600 text-white focus:border-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="bulk-category" className="block text-sm font-medium mb-2 text-white">
-                      Kategori *
-                    </label>
-                    <select
-                      id="bulk-category"
-                      name="category"
-                      value={bulkProduct.category}
-                      onChange={handleBulkInputChange}
-                      required
-                      className="w-full px-4 py-3 border focus:outline-none text-sm pr-8 bg-gray-700 border-gray-600 text-white focus:border-white"
-                    >
-                      <option value="">Kategori Seçiniz</option>
-                      <option value="Abiye">Abiye</option>
-                      <option value="Gelinlik">Gelinlik</option>
-                      <option value="Nisanlik">Nişanlık</option>
-                      <option value="Kinalik">Kınalık</option>
-                      <option value="After-Party">After Party</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label htmlFor="bulk-price" className="block text-sm font-medium mb-2 text-white">
-                      Fiyat *
-                    </label>
-                    <input
-                      type="text"
-                      id="bulk-price"
-                      name="price"
-                      value={bulkProduct.price}
-                      onChange={handleBulkInputChange}
-                      placeholder="15.000TL"
-                      required
-                      className="w-full px-4 py-3 border focus:outline-none text-sm bg-gray-700 border-gray-600 text-white focus:border-white"
-                    />
-                  </div>
-
-                  {/* Bedenler */}
-                  <div>
-                    <label className="block text-sm font-medium mb-2 text-white">
-                      Bedenler
-                    </label>
-                    <div className="flex gap-2 mb-3">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          bulkProduct.size.includes('36-40')
-                            ? removeBulkSize('36-40')
-                            : addBulkSize('36-40')
-                        }
-                        className={`px-4 py-2 text-sm rounded border cursor-pointer whitespace-nowrap transition-colors ${
-                          bulkProduct.size.includes('36-40')
-                            ? 'bg-white text-black border-white'
-                            : 'border-gray-600 text-white hover:border-white'
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  {getFilteredProductsForBulkStatus().map((product) => {
+                    const isSelected = selectedProductIds.includes(product.id);
+                    const imageUrl = product.images && product.images.length > 0 
+                      ? `${getR2BaseUrl()}${product.images[0]}`
+                      : '/images/placeholder.jpg';
+                    
+                    return (
+                      <div
+                        key={product.id}
+                        onClick={() => toggleProductSelection(product.id)}
+                        className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
+                          isSelected 
+                            ? bulkStatusAction === 'Yayına Al' 
+                              ? 'border-green-500 ring-2 ring-green-500/30' 
+                              : 'border-red-500 ring-2 ring-red-500/30'
+                            : 'border-gray-700 hover:border-gray-500'
                         }`}
                       >
-                        36-40
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2 text-white">
-                      Renkler
-                    </label>
-                    <div className="flex gap-2 mb-3">
-                      <input
-                        type="text"
-                        id="bulk-color"
-                        placeholder="Renk ekle (örn. Kırmızı)"
-                        className="w-full px-4 py-2 border rounded text-sm bg-gray-700 border-gray-600 text-white focus:border-white"
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            const value = (e.target as HTMLInputElement).value.trim();
-                            if (value && !bulkProduct.colors.includes(value)) {
-                              addBulkColor(value);
-                              (e.target as HTMLInputElement).value = "";
-                            }
-                          }
-                        }}
-                      />
-                    </div>
-
-                    {/* Eklenen renkler listesi */}
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {bulkProduct.colors.map((color, index) => (
-                        <span
-                          key={index}
-                          className="px-3 py-1 rounded-full text-sm bg-gray-600 text-white flex items-center"
-                        >
-                          {color}
-                          <button
-                            type="button"
-                            onClick={() => removeBulkColor(color)}
-                            className="ml-2 text-red-400 hover:text-red-300"
-                          >
-                            ✕
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  {/* Açıklama Başlığı */}
-                  <label htmlFor="bulk-description" className="block text-sm font-medium mb-2 text-white">
-                    Açıklama Başlığı
-                  </label>
-
-                  <input
-                    type="text"
-                    id="bulk-description"
-                    name="description"
-                    value={bulkProduct.description || ''}
-                    onChange={handleBulkInputChange}
-                    placeholder="Örn: Zarif siyah gece elbisesi."
-                    className="w-full px-4 py-3 mb-4 border focus:outline-none text-sm bg-gray-700 border-gray-600 text-white focus:border-white"
-                  />
-
-                  {/* Açıklama */}
-                  <label htmlFor="bulk-features" className="block text-sm font-medium mb-2 text-white">
-                    Açıklama *
-                  </label>
-
-                  <textarea
-                    id="bulk-features"
-                    name="features"
-                    value={bulkProduct.features}
-                    onChange={handleBulkInputChange}
-                    rows={4}
-                    maxLength={500}
-                    required
-                    placeholder="Örn: Kumaş Özellikleri, Ürün Detayları vb."
-                    className="w-full px-4 py-3 border focus:outline-none text-sm resize-vertical bg-gray-700 border-gray-600 text-white focus:border-white"
-                  ></textarea>
-
-                  <div className="text-xs mt-1 text-gray-400">
-                    {typeof bulkProduct.features === 'string' ? bulkProduct.features.length : 0}/500 karakter
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-white">
-                    Ürün Fotoğraf/Video (En fazla 5 adet)
-                  </label>
-                  <div className="space-y-4">
-                    <input
-                      type="file"
-                      id="bulk-product-images"
-                      accept="image/*,video/mp4,video/webm,video/quicktime"
-                      multiple
-                      className="hidden"
-                      onChange={(e) => {
-                        if (e.target.files) {
-                          addBulkImage(e.target.files);
-                        }
-                      }}
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() => document.getElementById('bulk-product-images')?.click()}
-                      disabled={bulkProduct.imagePreviews.length >= 5}
-                      className={`w-full h-32 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${
-                        bulkProduct.imagePreviews.length >= 5
-                          ? 'border-gray-700 text-gray-600 cursor-not-allowed'
-                          : 'border-gray-600 hover:border-gray-500 text-gray-400 hover:text-gray-300'
-                      }`}
-                    >
-                      <i className="ri-image-add-line text-2xl mb-2"></i>
-                      <span className="text-sm">
-                        {bulkProduct.imagePreviews.length >= 5 ? 'Maksimum Limit Aşıldı' : 'Fotoğraf/Video Seç'}
-                      </span>
-                      <span className="text-xs mt-1">
-                        {bulkProduct.imagePreviews.length}/5 medya
-                      </span>
-                    </button>
-
-                    {bulkUploadError && (
-                      <div className="text-red-400 text-sm text-center p-2 bg-red-900/30 rounded-lg border border-red-800">
-                        <i className="ri-error-warning-line mr-1"></i>
-                        {bulkUploadError}
+                        {/* Checkbox */}
+                        <div className={`absolute top-2 left-2 z-10 w-6 h-6 rounded flex items-center justify-center ${
+                          isSelected 
+                            ? bulkStatusAction === 'Yayına Al' ? 'bg-green-500' : 'bg-red-500'
+                            : 'bg-gray-700/80'
+                        }`}>
+                          {isSelected && <i className="ri-check-line text-white text-sm"></i>}
+                        </div>
+                        
+                        {/* Ürün Görseli */}
+                        <div className="aspect-[3/4] bg-gray-900">
+                          <img
+                            src={imageUrl}
+                            alt={product.title}
+                            className="w-full h-full object-cover object-top"
+                          />
+                        </div>
+                        
+                        {/* Ürün Bilgisi */}
+                        <div className="p-3 bg-gray-900">
+                          <p className="text-sm font-medium text-white truncate">{product.title}</p>
+                          <p className="text-xs text-gray-400 truncate">{product.category}</p>
+                        </div>
                       </div>
-                    )}
-
-                    {bulkProduct.imagePreviews.length > 0 && (
-                      <DragDropContext onDragEnd={handleBulkDragEnd}>
-                        <Droppable droppableId="bulk-images" direction="horizontal">
-                          {(provided) => (
-                            <div
-                              className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3"
-                              {...provided.droppableProps}
-                              ref={provided.innerRef}
-                            >
-                              {bulkProduct.imagePreviews.map((preview, index) => {
-                                const file = bulkProduct.images[index];
-                                const fileName = file instanceof File ? file.name : (file || '');
-                                const isVideo = isVideoFile(fileName);
-                                
-                                return (
-                                  <Draggable key={index} draggableId={`bulk-${index}`} index={index}>
-                                    {(provided) => (
-                                      <div
-                                        ref={provided.innerRef}
-                                        {...provided.draggableProps}
-                                        {...provided.dragHandleProps}
-                                        className="relative group"
-                                      >
-                                        {isVideo ? (
-                                          <div className="w-full h-20 rounded-lg border border-gray-600 bg-gray-700 flex items-center justify-center relative overflow-hidden">
-                                            <video
-                                              src={preview}
-                                              className="w-full h-full object-cover"
-                                              muted
-                                            />
-                                            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                                              <i className="ri-play-circle-line text-2xl text-white"></i>
-                                            </div>
-                                          </div>
-                                        ) : (
-                                          <img
-                                            src={preview}
-                                            alt={`Önizleme ${index + 1}`}
-                                            className="w-full h-20 object-cover rounded-lg border border-gray-600 transition-transform group-hover:scale-105 cursor-pointer"
-                                          />
-                                        )}
-                                        <button
-                                          type="button"
-                                          onClick={() => removeBulkImage(index)}
-                                          className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center cursor-pointer transition-all opacity-0 group-hover:opacity-100 shadow-md bg-red-600 text-white hover:bg-red-700"
-                                        >
-                                          <i className="ri-close-line text-xs"></i>
-                                        </button>
-                                      </div>
-                                    )}
-                                  </Draggable>
-                                );
-                              })}
-                              {provided.placeholder}
-                            </div>
-                          )}
-                        </Droppable>
-                      </DragDropContext>
-                    )}
-
-                    {bulkProduct.imagePreviews.length > 0 && (
-                      <div className="flex justify-between items-center text-sm">
-                        <span className="text-gray-400">
-                          Toplam {bulkProduct.imagePreviews.length} medya seçildi
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setBulkProduct((prev) => ({ ...prev, imagePreviews: [], images: [] }));
-                            setBulkUploadError('');
-                            const input = document.getElementById('bulk-product-images') as HTMLInputElement;
-                            if (input) input.value = '';
-                          }}
-                          className="text-sm underline cursor-pointer text-red-400 hover:text-red-300"
-                        >
-                          Tümünü Temizle
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                    );
+                  })}
                 </div>
-
-                {/* Board'a Ekle Butonu */}
+              )}
+            </div>
+            
+            {/* Alt Butonlar */}
+            <div className="p-6 border-t border-gray-700 flex-shrink-0">
+              <div className="flex gap-3">
                 <button
-                  type="button"
-                  onClick={addProductToBoard}
-                  className="w-full py-4 tracking-wide font-medium transition-colors whitespace-nowrap rounded-full bg-blue-600 text-white hover:bg-blue-700"
+                  onClick={closeBulkStatusModals}
+                  className="flex-1 py-3 px-4 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-700 font-medium"
                 >
-                  <i className="ri-add-line mr-2"></i>
-                  ÜRÜNÜ BOARD'A EKLE
+                  İptal
+                </button>
+                <button
+                  onClick={openBulkStatusConfirmModal}
+                  disabled={selectedProductIds.length === 0}
+                  className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors ${
+                    selectedProductIds.length === 0
+                      ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                      : bulkStatusAction === 'Yayına Al'
+                        ? 'bg-green-600 text-white hover:bg-green-700'
+                        : 'bg-red-600 text-white hover:bg-red-700'
+                  }`}
+                >
+                  {bulkStatusAction === 'Yayına Al' ? 'Yayına Al' : 'Yayından Kaldır'} ({selectedProductIds.length})
                 </button>
               </div>
             </div>
@@ -1426,34 +1182,55 @@ export default function ProductsPage() {
         </div>
       )}
 
-      {/* TOPLU YAYINA ALMA ONAY MODALI */}
-      {isPublishAllModalOpen && (
+      {/* TOPLU YAYIN DEĞİŞTİR - ONAY MODALI */}
+      {isBulkStatusConfirmModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md shadow-lg">
-            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-green-900 text-green-400 mb-4 mx-auto">
-              <i className="ri-upload-cloud-line text-2xl"></i>
+            <div className={`flex items-center justify-center w-16 h-16 rounded-full mb-4 mx-auto ${
+              bulkStatusAction === 'Yayına Al' 
+                ? 'bg-green-900 text-green-400' 
+                : 'bg-red-900 text-red-400'
+            }`}>
+              <i className={`text-2xl ${
+                bulkStatusAction === 'Yayına Al' ? 'ri-upload-cloud-line' : 'ri-download-cloud-line'
+              }`}></i>
             </div>
+            
             <h2 className="text-lg font-semibold text-white mb-4 text-center">
-              Ürünleri Yayına Al
+              {bulkStatusAction === 'Yayına Al' ? 'Ürünleri Yayına Al' : 'Ürünleri Yayından Kaldır'}
             </h2>
+            
             <p className="text-sm text-gray-300 mb-6 text-center">
-              <span className="font-bold text-green-400">{unpublishedCount}</span> adet yayında olmayan ürünü yayına almak istediğinize emin misiniz?
+              Seçtiğiniz <span className={`font-bold ${bulkStatusAction === 'Yayına Al' ? 'text-green-400' : 'text-red-400'}`}>{selectedProductIds.length}</span> adet ürünün durumunu 
+              '<span className={`font-bold ${bulkStatusAction === 'Yayına Al' ? 'text-green-400' : 'text-red-400'}`}>
+                {bulkStatusAction === 'Yayına Al' ? 'Yayında' : 'Yayında Değil'}
+              </span>' olarak değiştirmek üzeresiniz.
+              <br /><br />
+              <span className="text-gray-400">Emin misiniz?</span>
             </p>
+            
             <div className="flex justify-center gap-3">
               <button
-                onClick={() => setIsPublishAllModalOpen(false)}
-                disabled={isPublishingAll}
+                onClick={() => {
+                  setIsBulkStatusConfirmModalOpen(false);
+                  setIsBulkStatusProductModalOpen(true);
+                }}
+                disabled={isProcessingBulkStatus}
                 className="px-6 py-2 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
               >
-                Hayır
+                Geri Dön
               </button>
               <button
-                onClick={publishAllProducts}
-                disabled={isPublishingAll}
-                className="px-6 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+                onClick={executeBulkStatusChange}
+                disabled={isProcessingBulkStatus}
+                className={`px-6 py-2 rounded-lg text-white disabled:opacity-50 flex items-center gap-2 ${
+                  bulkStatusAction === 'Yayına Al' 
+                    ? 'bg-green-600 hover:bg-green-700' 
+                    : 'bg-red-600 hover:bg-red-700'
+                }`}
               >
-                {isPublishingAll && <i className="ri-loader-4-line animate-spin"></i>}
-                {isPublishingAll ? 'Yayınlanıyor...' : 'Evet, Yayına Al'}
+                {isProcessingBulkStatus && <i className="ri-loader-4-line animate-spin"></i>}
+                {isProcessingBulkStatus ? 'İşleniyor...' : 'Evet, Onayla'}
               </button>
             </div>
           </div>

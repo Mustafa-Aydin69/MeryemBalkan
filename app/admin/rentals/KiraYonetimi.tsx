@@ -470,14 +470,6 @@ export default function KiraYonetimi() {
         </span>
       </div>
 
-      {/* Loading State */}
-      {loading && (
-        <div className="flex flex-col items-center justify-center py-16">
-          <div className="w-12 h-12 border-4 border-gray-700 border-t-white rounded-full animate-spin mb-4"></div>
-          <p className="text-gray-400">Veriler yükleniyor...</p>
-        </div>
-      )}
-
       {/* Error State */}
       {error && !loading && (
         <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -497,12 +489,13 @@ export default function KiraYonetimi() {
       )}
 
       {/* Kart Grid */}
-      {!loading && !error && (
+      {!error && (
         <RentalsTable
           rentals={filteredRentals}
           getStatusColor={getStatusColor}
           getStatusLabel={getStatusLabel}
           onViewRental={setViewingRental}
+          loading={loading}
         />
       )}
 

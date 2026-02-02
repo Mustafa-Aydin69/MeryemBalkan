@@ -6,7 +6,6 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/app/lib/supabaseAdmin';
-import { cookies } from 'next/headers';
 import { S3Client, DeleteObjectsCommand } from '@aws-sdk/client-s3';
 
 // R2 Client oluştur
@@ -25,11 +24,31 @@ function getR2Client() {
   });
 }
 
+// Cookie'den token al (tutarlı authentication için)
+function getTokenFromRequest(request: NextRequest): string | null {
+  // Önce request.cookies'den dene (Next.js built-in)
+  const cookieToken = request.cookies.get('admin_token')?.value;
+  if (cookieToken) return cookieToken;
+  
+  // Yoksa header'dan manuel parse et
+  const cookieHeader = request.headers.get('cookie');
+  if (!cookieHeader) return null;
+  
+  const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
+    const [key, value] = cookie.trim().split('=');
+    if (key && value) {
+      acc[key] = value;
+    }
+    return acc;
+  }, {} as Record<string, string>);
+  
+  return cookies['admin_token'] || null;
+}
+
 // JWT doğrulama
 async function verifyAdminToken(request: NextRequest): Promise<boolean> {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('admin_token')?.value;
+    const token = getTokenFromRequest(request);
     
     if (!token) return false;
 

@@ -133,10 +133,6 @@ export function useProducts() {
   const [bulkUploadError, setBulkUploadError] = useState('');
   const [isPublishingBulk, setIsPublishingBulk] = useState(false);
 
-  // Toplu yayına alma state'leri
-  const [isPublishAllModalOpen, setIsPublishAllModalOpen] = useState(false);
-  const [isPublishingAll, setIsPublishingAll] = useState(false);
-
   // Fetch products with caching - API route üzerinden
   const fetchProducts = useCallback(async (forceRefresh = false) => {
     // Check cache first (unless force refresh)
@@ -893,67 +889,6 @@ export function useProducts() {
     // Board'u silme - kullanıcı isterse tekrar açtığında görsün
   };
 
-  // ============== TOPLU YAYINA ALMA FONKSİYONLARI ==============
-
-  // Yayında olmayan ürün sayısını hesapla
-  const unpublishedCount = allProducts.filter(p => p.status === 'Yayında Değil').length;
-
-  // Tüm yayında olmayan ürünleri yayına al
-  const publishAllProducts = async () => {
-    if (unpublishedCount === 0) {
-      toast.error('Yayına alınacak ürün yok');
-      setIsPublishAllModalOpen(false);
-      return;
-    }
-
-    setIsPublishingAll(true);
-
-    try {
-      // Yayında olmayan ürünlerin ID'lerini al
-      const unpublishedProducts = allProducts.filter(p => p.status === 'Yayında Değil');
-      let successCount = 0;
-      let failCount = 0;
-
-      for (const product of unpublishedProducts) {
-        try {
-          const response = await fetch('/api/admin/urunler', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({
-              id: product.id,
-              updates: { status: 'Yayında' },
-            }),
-          });
-
-          if (response.ok) {
-            successCount++;
-          } else {
-            failCount++;
-          }
-        } catch {
-          failCount++;
-        }
-      }
-
-      if (successCount > 0) {
-        toast.success(`${successCount} ürün yayına alındı! ✅`);
-        // Ürünleri yenile
-        fetchProducts(true);
-      }
-
-      if (failCount > 0) {
-        toast.error(`${failCount} ürün yayına alınamadı`);
-      }
-    } catch (error) {
-      console.error('Toplu yayına alma hatası:', error);
-      toast.error('Ürünler yayına alınırken bir hata oluştu');
-    } finally {
-      setIsPublishingAll(false);
-      setIsPublishAllModalOpen(false);
-    }
-  };
-
   return {
     allProducts,
     filteredProducts,
@@ -1029,11 +964,5 @@ export function useProducts() {
     clearBoard,
     publishBulkProducts,
     closeBulkAddModal,
-    // Publish all products
-    isPublishAllModalOpen,
-    setIsPublishAllModalOpen,
-    isPublishingAll,
-    unpublishedCount,
-    publishAllProducts,
   };
 }

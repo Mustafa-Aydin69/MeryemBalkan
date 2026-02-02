@@ -6,7 +6,6 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from 'next/server';
 import { S3Client, PutObjectCommand, DeleteObjectsCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
-import { cookies } from 'next/headers';
 
 // R2 Client oluştur
 function getR2Client() {
@@ -31,13 +30,36 @@ function getR2Client() {
   });
 }
 
+// Cookie'den token al (FormData requestleri için daha güvenilir)
+function getTokenFromRequest(request: NextRequest): string | null {
+  // Önce request.cookies'den dene (Next.js built-in)
+  const cookieToken = request.cookies.get('admin_token')?.value;
+  if (cookieToken) return cookieToken;
+  
+  // Yoksa header'dan manuel parse et
+  const cookieHeader = request.headers.get('cookie');
+  if (!cookieHeader) return null;
+  
+  const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
+    const [key, value] = cookie.trim().split('=');
+    if (key && value) {
+      acc[key] = value;
+    }
+    return acc;
+  }, {} as Record<string, string>);
+  
+  return cookies['admin_token'] || null;
+}
+
 // JWT doğrulama
 async function verifyAdminToken(request: NextRequest): Promise<boolean> {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('admin_token')?.value;
+    const token = getTokenFromRequest(request);
     
-    if (!token) return false;
+    if (!token) {
+      console.log('Storage API: Token bulunamadı');
+      return false;
+    }
 
     const secret = process.env.ADMIN_JWT_SECRET || 'fallback-secret-change-in-production';
     
@@ -82,7 +104,8 @@ async function verifyAdminToken(request: NextRequest): Promise<boolean> {
     if (!payload.otp_verified) return false;
 
     return true;
-  } catch {
+  } catch (error) {
+    console.error('Storage API: Token doğrulama hatası:', error);
     return false;
   }
 }
@@ -95,11 +118,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Environment variable guard - R2_BUCKET_NAME veya fallback olarak NEXT_PUBLIC versiyonu
-    const bucketName = process.env.R2_BUCKET_NAME || process.env.NEXT_PUBLIC_R2_BUCKET_NAME;
+    // Environment variable guard
+    const bucketName = process.env.NEXT_PUBLIC_R2_BUCKET_NAME;
     if (!bucketName) {
-      console.error("R2_BUCKET_NAME is missing");
-      return NextResponse.json({ error: 'R2_BUCKET_NAME is missing' }, { status: 500 });
+      console.error("NEXT_PUBLIC_R2_BUCKET_NAME is missing");
+      return NextResponse.json({ error: 'NEXT_PUBLIC_R2_BUCKET_NAME is missing' }, { status: 500 });
     }
 
     const formData = await request.formData();
@@ -154,10 +177,10 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Environment variable guard
-    const bucketName = process.env.R2_BUCKET_NAME || process.env.NEXT_PUBLIC_R2_BUCKET_NAME;
+    const bucketName = process.env.NEXT_PUBLIC_R2_BUCKET_NAME;
     if (!bucketName) {
-      console.error("R2_BUCKET_NAME is missing");
-      return NextResponse.json({ error: 'R2_BUCKET_NAME is missing' }, { status: 500 });
+      console.error("NEXT_PUBLIC_R2_BUCKET_NAME is missing");
+      return NextResponse.json({ error: 'NEXT_PUBLIC_R2_BUCKET_NAME is missing' }, { status: 500 });
     }
 
     const body = await request.json();
@@ -198,10 +221,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Environment variable guard
-    const bucketName = process.env.R2_BUCKET_NAME || process.env.NEXT_PUBLIC_R2_BUCKET_NAME;
+    const bucketName = process.env.NEXT_PUBLIC_R2_BUCKET_NAME;
     if (!bucketName) {
-      console.error("R2_BUCKET_NAME is missing");
-      return NextResponse.json({ error: 'R2_BUCKET_NAME is missing' }, { status: 500 });
+      console.error("NEXT_PUBLIC_R2_BUCKET_NAME is missing");
+      return NextResponse.json({ error: 'NEXT_PUBLIC_R2_BUCKET_NAME is missing' }, { status: 500 });
     }
 
     const r2 = getR2Client();

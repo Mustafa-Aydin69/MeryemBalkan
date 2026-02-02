@@ -78,6 +78,7 @@ export default function OrdersPage() {
         onEditOrder={handleEditOrder}
         onViewOrder={setViewingOrder}
         searchTerm={searchTermOrders}
+        loading={loading}
       />
 
       {/* SİPARİŞ DETAYLARI MODALI */}

@@ -82,6 +82,7 @@ export default function MessagesPage() {
         messages={currentMessages}
         onViewMessage={setSelectedMessage}
         onDeleteMessage={confirmDeleteMessage}
+        loading={loading}
       />
 
       {/* 🔢 Sayfalama */}
