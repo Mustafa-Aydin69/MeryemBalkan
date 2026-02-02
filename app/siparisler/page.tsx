@@ -85,11 +85,19 @@ export default function OrdersPage() {
         });
     };
 
-    const formatPrice = (price: number) => {
+    const formatPrice = (price: string | number) => {
+        // DB'de text olarak saklanıyor, sayıya çevir
+        let numericPrice: number;
+        if (typeof price === 'string') {
+            // "13.000" veya "13000" formatını handle et
+            numericPrice = parseFloat(price.replace(/\./g, '').replace(',', '.')) || 0;
+        } else {
+            numericPrice = price;
+        }
         return new Intl.NumberFormat('tr-TR', {
             style: 'currency',
             currency: 'TRY'
-        }).format(price);
+        }).format(numericPrice);
     };
 
     return (
@@ -164,10 +172,10 @@ export default function OrdersPage() {
                                         }`}
                                 >
                                     {/* Üst kısım: ürün adı ve durum etiketi */}
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div>
+                                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-4 mb-4">
+                                        <div className="flex-1 min-w-0">
                                             <h3
-                                                className={`text-lg sm:text-xl font-medium mb-1 ${isDarkMode ? 'text-white' : 'text-gray-900'
+                                                className={`text-base sm:text-xl font-medium mb-1 break-words ${isDarkMode ? 'text-white' : 'text-gray-900'
                                                     }`}
                                             >
                                                 {order.productName}
@@ -181,11 +189,11 @@ export default function OrdersPage() {
                                         </div>
 
                                         <span
-                                            className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-full ${order.status === 'Hazırlanıyor'
+                                            className={`self-start px-3 py-1.5 text-xs sm:text-sm font-medium rounded-full whitespace-nowrap flex-shrink-0 ${order.status === 'Hazırlanıyor'
                                                 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                                                : order.status === 'Kargoya Verildi'
+                                                : order.status === 'Kargoya Verildi' || order.status === 'Kirada'
                                                     ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                                                    : order.status === 'Teslim Edildi'
+                                                    : order.status === 'Teslim Edildi' || order.status === 'Sipariş Tamamlandı'
                                                         ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                                                         : order.status === 'İptal Edildi'
                                                             ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
@@ -196,32 +204,72 @@ export default function OrdersPage() {
                                         </span>
                                     </div>
 
-                                    {/* İçerik kısmı */}
+                                    {/* İçerik kısmı - Mobil için optimize */}
                                     <div
-                                        className={`grid grid-cols-1 sm:grid-cols-2 gap-y-2 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                                        className={`grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
                                             }`}
                                     >
-                                        <p>
-                                            <strong>Beden:</strong> {order.size}
+                                        {/* Beden ve Renk - Yan yana */}
+                                        <div className="flex gap-4 sm:contents">
+                                            <p className="flex-1">
+                                                <strong className="text-xs uppercase tracking-wide block mb-0.5 opacity-70">Beden</strong>
+                                                <span>{order.size}</span>
+                                            </p>
+                                            <p className="flex-1">
+                                                <strong className="text-xs uppercase tracking-wide block mb-0.5 opacity-70">Renk</strong>
+                                                <span>{order.color}</span>
+                                            </p>
+                                        </div>
+                                        
+                                        {/* Etkinlik ve Fiyat - Yan yana */}
+                                        <div className="flex gap-4 sm:contents">
+                                            <p className="flex-1">
+                                                <strong className="text-xs uppercase tracking-wide block mb-0.5 opacity-70">Etkinlik Tarihi</strong>
+                                                <span>{formatDate(order.eventDate)}</span>
+                                            </p>
+                                            <p className="flex-1">
+                                                <strong className="text-xs uppercase tracking-wide block mb-0.5 opacity-70">Fiyat</strong>
+                                                <span className={isDarkMode ? 'text-green-400' : 'text-green-600'}>{formatPrice(order.price)}</span>
+                                            </p>
+                                        </div>
+                                        
+                                        {/* Adres - Tam genişlik */}
+                                        <p className="sm:col-span-2">
+                                            <strong className="text-xs uppercase tracking-wide block mb-0.5 opacity-70">Adres</strong>
+                                            <span className="break-words">{order.address}</span>
                                         </p>
-                                        <p>
-                                            <strong>Renk:</strong> {order.color}
-                                        </p>
-                                        <p>
-                                            <strong>Etkinlik:</strong> {formatDate(order.eventDate)}
-                                        </p>
-                                        <p>
-                                            <strong>Fiyat:</strong> {formatPrice(order.price)}
-                                        </p>
-                                        <p className="col-span-2">
-                                            <strong>Adres:</strong> {order.address}
-                                        </p>
-                                        <p>
-                                            <strong>Telefon:</strong> {order.phone}
-                                        </p>
-                                        <p>
-                                            <strong>Kargo Kodu:</strong> {order.shippingCode ? `Yurtiçi Kargo → ${order.shippingCode}` : 'Henüz kargoya verilmedi'}
-                                        </p>
+                                        
+                                        {/* Telefon ve Kargo - Yan yana */}
+                                        <div className="flex flex-col sm:contents gap-3">
+                                            <p>
+                                                <strong className="text-xs uppercase tracking-wide block mb-0.5 opacity-70">Telefon</strong>
+                                                <span>{order.phone}</span>
+                                            </p>
+                                            <p className="sm:col-span-1">
+                                                <strong className="text-xs uppercase tracking-wide block mb-0.5 opacity-70">Kargo Durumu</strong>
+                                                <span className={order.shippingCode 
+                                                    ? (isDarkMode ? 'text-blue-400' : 'text-blue-600') 
+                                                    : (isDarkMode ? 'text-gray-500' : 'text-gray-400')
+                                                }>
+                                                    {order.shippingCode ? `Yurtiçi Kargo → ${order.shippingCode}` : 'Henüz kargoya verilmedi'}
+                                                </span>
+                                            </p>
+                                        </div>
+
+                                        {/* Ödeme Şekli - Eğer varsa */}
+                                        {order.paymentMethod && (
+                                            <p className="sm:col-span-2">
+                                                <strong className="text-xs uppercase tracking-wide block mb-0.5 opacity-70">Ödeme Şekli</strong>
+                                                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs ${
+                                                    order.paymentMethod === 'Mağazadan' 
+                                                        ? (isDarkMode ? 'bg-purple-900/50 text-purple-300' : 'bg-purple-100 text-purple-700')
+                                                        : (isDarkMode ? 'bg-blue-900/50 text-blue-300' : 'bg-blue-100 text-blue-700')
+                                                }`}>
+                                                    <i className={order.paymentMethod === 'Mağazadan' ? 'ri-store-2-line' : 'ri-bank-card-line'}></i>
+                                                    {order.paymentMethod}
+                                                </span>
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
                             ))}
