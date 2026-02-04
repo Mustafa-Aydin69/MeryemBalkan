@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import LoginModal from '../components/LoginModal';
+import PaymentMarks from '../components/PaymentMarks';
 import { useState, useEffect } from 'react';
 import { checkCartConflicts, createPendingOrders } from '../utils/rentalConflict';
 
@@ -667,6 +668,7 @@ export default function Checkout() {
                         Kredi / Banka Kartı
                       </span>
                     </div>
+                    <PaymentMarks />
                   </div>
                 </div>
               </div>

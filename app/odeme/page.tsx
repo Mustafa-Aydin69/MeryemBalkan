@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import CreditCardPreview from '../components/CreditCardPreview';
+import PaymentMarks from '../components/PaymentMarks';
 import { deletePendingOrders, confirmOrders } from '../utils/rentalConflict';
 
 // Cloudflare R2 URL helper
@@ -517,9 +518,12 @@ export default function Payment() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
           {/* Sol - Kart Bilgileri */}
           <div>
-            <h2 className={`text-lg sm:text-xl font-medium mb-4 sm:mb-6 ${isDarkMode ? 'text-white' : 'text-black'}`}>
-              Kart Bilgileri
-            </h2>
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <h2 className={`text-lg sm:text-xl font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                Kart Bilgileri
+              </h2>
+              <PaymentMarks />
+            </div>
 
             {/* 3D Kredi Kartı Önizleme */}
             <CreditCardPreview
