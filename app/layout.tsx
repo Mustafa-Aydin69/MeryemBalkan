@@ -24,7 +24,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Erzincan Gelinlik ve Abiye Kiralama – Özel Dikim Tasarımlar | Meryem Balkan",
   description:
-  "Erzincan'da gelinlik kiralama ve abiye kiralama hizmeti sunan Meryem Balkan Tasarım Atölyesi, özel dikim gelinlik ve nişanlık tasarımlarıyla düğün ve özel günleriniz için zarif ve kişiye özel çözümler sunar.",
+    "Erzincan'da gelinlik kiralama ve abiye kiralama hizmeti sunan Meryem Balkan Tasarım Atölyesi, özel dikim gelinlik ve nişanlık tasarımlarıyla düğün ve özel günleriniz için zarif ve kişiye özel çözümler sunar.",
   keywords: [
     "Erzincan gelinlik",
     "Erzincan abiye kiralama",
@@ -36,14 +36,14 @@ export const metadata: Metadata = {
     icon: "/images/Anasayfa/Meryem_Balkan_Logo.jpg",
   },
   openGraph: {
-  title: "Erzincan Gelinlik ve Abiye Kiralama | Meryem Balkan",
-  description:
-    "Erzincan'da özel dikim gelinlik ve abiye kiralama hizmeti.",
-  url: "https://meryembalkan.com.tr",
-  siteName: "Meryem Balkan",
-  locale: "tr_TR",
-  type: "website",
-},
+    title: "Erzincan Gelinlik ve Abiye Kiralama | Meryem Balkan",
+    description:
+      "Erzincan'da özel dikim gelinlik ve abiye kiralama hizmeti.",
+    url: "https://meryembalkan.com.tr",
+    siteName: "Meryem Balkan",
+    locale: "tr_TR",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
@@ -56,6 +56,32 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${pacifico.variable} antialiased min-h-screen bg-white dark:bg-gray-900`}
       >
+        {/* LocalBusiness Schema */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "BridalShop",
+              name: "Meryem Balkan Tasarım Atölyesi",
+              image: "https://meryembalkan.com.tr/images/Anasayfa/Meryem_Balkan_Logo.jpg",
+              url: "https://meryembalkan.com.tr",
+              telephone: "05300911455",
+              address: {
+                "@type": "PostalAddress",
+                streetAddress: "Atatürk, Muhsin Yazıcıoğlu Cd. No: 15/B",
+                addressLocality: "Erzincan",
+                postalCode: "24100",
+                addressCountry: "TR"
+              },
+              areaServed: "Erzincan",
+              priceRange: "₺₺",
+              sameAs: [
+                "https://www.instagram.com/meryembalkan_ateiler/"
+              ]
+            }),
+          }}
+        />
 
         <PageTransition />
         {children}
