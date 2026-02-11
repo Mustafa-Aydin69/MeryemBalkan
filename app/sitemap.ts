@@ -5,22 +5,20 @@ export default function sitemap(): MetadataRoute.Sitemap {
     {
       url: 'https://meryembalkan.com.tr',
       lastModified: new Date(),
-      priority: 1,
     },
     {
       url: 'https://meryembalkan.com.tr/hakkimizda',
       lastModified: new Date(),
-      priority: 0.8,
     },
     {
       url: 'https://meryembalkan.com.tr/iletisim',
       lastModified: new Date(),
-      priority: 0.8,
     },
     {
       url: 'https://meryembalkan.com.tr/portfolio',
       lastModified: new Date(),
-      priority: 0.8,
     },
   ]
 }
+
+export const dynamic = 'force-static'
