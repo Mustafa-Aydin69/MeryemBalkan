@@ -22,7 +22,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Erzincan Gelinlik ve Abiye Kiralama – Özel Dikim Tasarımlar | Meryem Balkan",
+  title: "Meryem Balkan",
   description:
     "Erzincan'da gelinlik kiralama ve abiye kiralama hizmeti sunan Meryem Balkan Tasarım Atölyesi, özel dikim gelinlik ve nişanlık tasarımlarıyla düğün ve özel günleriniz için zarif ve kişiye özel çözümler sunar.",
   keywords: [
