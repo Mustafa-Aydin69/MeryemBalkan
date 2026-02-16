@@ -23,7 +23,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Meryem Balkan | Erzincan Gelinlik ve Abiye Kiralama",
+    default: "Meryem Balkan | Gelinlik ve Abiye Kiralama",
     template: "%s | Meryem Balkan",
   },
   description:
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
     icon: "/images/Anasayfa/Meryem_Balkan_Logo.jpg",
   },
   openGraph: {
-    title: "Gelinlik ve Abiye Kiralama | Meryem Balkan",
+    title: "Erzincan Gelinlik ve Abiye Kiralama | Meryem Balkan",
     description:
       "Erzincan'da özel dikim gelinlik ve abiye kiralama hizmeti.",
     url: "https://meryembalkan.com.tr",
