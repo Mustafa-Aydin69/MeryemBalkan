@@ -22,7 +22,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Meryem Balkan",
+  title: {
+    default: "Meryem Balkan | Erzincan Gelinlik ve Abiye Kiralama",
+    template: "%s | Meryem Balkan",
+  },
   description:
     "Erzincan'da gelinlik kiralama ve abiye kiralama hizmeti sunan Meryem Balkan Tasarım Atölyesi, özel dikim gelinlik ve nişanlık tasarımlarıyla düğün ve özel günleriniz için zarif ve kişiye özel çözümler sunar.",
   keywords: [
@@ -56,6 +59,33 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${pacifico.variable} antialiased min-h-screen bg-white dark:bg-gray-900`}
       >
+        {/* Website Schema */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              name: "Meryem Balkan",
+              alternateName: "Meryem Balkan Gelinlik ve Abiye Kiralama",
+              url: "https://www.meryembalkan.com.tr"
+            }),
+          }}
+        />
+
+        {/* Organization Schema */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "Meryem Balkan",
+              url: "https://www.meryembalkan.com.tr",
+              logo: "https://www.meryembalkan.com.tr/images/Anasayfa/Meryem_Balkan_Logo.jpg"
+            }),
+          }}
+        />
         {/* LocalBusiness Schema */}
         <script
           type="application/ld+json"
@@ -65,8 +95,8 @@ export default function RootLayout({
               "@type": "BridalShop",
               name: "Meryem Balkan Tasarım Atölyesi",
               image: "https://meryembalkan.com.tr/images/Anasayfa/Meryem_Balkan_Logo.jpg",
-              url: "https://meryembalkan.com.tr",
-              telephone: "05300911455",
+              url: "https://www.meryembalkan.com.tr",
+              telephone: "05437223746",
               address: {
                 "@type": "PostalAddress",
                 streetAddress: "Atatürk, Muhsin Yazıcıoğlu Cd. No: 15/B",
