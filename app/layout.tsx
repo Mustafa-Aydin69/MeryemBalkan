@@ -39,7 +39,7 @@ export const metadata: Metadata = {
     icon: "/images/Anasayfa/Meryem_Balkan_Logo.jpg",
   },
   openGraph: {
-    title: "Erzincan Gelinlik ve Abiye Kiralama | Meryem Balkan",
+    title: "Gelinlik ve Abiye Kiralama | Meryem Balkan",
     description:
       "Erzincan'da özel dikim gelinlik ve abiye kiralama hizmeti.",
     url: "https://meryembalkan.com.tr",
