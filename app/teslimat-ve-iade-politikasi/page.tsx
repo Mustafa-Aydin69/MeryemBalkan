@@ -47,7 +47,7 @@ export default function TeslimatVeIadePolitikasi() {
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'dark bg-gray-900' : 'bg-white'}`} suppressHydrationWarning>
-      {/* Navigation */}
+      
       <nav className={`fixed top-0 left-0 right-0 z-20 transition-all duration-200 ${showNavBackground ? (isDarkMode ? 'bg-gray-900 shadow-sm' : 'bg-white shadow-sm') : 'bg-transparent'}`}>
         <div className="flex flex-col items-center px-4 sm:px-8 py-4 sm:py-6">
           <div className="flex justify-between items-center w-full mb-3 sm:mb-4">
