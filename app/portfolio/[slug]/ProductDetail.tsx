@@ -242,10 +242,10 @@ export default function ProductDetail({
       });
       return;
     }
-    // ⚖️ Kiralama sözleşmesi onayı kontrolü
+    // ⚖️ Mesafeli Satış Sözleşmesi onayı kontrolü
     if (!acceptedTerms) {
       setNotification({
-        message: 'Lütfen kiralama şartlarını onaylayın.',
+        message: "Mesafeli Satış Sözleşmesi'ni kabul etmeniz gerekmektedir.",
         type: 'warning',
       });
       return;
@@ -661,7 +661,7 @@ export default function ProductDetail({
                   placeholder="Tarih seçiniz"
                 />
               </div>
-              {/* Terms and Conditions */}
+              {/* Terms and Conditions - Mesafeli Satış Sözleşmesi */}
               <div className="flex items-start sm:items-center">
                 <input
                   type="checkbox"
@@ -674,15 +674,16 @@ export default function ProductDetail({
                   htmlFor="terms"
                   className={`text-xs sm:text-sm cursor-pointer ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}
                 >
-                  Kiralama şartlarını <Link href="/kiralama-sozlesmesi" className="underline hover:opacity-80">okudum ve onayladım</Link>
+                  <Link href="/mesafeli-satis-sozlesmesi" target="_blank" rel="noopener noreferrer" className="underline hover:opacity-80">Mesafeli Satış Sözleşmesi</Link>
+                  &apos;ni okudum ve kabul ediyorum.
                 </label>
               </div>
 
               {/* Add to Cart Button */}
               <button
                 onClick={handleAddToCart}
-                disabled={!selectedSize || !selectedColor || !date}
-                className={`w-full py-3 sm:py-4 text-sm sm:text-base text-center font-medium tracking-wide transition-colors whitespace-nowrap rounded-full ${selectedSize && selectedColor && date
+                disabled={!selectedSize || !selectedColor || !date || !acceptedTerms}
+                className={`w-full py-3 sm:py-4 text-sm sm:text-base text-center font-medium tracking-wide transition-colors whitespace-nowrap rounded-full ${selectedSize && selectedColor && date && acceptedTerms
                   ? (isDarkMode ? 'bg-white text-black hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-800') + ' cursor-pointer'
                   : (isDarkMode ? 'bg-gray-700 text-gray-500' : 'bg-gray-200 text-gray-500') + ' cursor-not-allowed'
                   }`}
@@ -904,6 +905,8 @@ export default function ProductDetail({
                 <li><Link href="/kvkk" className={`cursor-pointer transition-colors ${isDarkMode ? 'hover:text-white' : 'hover:text-black'}`}>KVKK</Link></li>
                 <li><Link href="/aydinlatma-metni" className={`cursor-pointer transition-colors ${isDarkMode ? 'hover:text-white' : 'hover:text-black'}`}>Aydınlatma Metni</Link></li>
                 <li><Link href="/kiralama-sozlesmesi" className={`cursor-pointer transition-colors ${isDarkMode ? 'hover:text-white' : 'hover:text-black'}`}>Kiralama Sözleşmesi ve Yükümlülükleri</Link></li>
+                <li><Link href="/mesafeli-satis-sozlesmesi" className={`cursor-pointer transition-colors ${isDarkMode ? 'hover:text-white' : 'hover:text-black'}`}>Mesafeli Satış Sözleşmesi</Link></li>
+                <li><Link href="/teslimat-ve-iade-politikasi" className={`cursor-pointer transition-colors ${isDarkMode ? 'hover:text-white' : 'hover:text-black'}`}>Teslimat ve İade Politikası</Link></li>
               </ul>
             </div>
 

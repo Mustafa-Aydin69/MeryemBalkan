@@ -543,6 +543,26 @@ export default function KiralamaSozlesmesi() {
                     Kiralama Sözleşmesi ve Yükümlülükleri
                   </Link>
                 </li>
+                <li>
+                  <Link
+                    href="/mesafeli-satis-sozlesmesi"
+                    className={`cursor-pointer transition-colors ${
+                      isDarkMode ? 'hover:text-white' : 'hover:text-black'
+                    }`}
+                  >
+                    Mesafeli Satış Sözleşmesi
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/teslimat-ve-iade-politikasi"
+                    className={`cursor-pointer transition-colors ${
+                      isDarkMode ? 'hover:text-white' : 'hover:text-black'
+                    }`}
+                  >
+                    Teslimat ve İade Politikası
+                  </Link>
+                </li>
               </ul>
             </div>
 
