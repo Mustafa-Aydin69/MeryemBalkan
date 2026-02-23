@@ -7,7 +7,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: new Date(),
     },
     {
-      url: 'https://meryembalkan.com.tr/hakkimizda',
+      url: 'https://meryembalkan.com.tr/hakkimda',
       lastModified: new Date(),
     },
     {
