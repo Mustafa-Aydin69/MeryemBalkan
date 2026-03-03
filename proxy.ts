@@ -93,6 +93,11 @@ export async function proxy(request: NextRequest) {
 
   // Admin route'ları kontrol et
   if (pathname.startsWith('/admin')) {
+    // Geliştirme ortamında /admin'e doğrudan erişime izin ver (local = Vercel gibi davransın)
+    if (process.env.NODE_ENV === 'development') {
+      return NextResponse.next();
+    }
+
     // Cookie'den token al
     const token = request.cookies.get('admin_token')?.value;
 
