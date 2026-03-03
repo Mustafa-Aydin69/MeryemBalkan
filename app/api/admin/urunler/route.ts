@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/app/lib/supabaseAdmin';
 import { S3Client, DeleteObjectsCommand } from '@aws-sdk/client-s3';
+import { verifyAdminToken, enforceAdminRateLimit } from '@/app/lib/admin-auth';
 
 // R2 Client oluştur
 function getR2Client() {
@@ -24,89 +25,15 @@ function getR2Client() {
   });
 }
 
-// Cookie'den token al (tutarlı authentication için)
-function getTokenFromRequest(request: NextRequest): string | null {
-  // Önce request.cookies'den dene (Next.js built-in)
-  const cookieToken = request.cookies.get('admin_token')?.value;
-  if (cookieToken) return cookieToken;
-  
-  // Yoksa header'dan manuel parse et
-  const cookieHeader = request.headers.get('cookie');
-  if (!cookieHeader) return null;
-  
-  const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
-    const [key, value] = cookie.trim().split('=');
-    if (key && value) {
-      acc[key] = value;
-    }
-    return acc;
-  }, {} as Record<string, string>);
-  
-  return cookies['admin_token'] || null;
-}
-
-// JWT doğrulama
-async function verifyAdminToken(request: NextRequest): Promise<boolean> {
-  try {
-    const token = getTokenFromRequest(request);
-    
-    if (!token) return false;
-
-    const secret = process.env.ADMIN_JWT_SECRET || 'fallback-secret-change-in-production';
-    
-    const parts = token.split('.');
-    if (parts.length !== 3) return false;
-
-    const [headerEncoded, payloadEncoded, signatureProvided] = parts;
-
-    const base64UrlDecode = (str: string): string => {
-      str = str.replace(/-/g, '+').replace(/_/g, '/');
-      while (str.length % 4) str += '=';
-      return atob(str);
-    };
-
-    const base64UrlEncode = (str: string): string => {
-      return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-    };
-
-    const encoder = new TextEncoder();
-    const key = await crypto.subtle.importKey(
-      'raw',
-      encoder.encode(secret),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign']
-    );
-    const signature = await crypto.subtle.sign(
-      'HMAC',
-      key,
-      encoder.encode(`${headerEncoded}.${payloadEncoded}`)
-    );
-    const expectedSignature = base64UrlEncode(
-      String.fromCharCode(...new Uint8Array(signature))
-    );
-
-    if (signatureProvided !== expectedSignature) return false;
-
-    const payload = JSON.parse(base64UrlDecode(payloadEncoded));
-    const now = Math.floor(Date.now() / 1000);
-    if (payload.exp < now) return false;
-    if (payload.role !== 'admin') return false;
-    if (!payload.otp_verified) return false;
-
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 // GET: Tüm ürünleri getir
 export async function GET(request: NextRequest) {
   try {
-    const isAdmin = await verifyAdminToken(request);
-    if (!isAdmin) {
+    const payload = await verifyAdminToken(request);
+    if (!payload) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const rateLimitRes = await enforceAdminRateLimit(request, payload);
+    if (rateLimitRes) return rateLimitRes;
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
@@ -140,10 +67,12 @@ export async function GET(request: NextRequest) {
 // POST: Yeni ürün ekle
 export async function POST(request: NextRequest) {
   try {
-    const isAdmin = await verifyAdminToken(request);
-    if (!isAdmin) {
+    const payload = await verifyAdminToken(request);
+    if (!payload) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const rateLimitRes = await enforceAdminRateLimit(request, payload);
+    if (rateLimitRes) return rateLimitRes;
 
     const body = await request.json();
 
@@ -168,10 +97,12 @@ export async function POST(request: NextRequest) {
 // PUT: Ürün güncelle
 export async function PUT(request: NextRequest) {
   try {
-    const isAdmin = await verifyAdminToken(request);
-    if (!isAdmin) {
+    const payload = await verifyAdminToken(request);
+    if (!payload) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const rateLimitRes = await enforceAdminRateLimit(request, payload);
+    if (rateLimitRes) return rateLimitRes;
 
     const body = await request.json();
     const { id, updates } = body;
@@ -202,10 +133,12 @@ export async function PUT(request: NextRequest) {
 // DELETE: Ürün sil
 export async function DELETE(request: NextRequest) {
   try {
-    const isAdmin = await verifyAdminToken(request);
-    if (!isAdmin) {
+    const payload = await verifyAdminToken(request);
+    if (!payload) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const rateLimitRes = await enforceAdminRateLimit(request, payload);
+    if (rateLimitRes) return rateLimitRes;
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

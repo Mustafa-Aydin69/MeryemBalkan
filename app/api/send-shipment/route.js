@@ -43,7 +43,6 @@ export async function POST(req) {
       `,
     });
 
-    console.log(`Kargo maili gönderildi: ${customerEmail}`);
     return Response.json({ success: true, message: "Mail gönderildi" });
   } catch (err) {
     console.error("Mail gönderim hatası:", err);

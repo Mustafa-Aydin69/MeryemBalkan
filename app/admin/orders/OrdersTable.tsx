@@ -224,7 +224,6 @@ export default function OrdersTable({
                       key={order.id}
                       className="bg-gray-800 rounded-lg p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4"
                     >
-                      {/* Sol Kısım - Sipariş Bilgileri */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-2">
                           <span className="text-sm font-mono text-gray-300">
@@ -235,10 +234,9 @@ export default function OrdersTable({
                               order.status
                             )}`}
                           >
-                            {order.status}
+                            {order.status === 'Sipariş Tamamlandı' ? 'Tamamlandı' : order.status}
                           </span>
                         </div>
-                        
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
                           <div>
                             <p className="text-gray-500 text-xs">Ürün</p>
@@ -254,8 +252,6 @@ export default function OrdersTable({
                           </div>
                         </div>
                       </div>
-
-                      {/* Sağ Kısım - Butonlar */}
                       <div className="flex items-center gap-2 flex-shrink-0 self-end sm:self-center">
                         <button
                           onClick={() => onEditOrder(order)}

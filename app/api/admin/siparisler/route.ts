@@ -6,88 +6,17 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/app/lib/supabaseAdmin';
-
-// Cookie'den token al (tutarlı authentication için)
-function getTokenFromRequest(request: NextRequest): string | null {
-  const cookieToken = request.cookies.get('admin_token')?.value;
-  if (cookieToken) return cookieToken;
-  
-  const cookieHeader = request.headers.get('cookie');
-  if (!cookieHeader) return null;
-  
-  const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
-    const [key, value] = cookie.trim().split('=');
-    if (key && value) {
-      acc[key] = value;
-    }
-    return acc;
-  }, {} as Record<string, string>);
-  
-  return cookies['admin_token'] || null;
-}
-
-// JWT doğrulama
-async function verifyAdminToken(request: NextRequest): Promise<boolean> {
-  try {
-    const token = getTokenFromRequest(request);
-    
-    if (!token) return false;
-
-    const secret = process.env.ADMIN_JWT_SECRET || 'fallback-secret-change-in-production';
-    
-    const parts = token.split('.');
-    if (parts.length !== 3) return false;
-
-    const [headerEncoded, payloadEncoded, signatureProvided] = parts;
-
-    const base64UrlDecode = (str: string): string => {
-      str = str.replace(/-/g, '+').replace(/_/g, '/');
-      while (str.length % 4) str += '=';
-      return atob(str);
-    };
-
-    const base64UrlEncode = (str: string): string => {
-      return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-    };
-
-    const encoder = new TextEncoder();
-    const key = await crypto.subtle.importKey(
-      'raw',
-      encoder.encode(secret),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign']
-    );
-    const signature = await crypto.subtle.sign(
-      'HMAC',
-      key,
-      encoder.encode(`${headerEncoded}.${payloadEncoded}`)
-    );
-    const expectedSignature = base64UrlEncode(
-      String.fromCharCode(...new Uint8Array(signature))
-    );
-
-    if (signatureProvided !== expectedSignature) return false;
-
-    const payload = JSON.parse(base64UrlDecode(payloadEncoded));
-    const now = Math.floor(Date.now() / 1000);
-    if (payload.exp < now) return false;
-    if (payload.role !== 'admin') return false;
-    if (!payload.otp_verified) return false;
-
-    return true;
-  } catch {
-    return false;
-  }
-}
+import { verifyAdminToken, enforceAdminRateLimit } from '@/app/lib/admin-auth';
 
 // GET: Tüm siparişleri getir (opsiyonel status filtresi)
 export async function GET(request: NextRequest) {
   try {
-    const isAdmin = await verifyAdminToken(request);
-    if (!isAdmin) {
+    const payload = await verifyAdminToken(request);
+    if (!payload) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const rateLimitRes = await enforceAdminRateLimit(request, payload);
+    if (rateLimitRes) return rateLimitRes;
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
@@ -125,10 +54,12 @@ export async function GET(request: NextRequest) {
 // POST: Yeni sipariş oluştur
 export async function POST(request: NextRequest) {
   try {
-    const isAdmin = await verifyAdminToken(request);
-    if (!isAdmin) {
+    const payload = await verifyAdminToken(request);
+    if (!payload) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const rateLimitRes = await enforceAdminRateLimit(request, payload);
+    if (rateLimitRes) return rateLimitRes;
 
     const body = await request.json();
 
@@ -153,33 +84,55 @@ export async function POST(request: NextRequest) {
 // PUT: Sipariş güncelle
 export async function PUT(request: NextRequest) {
   try {
-    const isAdmin = await verifyAdminToken(request);
-    if (!isAdmin) {
+    const payload = await verifyAdminToken(request);
+    if (!payload) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const rateLimitRes = await enforceAdminRateLimit(request, payload);
+    if (rateLimitRes) return rateLimitRes;
 
     const body = await request.json();
     const { id, updates } = body;
 
-    if (!id || !updates) {
+    if (!id || !updates || typeof updates !== 'object') {
       return NextResponse.json({ error: 'Missing id or updates' }, { status: 400 });
     }
 
+    // Sadece izin verilen alanları güncelle; boş shippingCode -> null
+    const allowedUpdates: Record<string, unknown> = {};
+    if (typeof updates.status === 'string' && updates.status.trim()) {
+      allowedUpdates.status = updates.status.trim();
+    }
+    // shippingCode: sadece dolu değer verilmişse güncelle; null/boş göndermek NOT NULL sütunda 500'e yol açabilir
+    if ('shippingCode' in updates) {
+      const v = updates.shippingCode;
+      const trimmed = v != null && typeof v === 'string' ? v.trim() : '';
+      if (trimmed) allowedUpdates.shippingCode = trimmed;
+    }
+
+    if (Object.keys(allowedUpdates).length === 0) {
+      return NextResponse.json({ error: 'Geçerli güncelleme alanı yok' }, { status: 400 });
+    }
+
     const supabase = getSupabaseAdmin();
+    const orderId = typeof id === 'string' ? parseInt(id, 10) : Number(id);
+    if (Number.isNaN(orderId) || orderId < 1) {
+      return NextResponse.json({ error: 'Geçersiz sipariş id' }, { status: 400 });
+    }
+
     const { data, error } = await supabase
       .from('siparisler')
-      .update(updates)
-      .eq('id', id)
+      .update(allowedUpdates)
+      .eq('id', orderId)
       .select();
 
     if (error) {
-      console.error('Sipariş güncellenemedi:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: error.message || 'Veritabanı hatası' }, { status: 500 });
     }
 
     return NextResponse.json({ data });
-  } catch (error: any) {
-    console.error('PUT /api/admin/siparisler error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Beklenmeyen hata';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

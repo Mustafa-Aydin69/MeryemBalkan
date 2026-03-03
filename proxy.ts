@@ -93,8 +93,9 @@ export async function proxy(request: NextRequest) {
 
   // Admin route'ları kontrol et
   if (pathname.startsWith('/admin')) {
-    // Geliştirme ortamında /admin'e doğrudan erişime izin ver (local = Vercel gibi davransın)
-    if (process.env.NODE_ENV === 'development') {
+    // Sadece açıkça izin verilmişse kimlik doğrulama olmadan /admin (varsayılan: false)
+    const allowDevWithoutAuth = process.env.ALLOW_DEV_ADMIN_WITHOUT_AUTH === 'true';
+    if (allowDevWithoutAuth) {
       return NextResponse.next();
     }
 
@@ -106,9 +107,13 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL('/', request.url));
     }
 
-    // JWT doğrula
-    const secret = process.env.ADMIN_JWT_SECRET || 'fallback-secret-change-in-production';
-    const result = await verifyJWTInProxy(token, secret);
+    // Production'da secret zorunlu; yoksa güvenlik riski
+    const secret = process.env.ADMIN_JWT_SECRET;
+    if (process.env.NODE_ENV === 'production' && (!secret || secret.trim() === '')) {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+    const secretToUse = secret?.trim() || 'dev-fallback-secret-do-not-use-in-production';
+    const result = await verifyJWTInProxy(token, secretToUse);
 
     // Token geçersizse
     if (!result.valid || !result.payload) {

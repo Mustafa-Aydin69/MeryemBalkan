@@ -1,9 +1,26 @@
 'use client';
 
+import { useState, useRef, useEffect } from 'react';
 import { useOrders } from './useOrders';
 import OrdersTable from './OrdersTable';
 
+const STATUS_FILTER_OPTIONS = [
+  { key: 'all', label: 'Tümü' },
+  { key: 'Hazırlanıyor', label: 'Hazırlanıyor' },
+  { key: 'Kirada', label: 'Kirada' },
+  { key: 'Tamamlandı', label: 'Tamamlandı' },
+  { key: 'İptal Edildi', label: 'İptal edildi' },
+] as const;
+
+function getStatusFilterLabel(statusFilter: string): string {
+  const found = STATUS_FILTER_OPTIONS.find((o) => o.key === statusFilter);
+  return found ? found.label : 'Tümü';
+}
+
 export default function OrdersPage() {
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const statusDropdownRef = useRef<HTMLDivElement>(null);
+
   const {
     orders,
     filteredOrders,
@@ -11,6 +28,8 @@ export default function OrdersPage() {
     setSearchTermOrders,
     searchOpenOrders,
     setSearchOpenOrders,
+    statusFilter,
+    setStatusFilter,
     getStatusColor,
     editingOrder,
     setEditingOrder,
@@ -22,6 +41,16 @@ export default function OrdersPage() {
     refreshOrders,
     loading,
   } = useOrders();
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) {
+        setStatusDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
     <div>
@@ -67,13 +96,46 @@ export default function OrdersPage() {
           <div className="px-4 py-2 rounded-full text-sm bg-gray-700 text-white">
             Toplam: {filteredOrders.length} Sipariş
           </div>
+
+          {/* Durum filtresi - Tek buton, tıklanınca açılır menü (Trendyol/Hepsiburada tarzı) */}
+          <div className="relative" ref={statusDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setStatusDropdownOpen((o) => !o)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-700 text-white hover:bg-gray-600 transition-colors text-sm font-medium border border-gray-600"
+            >
+              <i className="ri-filter-3-line"></i>
+              <span>Durum: {getStatusFilterLabel(statusFilter)}</span>
+              <i className={`ri-arrow-down-s-line text-lg transition-transform ${statusDropdownOpen ? 'rotate-180' : ''}`}></i>
+            </button>
+            {statusDropdownOpen && (
+              <div className="absolute top-full left-0 mt-1 min-w-[180px] rounded-lg border border-gray-600 bg-gray-800 shadow-xl z-50 py-1">
+                {STATUS_FILTER_OPTIONS.map(({ key, label }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      setStatusFilter(key);
+                      setStatusDropdownOpen(false);
+                    }}
+                    className={`w-full px-4 py-2.5 text-left text-sm flex items-center justify-between gap-2 hover:bg-gray-700 transition-colors ${
+                      statusFilter === key ? 'text-white bg-gray-700' : 'text-gray-300'
+                    }`}
+                  >
+                    <span>{label}</span>
+                    {statusFilter === key && <i className="ri-check-line text-green-400"></i>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Müşteri Kartları */}
       <OrdersTable
         orders={filteredOrders}
-        allOrders={orders}
+        allOrders={filteredOrders}
         getStatusColor={getStatusColor}
         onEditOrder={handleEditOrder}
         onViewOrder={setViewingOrder}

@@ -58,6 +58,7 @@ export function useOrders() {
   const [ordersPerPage] = useState(10);
   const [editingOrder, setEditingOrder] = useState<any>(null);
   const [viewingOrder, setViewingOrder] = useState<any>(null);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   // Fetch orders with caching - API route üzerinden
   const fetchOrders = useCallback(async (forceRefresh = false) => {
@@ -102,14 +103,23 @@ export function useOrders() {
     fetchOrders();
   }, [fetchOrders]);
 
-  // Filtered orders
-  const filteredOrders = orders.filter(
+  // Filtered by search
+  const searchFilteredOrders = orders.filter(
     (order) =>
       order.customerName.toLowerCase().includes(searchTermOrders.toLowerCase()) ||
       order.productName.toLowerCase().includes(searchTermOrders.toLowerCase()) ||
       order.email.toLowerCase().includes(searchTermOrders.toLowerCase()) ||
       order.phone.toLowerCase().includes(searchTermOrders.toLowerCase())
   );
+
+  // Filtered by status (Tamamlandı = Sipariş Tamamlandı in DB)
+  const filteredOrders = statusFilter === 'all'
+    ? searchFilteredOrders
+    : searchFilteredOrders.filter((order) => {
+        const s = order.status;
+        if (statusFilter === 'Tamamlandı') return s === 'Tamamlandı' || s === 'Sipariş Tamamlandı';
+        return s === statusFilter;
+      });
 
   // Pagination
   const totalOrdersPages = Math.ceil(filteredOrders.length / ordersPerPage);
@@ -150,18 +160,20 @@ export function useOrders() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Hazırlanıyor':
-        return 'bg-blue-100 text-blue-700';
+        return 'bg-blue-500/20 text-blue-400';
       case 'Kargoya Verildi':
       case 'Kirada':
-        return 'bg-orange-100 text-orange-700';
+        return 'bg-orange-500/20 text-orange-400';
       case 'Teslim Edildi':
       case 'Tamamlandı':
       case 'Sipariş Tamamlandı':
-        return 'bg-green-100 text-green-700';
+        return 'bg-green-500/20 text-green-400';
       case 'İptal Edildi':
-        return 'bg-red-100 text-red-700';
+        return 'bg-red-500/20 text-red-400';
+      case 'Ödeme Yapıyor':
+        return 'bg-amber-500/20 text-amber-400';
       default:
-        return 'bg-gray-100 text-gray-700';
+        return 'bg-gray-500/20 text-gray-400';
     }
   };
 
@@ -253,7 +265,6 @@ export function useOrders() {
       setEditingOrder(null);
       toast.success("Sipariş başarıyla güncellendi ✅");
     } catch (error: any) {
-      console.error("Sipariş güncellenemedi:", error.message);
       toast.error("Bir hata oluştu: " + error.message);
     }
   };
@@ -270,6 +281,8 @@ export function useOrders() {
     setSearchTermOrders,
     searchOpenOrders,
     setSearchOpenOrders,
+    statusFilter,
+    setStatusFilter,
     ordersCurrentPage,
     totalOrdersPages,
     handleOrdersPageChange,

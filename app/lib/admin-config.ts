@@ -1,12 +1,17 @@
 // Admin Configuration - Güvenlik Ayarları
 // Bu dosyadaki değerleri .env dosyasında tanımlayın
+// Secrets: getAdminJWTSecret() from secure-config (mandatory in production)
+
+import { getAdminJWTSecret } from './secure-config';
 
 export const ADMIN_CONFIG = {
   // Whitelist admin e-postaları (sadece bu adresler OTP alabilir)
   WHITELIST_EMAILS: (process.env.ADMIN_WHITELIST_EMAILS || '').split(',').filter(Boolean),
-  
-  // JWT ayarları
-  JWT_SECRET: process.env.ADMIN_JWT_SECRET || 'fallback-secret-change-in-production',
+
+  // JWT ayarları - secret from secure-config (throws in production if missing)
+  get JWT_SECRET(): string {
+    return getAdminJWTSecret();
+  },
   JWT_EXPIRES_IN: 15 * 60, // 15 dakika (saniye cinsinden)
   
   // Rate limiting ayarları
@@ -22,6 +27,18 @@ export const ADMIN_CONFIG = {
     LOGIN: {
       MAX_ATTEMPTS: 5,
       WINDOW_MS: 10 * 60 * 1000, // 10 dakika
+    },
+    ADMIN_API: {
+      MAX_ATTEMPTS: 300,
+      WINDOW_MS: 60 * 1000, // 1 dakikada 300 istek (token bazlı)
+    },
+    ADMIN_API_IP: {
+      MAX_ATTEMPTS: 600,
+      WINDOW_MS: 60 * 1000, // 1 dakikada 600 istek (IP bazlı)
+    },
+    CHECKOUT_CREATE: {
+      MAX_ATTEMPTS: 10,
+      WINDOW_MS: 5 * 60 * 1000, // 5 dakikada en fazla 10 istek (IP bazlı)
     },
   },
   

@@ -27,8 +27,9 @@ async function securityDelay(): Promise<void> {
 
 // Şifre hashleme (Web Crypto API kullanır - Node.js uyumlu)
 async function hashPassword(password: string): Promise<string> {
+  const { getAdminPasswordSalt } = await import('@/app/lib/secure-config');
   const encoder = new TextEncoder();
-  const salt = process.env.ADMIN_PASSWORD_SALT || 'default-salt';
+  const salt = getAdminPasswordSalt();
   const data = encoder.encode(password + salt);
   const hash = await crypto.subtle.digest('SHA-256', data);
   return Array.from(new Uint8Array(hash))

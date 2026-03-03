@@ -52,7 +52,7 @@ function initCleanup() {
   }
 }
 
-export type RateLimitType = 'OTP_REQUEST' | 'OTP_VERIFY' | 'LOGIN';
+export type RateLimitType = 'OTP_REQUEST' | 'OTP_VERIFY' | 'LOGIN' | 'ADMIN_API' | 'ADMIN_API_IP' | 'CHECKOUT_CREATE';
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -105,11 +105,13 @@ export function checkRateLimit(
   
   // Limit kontrolü
   if (entry.attempts >= config.MAX_ATTEMPTS) {
-    let lockoutDuration = ADMIN_CONFIG.LOCKOUT.LOCKOUT_15_MIN;
-    
-    if (entry.attempts >= ADMIN_CONFIG.LOCKOUT.ATTEMPTS_FOR_1_HOUR) {
-      lockoutDuration = ADMIN_CONFIG.LOCKOUT.LOCKOUT_1_HOUR;
-    }
+    // CHECKOUT_CREATE: kilidi pencerenin bitişine kadar (yeniden deneme penceresi sonunda)
+    const isCheckoutCreate = type === 'CHECKOUT_CREATE';
+    const lockoutDuration = isCheckoutCreate
+      ? Math.max(0, entry.firstAttempt + config.WINDOW_MS - now)
+      : entry.attempts >= ADMIN_CONFIG.LOCKOUT.ATTEMPTS_FOR_1_HOUR
+        ? ADMIN_CONFIG.LOCKOUT.LOCKOUT_1_HOUR
+        : ADMIN_CONFIG.LOCKOUT.LOCKOUT_15_MIN;
     
     entry.lockedUntil = now + lockoutDuration;
     rateLimitStore.set(key, entry);
