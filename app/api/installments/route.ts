@@ -1,168 +1,105 @@
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
 /**
- * Taksit Seçenekleri API Endpoint'i
- * 
- * Bu endpoint şu anda SAHTE (mock) veri döndürüyor.
- * 
- * TODO: iyzico entegrasyonu için:
- * 1. iyzico SDK'yı import et: import Iyzipay from 'iyzipay';
- * 2. iyzico credentials'ları .env'den al
- * 3. iyzico.installmentInfo.retrieve() metodunu çağır
- * 4. Gerçek banka taksit seçeneklerini döndür
- * 
- * iyzico Dokümantasyonu:
- * https://dev.iyzipay.com/tr/api/taksit-sorgulama
+ * Taksit Seçenekleri API – Iyzico Installment Info
+ * POST body: { binNumber?, bin?, price?, totalPrice? }
  */
 
-interface InstallmentOption {
-  count: number;           // Taksit sayısı (1 = tek çekim)
-  totalAmount: number;     // Toplam tutar (komisyon dahil)
-  installmentAmount: number; // Aylık taksit tutarı
-  interestRate: number;    // Faiz oranı (%)
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+import { NextRequest, NextResponse } from 'next/server';
+const Iyzipay = require('iyzipay');
+
+const iyzipay = new Iyzipay({
+  apiKey: process.env.IYZICO_API_KEY || '',
+  secretKey: process.env.IYZICO_SECRET_KEY || '',
+  uri: process.env.IYZICO_BASE_URL || '',
+});
+
+function normalizeInstallments(installmentDetails: { installmentPrices?: { installmentNumber: number; totalPrice: number }[] }[]): {
+  count: number;
+  totalAmount: number;
+  installmentAmount: number;
+  interestRate: number;
+}[] {
+  const list = installmentDetails?.[0]?.installmentPrices;
+  if (!list || !Array.isArray(list)) return [];
+  return list.map((item: { installmentNumber: number; totalPrice: number }) => ({
+    count: item.installmentNumber,
+    totalAmount: item.totalPrice,
+    installmentAmount: Math.round((item.totalPrice * 100) / item.installmentNumber) / 100,
+    interestRate: 0,
+  }));
 }
 
-interface InstallmentResponse {
-  success: boolean;
-  cardType: string;        // Visa, MasterCard, etc.
-  bankName: string;        // Banka adı
-  installments: InstallmentOption[];
-  error?: string;
-}
-
-// Sahte taksit verileri - BIN'e göre
-function getMockInstallments(bin: string, totalPrice: number): InstallmentResponse {
-  const firstDigit = bin.charAt(0);
-  
-  // TODO: iyzico entegrasyonunda bu fonksiyon tamamen değiştirilecek
-  // iyzico gerçek banka ve kart bilgilerine göre taksit seçenekleri döndürür
-  
-  // Visa kartları (4 ile başlar)
-  if (firstDigit === '4') {
-    return {
-      success: true,
-      cardType: 'Visa',
-      bankName: 'Örnek Banka', // TODO: iyzico'dan gerçek banka adı gelecek
-      installments: [
-        { count: 1, totalAmount: totalPrice, installmentAmount: totalPrice, interestRate: 0 },
-        { count: 2, totalAmount: totalPrice, installmentAmount: Math.round(totalPrice / 2), interestRate: 0 },
-        { count: 3, totalAmount: totalPrice * 1.02, installmentAmount: Math.round((totalPrice * 1.02) / 3), interestRate: 2 },
-        { count: 6, totalAmount: totalPrice * 1.05, installmentAmount: Math.round((totalPrice * 1.05) / 6), interestRate: 5 },
-        { count: 9, totalAmount: totalPrice * 1.08, installmentAmount: Math.round((totalPrice * 1.08) / 9), interestRate: 8 },
-      ]
-    };
-  }
-  
-  // MasterCard kartları (5 ile başlar)
-  if (firstDigit === '5') {
-    return {
-      success: true,
-      cardType: 'MasterCard',
-      bankName: 'Örnek Banka',
-      installments: [
-        { count: 1, totalAmount: totalPrice, installmentAmount: totalPrice, interestRate: 0 },
-        { count: 2, totalAmount: totalPrice, installmentAmount: Math.round(totalPrice / 2), interestRate: 0 },
-        { count: 3, totalAmount: totalPrice * 1.015, installmentAmount: Math.round((totalPrice * 1.015) / 3), interestRate: 1.5 },
-        { count: 6, totalAmount: totalPrice * 1.04, installmentAmount: Math.round((totalPrice * 1.04) / 6), interestRate: 4 },
-      ]
-    };
-  }
-  
-  // Troy kartları (9 ile başlar - Türkiye)
-  if (firstDigit === '9') {
-    return {
-      success: true,
-      cardType: 'Troy',
-      bankName: 'Örnek Banka',
-      installments: [
-        { count: 1, totalAmount: totalPrice, installmentAmount: totalPrice, interestRate: 0 },
-        { count: 2, totalAmount: totalPrice, installmentAmount: Math.round(totalPrice / 2), interestRate: 0 },
-        { count: 3, totalAmount: totalPrice, installmentAmount: Math.round(totalPrice / 3), interestRate: 0 },
-      ]
-    };
-  }
-  
-  // Diğer kartlar - sadece tek çekim
-  return {
-    success: true,
-    cardType: 'Diğer',
-    bankName: '',
-    installments: [
-      { count: 1, totalAmount: totalPrice, installmentAmount: totalPrice, interestRate: 0 }
-    ]
-  };
-}
-
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { bin, totalPrice } = body;
+    const binNumber = (body.binNumber ?? body.bin ?? '').toString().replace(/\s/g, '');
+    const price = Number(body.price ?? body.totalPrice ?? 0);
 
-    // Validasyon
-    if (!bin || bin.length < 6) {
-      return Response.json({
+    if (!binNumber || binNumber.length < 6) {
+      return NextResponse.json({
         success: false,
         cardType: '',
         bankName: '',
-        installments: [
-          { count: 1, totalAmount: totalPrice || 0, installmentAmount: totalPrice || 0, interestRate: 0 }
-        ],
-        error: 'Geçersiz BIN numarası'
-      });
-    }
-
-    if (!totalPrice || totalPrice <= 0) {
-      return Response.json({
-        success: false,
-        error: 'Geçersiz tutar'
+        installments: [],
+        error: 'Geçersiz BIN numarası',
       }, { status: 400 });
     }
 
-    /**
-     * TODO: iyzico Entegrasyonu
-     * 
-     * const iyzipay = new Iyzipay({
-     *   apiKey: process.env.IYZICO_API_KEY,
-     *   secretKey: process.env.IYZICO_SECRET_KEY,
-     *   uri: process.env.IYZICO_BASE_URL // sandbox veya production
-     * });
-     * 
-     * const request = {
-     *   locale: 'tr',
-     *   conversationId: generateConversationId(),
-     *   binNumber: bin,
-     *   price: totalPrice.toString()
-     * };
-     * 
-     * const result = await new Promise((resolve, reject) => {
-     *   iyzipay.installmentInfo.retrieve(request, (err, result) => {
-     *     if (err) reject(err);
-     *     else resolve(result);
-     *   });
-     * });
-     * 
-     * // iyzico yanıtını parse et ve döndür
-     * return Response.json(parseIyzicoResponse(result));
-     */
+    if (!price || price <= 0) {
+      return NextResponse.json({
+        success: false,
+        cardType: '',
+        bankName: '',
+        installments: [],
+        error: 'Geçersiz tutar',
+      }, { status: 400 });
+    }
 
-    // Şimdilik sahte veri döndür
-    const mockResponse = getMockInstallments(bin, totalPrice);
-    
-    return Response.json(mockResponse);
+    const request = {
+      locale: Iyzipay.LOCALE.TR,
+      conversationId: Date.now().toString(),
+      binNumber,
+      price: price.toFixed(2),
+    };
 
-  } catch (err: any) {
-    console.error('Taksit sorgulama hatası:', err);
-    
-    // Hata durumunda tek çekim seçeneği döndür
-    return Response.json({
+    const result = await new Promise<{
+      status?: string;
+      installmentDetails?: { installmentPrices?: { installmentNumber: number; totalPrice: number }[] }[];
+      cardAssociation?: string;
+      cardFamilyName?: string;
+    }>((resolve, reject) => {
+      iyzipay.installmentInfo.retrieve(request, (err: Error | null, res: unknown) => {
+        if (err) return reject(err);
+        resolve(res as typeof result);
+      });
+    });
+
+    if (!result.installmentDetails || result.installmentDetails.length === 0) {
+      return NextResponse.json({
+        success: true,
+        cardType: result.cardAssociation || '',
+        bankName: result.cardFamilyName || '',
+        installments: [{ count: 1, totalAmount: price, installmentAmount: price, interestRate: 0 }],
+      });
+    }
+
+    const installments = normalizeInstallments(result.installmentDetails);
+    return NextResponse.json({
+      success: true,
+      cardType: result.cardAssociation || '',
+      bankName: result.cardFamilyName || '',
+      installments,
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Taksit bilgileri alınamadı';
+    return NextResponse.json({
       success: false,
       cardType: '',
       bankName: '',
-      installments: [
-        { count: 1, totalAmount: 0, installmentAmount: 0, interestRate: 0 }
-      ],
-      error: 'Taksit bilgileri alınamadı'
+      installments: [],
+      error: message,
     });
   }
 }

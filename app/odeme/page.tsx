@@ -1,10 +1,12 @@
 'use client';
 import Link from 'next/link';
+import React from "react";
+import axios from "axios";
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import CreditCardPreview from '../components/CreditCardPreview';
 import PaymentMarks from '../components/PaymentMarks';
-import { deletePendingOrders, confirmOrders } from '../utils/rentalConflict';
+import { deletePendingOrders } from '../utils/rentalConflict';
 
 // Cloudflare R2 URL helper
 const getR2BaseUrl = () => {
@@ -63,79 +65,85 @@ export default function Payment() {
     cvv: '',
   });
   
-  // Taksit Altyapısı State'leri
-  // TODO: iyzico entegrasyonunda bu state'ler kullanılacak
-  const [selectedInstallment, setSelectedInstallment] = useState(1); // Seçilen taksit sayısı
-  const [installmentOptions, setInstallmentOptions] = useState<{
-    count: number;
-    totalAmount: number;
-    installmentAmount: number;
-    interestRate: number;
-  }[]>([]);
-  const [cardType, setCardType] = useState(''); // Visa, MasterCard, Troy
+  // Taksit (BIN check) – backend'den dönen formatta; hesaplama yapılmıyor
+  type InstallmentOption = { installmentNumber: number; installmentPrice: number; totalPrice: number };
+  const [selectedInstallment, setSelectedInstallment] = useState(1);
+  const [installmentOptions, setInstallmentOptions] = useState<InstallmentOption[]>([]);
+  const [cardType, setCardType] = useState('');
   const [isLoadingInstallments, setIsLoadingInstallments] = useState(false);
-  const [currentBin, setCurrentBin] = useState(''); // İlk 6 hane
-  
-  // Kart flip durumu - CVV'ye focus olunca true olur
+  const [binCheckError, setBinCheckError] = useState<string | null>(null);
+  const lastFetchedBinRef = useRef<string>('');
+  const binCheckDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const idempotencyKeyRef = useRef<string | null>(null);
+
   const [isCardFlipped, setIsCardFlipped] = useState(false);
 
-  /**
-   * BIN Algılama ve Taksit Sorgulama
-   * 
-   * TODO: iyzico entegrasyonunda bu fonksiyon gerçek API'yi çağıracak
-   * Şu anda /api/installments stub endpoint'ini kullanıyor
-   */
-  const fetchInstallmentOptions = useCallback(async (bin: string, totalPrice: number) => {
-    if (bin.length < 6 || !totalPrice) return;
-    
+  const fallbackSingleOption = (price: number): InstallmentOption[] => [
+    { installmentNumber: 1, installmentPrice: price, totalPrice: price },
+  ];
+
+  /** BIN check: yanıt backend'den olduğu gibi kullanılır, tekrar hesaplama yok */
+  const fetchBinCheck = useCallback(async (binNumber: string, price: number) => {
+    if (binNumber.length < 6 || !price || price <= 0) return;
+    if (lastFetchedBinRef.current === binNumber) return;
+    lastFetchedBinRef.current = binNumber;
+    setBinCheckError(null);
     setIsLoadingInstallments(true);
     try {
-      const response = await fetch('/api/installments', {
+      const res = await fetch('/api/payment/bin-check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bin, totalPrice }),
+        body: JSON.stringify({ binNumber, price }),
       });
-      
-      const data = await response.json();
-      
-      if (data.success && data.installments) {
-        setInstallmentOptions(data.installments);
-        setCardType(data.cardType || '');
-        // Varsayılan olarak tek çekim seçili
-        setSelectedInstallment(1);
-      } else {
-        // Hata durumunda tek çekim
-        setInstallmentOptions([{ count: 1, totalAmount: totalPrice, installmentAmount: totalPrice, interestRate: 0 }]);
-        setCardType('');
+      const data = await res.json();
+      if (!res.ok || data.success === false) {
+        throw new Error(data.message || 'Taksit bilgileri alınamadı');
       }
-    } catch (error) {
-      console.error('Taksit sorgulama hatası:', error);
-      // Hata durumunda tek çekim - ödeme akışını kesme
-      setInstallmentOptions([{ count: 1, totalAmount: totalPrice, installmentAmount: totalPrice, interestRate: 0 }]);
+      const list: InstallmentOption[] = Array.isArray(data.installments) ? data.installments : [];
+      setInstallmentOptions(list.length ? list : fallbackSingleOption(price));
+      setSelectedInstallment(1);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Taksit bilgileri alınamadı';
+      setBinCheckError(message);
+      setInstallmentOptions(fallbackSingleOption(price));
     } finally {
       setIsLoadingInstallments(false);
     }
   }, []);
 
-  // Kart numarası değiştiğinde BIN kontrolü
+  // Kart numarası değişince 300ms debounce, aynı BIN için tek istek
   useEffect(() => {
-    const cleanedNumber = cardData.cardNumber.replace(/\s/g, '');
-    const bin = cleanedNumber.slice(0, 6);
-    
-    // BIN değiştiyse ve 6 haneli ise taksit seçeneklerini sorgula
-    if (bin.length === 6 && bin !== currentBin && orderData?.totalPrice) {
-      setCurrentBin(bin);
-      fetchInstallmentOptions(bin, orderData.totalPrice);
-    }
-    
-    // Kart numarası silinirse taksit seçeneklerini temizle
-    if (cleanedNumber.length < 6) {
-      setCurrentBin('');
+    const cleaned = cardData.cardNumber.replace(/\s/g, '');
+    const bin = cleaned.slice(0, 6);
+    const totalPrice = orderData?.totalPrice ?? 0;
+
+    if (cleaned.length < 6) {
+      lastFetchedBinRef.current = '';
       setInstallmentOptions([]);
       setCardType('');
       setSelectedInstallment(1);
+      setBinCheckError(null);
+      return;
     }
-  }, [cardData.cardNumber, currentBin, orderData?.totalPrice, fetchInstallmentOptions]);
+
+    if (bin.length < 6 || !totalPrice) return;
+
+    if (binCheckDebounceRef.current) {
+      clearTimeout(binCheckDebounceRef.current);
+      binCheckDebounceRef.current = null;
+    }
+
+    binCheckDebounceRef.current = setTimeout(() => {
+      binCheckDebounceRef.current = null;
+      if (bin.length === 6 && totalPrice > 0) {
+        fetchBinCheck(bin, totalPrice);
+      }
+    }, 300);
+
+    return () => {
+      if (binCheckDebounceRef.current) clearTimeout(binCheckDebounceRef.current);
+    };
+  }, [cardData.cardNumber, orderData?.totalPrice, fetchBinCheck]);
   
   // Cleanup için ref
   const cleanupDoneRef = useRef(false);
@@ -316,108 +324,85 @@ export default function Payment() {
     
     if (!orderData || timeoutExpired) return;
 
+    const orderId = orderData.orderIds?.length ? orderData.orderIds.join('-') : '';
+    if (!orderId) {
+      alert('Sipariş bilgisi bulunamadı. Lütfen sepete dönüp tekrar deneyin.');
+      return;
+    }
+
     setIsProcessing(true);
 
     try {
-      /**
-       * TODO: iyzico Entegrasyonu
-       * 
-       * Ödeme payload'ı hazırla:
-       * const paymentPayload = {
-       *   cardNumber: cardData.cardNumber.replace(/\s/g, ''),
-       *   cardHolderName: cardData.cardName,
-       *   expireMonth: cardData.expiryDate.split('/')[0],
-       *   expireYear: '20' + cardData.expiryDate.split('/')[1],
-       *   cvc: cardData.cvv,
-       *   installment: selectedInstallment, // Seçilen taksit sayısı
-       *   price: orderData.totalPrice,
-       *   paidPrice: selectedInstallmentOption?.totalAmount || orderData.totalPrice,
-       *   // ... diğer iyzico parametreleri
-       * };
-       * 
-       * const paymentResult = await fetch('/api/iyzico/payment', {
-       *   method: 'POST',
-       *   body: JSON.stringify(paymentPayload)
-       * });
-       */
-      
-      // Seçilen taksit bilgisi - iyzico entegrasyonunda kullanılacak
-      const selectedInstallmentOption = installmentOptions.find(opt => opt.count === selectedInstallment);
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const paymentInfo = {
-        installmentCount: selectedInstallment,
-        totalAmount: selectedInstallmentOption?.totalAmount || orderData.totalPrice,
-        installmentAmount: selectedInstallmentOption?.installmentAmount || orderData.totalPrice,
+      const [expMonth, expYearPart] = (cardData.expiryDate || '/').split('/');
+      const expireYear = expYearPart?.length === 2 ? `20${expYearPart.trim()}` : (expYearPart || '');
+
+      const fullAddress = [
+        orderData.shippingAddress.address,
+        orderData.shippingAddress.district,
+        orderData.shippingAddress.city,
+      ].filter(Boolean).join(', ');
+
+      if (!idempotencyKeyRef.current) {
+        idempotencyKeyRef.current =
+          typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+            ? crypto.randomUUID()
+            : `pay-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      }
+
+      const threeDsPayload = {
+        orderId,
+        idempotencyKey: idempotencyKeyRef.current,
+        installment: selectedInstallment,
+        shippingCost: orderData.shippingCost ?? 0,
+        paymentCard: {
+          cardHolderName: cardData.cardName.trim(),
+          cardNumber: cardData.cardNumber.replace(/\s/g, ''),
+          expireMonth: expMonth?.trim()?.padStart(2, '0') || '',
+          expireYear: expireYear.trim(),
+          cvc: cardData.cvv.trim(),
+        },
+        buyer: {
+          name: (orderData.customer.firstName || '').trim(),
+          surname: (orderData.customer.lastName || '').trim(),
+          email: (orderData.customer.email || '').trim(),
+          phone: (orderData.customer.phone || '').trim(),
+        },
+        shippingAddress: fullAddress || '-',
       };
-      // TODO: iyzico entegrasyonunda paymentInfo kullanılacak
-      
-      // Siparişlerin durumunu "Hazırlanıyor" olarak güncelle
-      if (orderData.orderIds && orderData.orderIds.length > 0) {
-        const { success, error } = await confirmOrders(orderData.orderIds);
-        
-        if (!success) {
-          throw new Error(error || 'Sipariş onaylanamadı');
-        }
+
+      let paymentRes = await fetch('/api/payment/3ds-init', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(threeDsPayload),
+      });
+      let paymentResult = await paymentRes.json();
+
+      if (paymentRes.status === 409) {
+        await new Promise((r) => setTimeout(r, 2000));
+        paymentRes = await fetch('/api/payment/3ds-init', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(threeDsPayload),
+        });
+        paymentResult = await paymentRes.json();
       }
 
-      // Başarılı - cleanup yapılmasın
-      cleanupDoneRef.current = true;
-      setPaymentSuccess(true);
-
-      // Sipariş onay e-postası gönder (her ürün için)
-      // E-posta hatası ödeme akışını engellemez
-      try {
-        for (const item of orderData.items) {
-          // eventDate + 3 gün = en geç iade tarihi
-          const eventDateObj = new Date(item.date);
-          const returnDateObj = new Date(eventDateObj);
-          returnDateObj.setDate(returnDateObj.getDate() + 3);
-          
-          // Taksit bilgilerini hesapla
-          const selectedOption = installmentOptions.find(opt => opt.count === selectedInstallment);
-          const basePrice = item.price;
-          const installmentFee = selectedOption && selectedInstallment > 1 
-            ? (selectedOption.totalAmount - orderData.totalPrice) 
-            : 0;
-          
-          await fetch('/api/send-order-confirmation', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              customerName: `${orderData.customer.firstName} ${orderData.customer.lastName}`,
-              email: orderData.customer.email,
-              productName: item.title,
-              size: item.size,
-              color: item.color,
-              price: basePrice,
-              shippingCost: orderData.shippingCost > 0 ? orderData.shippingCost : undefined,
-              installmentCount: selectedInstallment > 1 ? selectedInstallment : undefined,
-              installmentFee: installmentFee > 0 ? installmentFee : undefined,
-              totalPaid: selectedOption?.totalAmount || orderData.totalPrice,
-              eventDate: item.date,
-              returnDate: returnDateObj.toISOString().split('T')[0],
-              status: 'Hazırlanıyor',
-              address: `${orderData.shippingAddress.address}, ${orderData.shippingAddress.district}, ${orderData.shippingAddress.city}`
-            }),
-          });
-        }
-      } catch (emailError) {
-        // E-posta hatası ödeme akışını engellemez - sadece log'la
-        console.error('Sipariş onay e-postası gönderilemedi:', emailError);
+      if (!paymentRes.ok || !paymentResult.success) {
+        throw new Error(paymentResult.message || paymentResult.error || '3DS başlatılamadı');
       }
-      
-      // Sepeti ve sipariş verilerini temizle
-      localStorage.removeItem('cartItems');
-      localStorage.removeItem('pendingOrder');
-      
-      // 3 saniye sonra ana sayfaya yönlendir
-      setTimeout(() => {
-        router.push('/');
-      }, 3000);
 
+      const htmlContent = paymentResult.htmlContent;
+      if (!htmlContent || typeof htmlContent !== 'string') {
+        throw new Error('Banka yönlendirme sayfası alınamadı');
+      }
+
+      const decodedHtml = atob(htmlContent);
+      document.open();
+      document.write(decodedHtml);
+      document.close();
     } catch (error) {
       console.error('Ödeme hatası:', error);
-      alert('Ödeme işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin.');
+      alert(error instanceof Error ? error.message : 'Ödeme işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin.');
     } finally {
       setIsProcessing(false);
     }
@@ -653,12 +638,14 @@ export default function Payment() {
                         isDarkMode ? 'border-gray-700' : 'border-gray-200'
                       }`}>
                         {installmentOptions.map((option, index) => {
-                          const isSelected = selectedInstallment === option.count;
+                          const isSelected = selectedInstallment === option.installmentNumber;
                           const isLastItem = index === installmentOptions.length - 1;
-                          
+                          const basePrice = orderData?.totalPrice ?? installmentOptions.find((o) => o.installmentNumber === 1)?.totalPrice ?? option.totalPrice;
+                          const interestPercent = option.installmentNumber === 1 ? 0 : (basePrice > 0 ? ((option.totalPrice - basePrice) / basePrice) * 100 : 0);
+
                           return (
                             <label
-                              key={option.count}
+                              key={option.installmentNumber}
                               className={`flex items-center justify-between p-3 cursor-pointer transition-colors ${
                                 !isLastItem ? (isDarkMode ? 'border-b border-gray-700' : 'border-b border-gray-200') : ''
                               } ${
@@ -672,7 +659,6 @@ export default function Payment() {
                               }`}
                             >
                               <div className="flex items-center gap-3">
-                                {/* Custom Radio */}
                                 <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
                                   isSelected
                                     ? isDarkMode
@@ -691,29 +677,38 @@ export default function Payment() {
                                 <input
                                   type="radio"
                                   name="installment"
-                                  value={option.count}
+                                  value={option.installmentNumber}
                                   checked={isSelected}
-                                  onChange={() => setSelectedInstallment(option.count)}
+                                  onChange={() => setSelectedInstallment(option.installmentNumber)}
                                   className="sr-only"
                                 />
                                 <div>
-                                  <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                                    {option.count === 1 ? 'Tek Çekim' : `${option.count} Taksit`}
-                                  </span>
-                                  {option.count > 1 && (
-                                    <span className={`ml-2 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                                      {option.installmentAmount.toLocaleString('tr-TR')} ₺ × {option.count}
+                                  {option.installmentNumber === 1 ? (
+                                    <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                                      Tek Çekim — {option.totalPrice.toLocaleString('tr-TR')} TL
                                     </span>
+                                  ) : (
+                                    <div>
+                                      <div className={`font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                                        {option.installmentNumber} Taksit
+                                      </div>
+                                      <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                        {option.installmentPrice.toLocaleString('tr-TR')} TL × {option.installmentNumber}
+                                      </div>
+                                      <div className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                                        Toplam: {option.totalPrice.toLocaleString('tr-TR')} TL
+                                      </div>
+                                    </div>
                                   )}
                                 </div>
                               </div>
                               <div className="text-right">
                                 <div className={`font-semibold ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                                  {option.totalAmount.toLocaleString('tr-TR')} ₺
+                                  {option.totalPrice.toLocaleString('tr-TR')} TL
                                 </div>
-                                {option.interestRate > 0 && (
+                                {interestPercent > 0 && (
                                   <div className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                                    +%{option.interestRate} faiz
+                                    Faiz: %{interestPercent.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                   </div>
                                 )}
                               </div>
@@ -729,6 +724,12 @@ export default function Payment() {
                         </svg>
                         Taksit seçenekleri kart ve banka uygunluğuna göre sunulmaktadır.
                       </p>
+                      {binCheckError && (
+                        <p className="mt-2 text-xs text-amber-500 flex items-center gap-1">
+                          <span aria-hidden>⚠</span>
+                          {binCheckError}
+                        </p>
+                      )}
                     </>
                   )}
                 </div>
@@ -777,9 +778,8 @@ export default function Payment() {
                   </>
                 ) : (
                   (() => {
-                    // Taksitli ödeme seçildiyse taksitli tutarı göster
-                    const selectedOption = installmentOptions.find(opt => opt.count === selectedInstallment);
-                    const displayAmount = selectedOption?.totalAmount || orderData.totalPrice;
+                    const selectedOption = installmentOptions.find(opt => opt.installmentNumber === selectedInstallment);
+                    const displayAmount = selectedOption?.totalPrice || orderData.totalPrice;
                     return `${displayAmount.toLocaleString('tr-TR')} TL Öde`;
                   })()
                 )}
@@ -833,27 +833,29 @@ export default function Payment() {
               </div>
               {/* Toplam - Taksit seçimine göre dinamik */}
               {(() => {
-                const selectedOption = installmentOptions.find(opt => opt.count === selectedInstallment);
-                const finalTotal = selectedOption?.totalAmount || orderData.totalPrice;
-                const hasDifference = selectedOption && selectedOption.totalAmount !== orderData.totalPrice;
-                
+                const selectedOption = installmentOptions.find(opt => opt.installmentNumber === selectedInstallment);
+                const finalTotal = selectedOption?.totalPrice || orderData.totalPrice;
+                const hasDifference = selectedOption && selectedOption.totalPrice !== orderData.totalPrice;
+                const interestPercent = orderData.totalPrice > 0 && selectedOption && selectedInstallment > 1
+                  ? (((selectedOption.totalPrice - orderData.totalPrice) / orderData.totalPrice) * 100)
+                  : 0;
+
                 return (
                   <>
                     <div className={`flex justify-between text-lg font-medium pt-3 border-t ${isDarkMode ? 'border-gray-700 text-white' : 'border-gray-200 text-black'}`}>
                       <span>Toplam</span>
                       <span>{finalTotal.toLocaleString('tr-TR')} TL</span>
                     </div>
-                    
-                    {/* Taksit Detayları */}
+
                     {selectedInstallment > 1 && selectedOption && (
                       <div className={`mt-3 p-3 rounded-lg ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-100'}`}>
                         <div className={`flex justify-between text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                           <span>Taksit</span>
-                          <span>{selectedInstallment} × {selectedOption.installmentAmount.toLocaleString('tr-TR')} TL</span>
+                          <span>{selectedInstallment} × {selectedOption.installmentPrice.toLocaleString('tr-TR')} TL</span>
                         </div>
-                        {hasDifference && (
+                        {hasDifference && interestPercent > 0 && (
                           <div className={`text-xs mt-2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                            +%{selectedOption.interestRate} vade farkı uygulanmıştır
+                            +%{interestPercent.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} vade farkı uygulanmıştır
                           </div>
                         )}
                       </div>

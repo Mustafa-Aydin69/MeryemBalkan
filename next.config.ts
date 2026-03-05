@@ -7,6 +7,8 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true, // (Opsiyonel) TS hataları yüzünden build fail olmasın
   },
+  // iyzipay: fs.readdirSync + dynamic require kullanıyor, bundle'da çözülmüyor
+  serverExternalPackages: ['iyzipay'],
 };
 
 export default nextConfig;
