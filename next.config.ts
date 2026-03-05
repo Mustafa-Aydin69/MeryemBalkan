@@ -2,13 +2,19 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
-    unoptimized: true, // ✅ Netlify/Render için gerekli
+    unoptimized: true,
   },
+
   typescript: {
-    ignoreBuildErrors: true, // (Opsiyonel) TS hataları yüzünden build fail olmasın
+    ignoreBuildErrors: true,
   },
-  // iyzipay: fs.readdirSync + dynamic require kullanıyor, bundle'da çözülmüyor
-  serverExternalPackages: ['iyzipay'],
+
+  serverExternalPackages: ["iyzipay"],
+
+  webpack: (config) => {
+    config.externals.push("iyzipay");
+    return config;
+  },
 };
 
 export default nextConfig;
