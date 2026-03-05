@@ -6,7 +6,6 @@
         { "type": "host", "value": "www.meryembalkan.com.tr" }
       ],
       "destination": "https://meryembalkan.com.tr/:path*",
-      "permanent": true,
       "statusCode": 308
     }
   ]
