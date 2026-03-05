@@ -2,16 +2,13 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
-    unoptimized: true,
+    unoptimized: true, // ✅ Netlify/Render için gerekli
   },
-
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: true, // (Opsiyonel) TS hataları yüzünden build fail olmasın
   },
-
-  serverExternalPackages: ["iyzipay"],
-
-  turbopack: {}, // ← bunu ekle
+  // iyzipay: fs.readdirSync + dynamic require kullanıyor, bundle'da çözülmüyor
+  serverExternalPackages: ['iyzipay'],
 };
 
 export default nextConfig;
