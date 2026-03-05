@@ -11,10 +11,7 @@ const nextConfig: NextConfig = {
 
   serverExternalPackages: ["iyzipay"],
 
-  webpack: (config) => {
-    config.externals.push("iyzipay");
-    return config;
-  },
+  turbopack: {}, // ← bunu ekle
 };
 
 export default nextConfig;
