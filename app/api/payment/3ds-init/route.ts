@@ -6,18 +6,11 @@
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-import 'postman-request';
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/app/lib/supabaseAdmin';
 import { getClientIP } from '@/app/lib/rate-limiter';
 
-const Iyzipay = require('iyzipay');
 
-const iyzipay = new Iyzipay({
-  apiKey: process.env.IYZICO_API_KEY || '',
-  secretKey: process.env.IYZICO_SECRET_KEY || '',
-  uri: process.env.IYZICO_BASE_URL || '',
-});
 
 const FAIL_RESPONSE = { success: false, message: '3DS initialization failed' };
 const ALREADY_PAID_RESPONSE = { success: false, message: 'Bu sipariş için ödeme zaten alınmış.' };
@@ -43,6 +36,14 @@ function parseOrderIds(orderId: string): number[] {
 
 export async function POST(req: NextRequest) {
   try {
+    const Iyzipay = require('iyzipay');
+    const iyzipay = new Iyzipay({
+
+      apiKey: process.env.IYZICO_API_KEY || '',
+      secretKey: process.env.IYZICO_SECRET_KEY || '',
+      uri: process.env.IYZICO_BASE_URL || '',
+    });
+
     const body = await req.json();
 
     const orderId = body.orderId != null ? String(body.orderId).trim() : '';
