@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
       apiKey: process.env.IYZICO_API_KEY || '',
       secretKey: process.env.IYZICO_SECRET_KEY || '',
-      uri: process.env.IYZICO_BASE_URL || '',
+      baseUrl: process.env.IYZICO_BASE_URL || '',
     });
 
     const body = await req.json();
@@ -248,6 +248,7 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await new Promise<{ status?: string; threeDSHtmlContent?: string }>((resolve, reject) => {
+      console.log("Iyzipay İçindeki Nesneler (Anahtarlar):", Object.keys(iyzipay));
       iyzipay.threeDSInitialize.create(request, (err: Error | null, res: unknown) => {
         if (err) return reject(err);
         resolve(res as typeof result);
