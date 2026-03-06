@@ -247,7 +247,7 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await new Promise<{ status?: string; threeDSHtmlContent?: string }>((resolve, reject) => {
-      iyzipay.threedsInitialize.create(request, (err: Error | null, res: unknown) => {
+      iyzipay.threeDSInitialize.create(request, (err: Error | null, res: unknown) => {
         if (err) return reject(err);
         resolve(res as typeof result);
       });
