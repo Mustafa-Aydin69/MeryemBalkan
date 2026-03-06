@@ -277,7 +277,13 @@ export async function POST(req: NextRequest) {
       success: true,
       htmlContent: result.threeDSHtmlContent,
     });
-  } catch {
-    return NextResponse.json(FAIL_RESPONSE, { status: 502 });
+  } catch (error: any) {
+    // Bu satır, Vercel'in kendi "Logs" ekranında hatanın gerçek sebebini görmemizi sağlar
+    console.error("3DS Init Hata Detayı:", error);
+
+    return NextResponse.json(
+      { success: false, message: error.message || '3DS initialization failed' },
+      { status: 502 }
+    );
   }
 }
