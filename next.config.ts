@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true, // (Opsiyonel) TS hataları yüzünden build fail olmasın
   },
   // iyzipay: fs.readdirSync + dynamic require kullanıyor, bundle'da çözülmüyor
-  serverExternalPackages: ['iyzipay'],
+  serverExternalPackages: ['iyzipay', 'postman-request'],
   // Vercel: iyzipay lib/resources runtime'da scandir ile yüklüyor; trace'a tam paketi ekle
   experimental: {
     outputFileTracingIncludes: {
