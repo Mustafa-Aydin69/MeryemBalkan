@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
       apiKey: process.env.IYZICO_API_KEY || '',
       secretKey: process.env.IYZICO_SECRET_KEY || '',
-      baseUrl: process.env.IYZICO_BASE_URL || '',
+      baseUrl: process.env.IYZICO_BASE_URL || 'https://sandbox-api.iyzipay.com',
     });
 
     const body = await req.json();
