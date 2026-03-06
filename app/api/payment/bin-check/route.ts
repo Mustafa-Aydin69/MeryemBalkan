@@ -54,7 +54,7 @@ export async function OPTIONS() {
   });
 }
 
-export async function GET(req: NextRequest) {
+export default async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
