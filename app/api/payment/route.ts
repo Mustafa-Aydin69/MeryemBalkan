@@ -5,7 +5,7 @@
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
+import 'postman-request';
 import { NextRequest, NextResponse } from 'next/server';
 const Iyzipay = require('iyzipay');
 

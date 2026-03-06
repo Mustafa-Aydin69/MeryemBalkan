@@ -6,7 +6,7 @@
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
+import 'postman-request';
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/app/lib/supabaseAdmin';
 import { getClientIP } from '@/app/lib/rate-limiter';
