@@ -2,6 +2,7 @@ export const runtime = 'nodejs';
 
 import 'postman-request';
 import { getSupabaseAdmin } from '@/app/lib/supabaseAdmin';
+import { logPaymentEvent } from '@/app/lib/logPaymentEvent';
 
 const Iyzipay = require('iyzipay');
 
@@ -29,6 +30,11 @@ function parseDBPrice(raw: unknown): number {
 
 export type PaymentResult = 'success' | 'already_processed' | 'failed' | 'error';
 
+export interface ProcessPaymentOptions {
+  source?: 'callback' | 'webhook';
+  ip?: string;
+}
+
 /**
  * Shared payment processing logic used by both /callback and /webhook.
  * Returns:
@@ -37,7 +43,21 @@ export type PaymentResult = 'success' | 'already_processed' | 'failed' | 'error'
  *   'failed'            — payment not successful or validation error
  *   'error'             — internal error (DB, RPC, etc.)
  */
-export async function processPayment(token: string): Promise<PaymentResult> {
+export async function processPayment(token: string, options: ProcessPaymentOptions = {}): Promise<PaymentResult> {
+  const result = await _processPayment(token);
+
+  // Fire-and-forget — logging never blocks or crashes the main flow
+  logPaymentEvent({
+    event_type:      options.source ?? 'callback',
+    token,
+    result,
+    ip:              options.ip,
+  }).catch((e) => console.error('[processPayment] log hatası:', e));
+
+  return result;
+}
+
+async function _processPayment(token: string): Promise<PaymentResult> {
   try {
     // 1. Verify payment with Iyzico — single source of truth
     const iyzicoResult = await new Promise<{

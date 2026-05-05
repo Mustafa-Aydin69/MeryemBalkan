@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
 
     console.log('[webhook] token=%s', token.slice(0, 12) + '...');
 
-    const result = await processPayment(token);
+    const result = await processPayment(token, { source: 'webhook' });
     console.log('[webhook] result=%s token=%s', result, token.slice(0, 12) + '...');
 
     // Always 200 — a non-200 causes Iyzico to retry indefinitely

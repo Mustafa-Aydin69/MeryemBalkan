@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.redirect(resultUrl(req, 'failed'), { status: 303 });
     }
 
-    const result = await processPayment(token);
+    const result = await processPayment(token, { source: 'callback', ip });
 
     if (result === 'success' || result === 'already_processed') {
       return NextResponse.redirect(resultUrl(req, 'success'), { status: 303 });
