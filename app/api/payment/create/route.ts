@@ -40,6 +40,7 @@ const CustomerSchema = z.object({
   lastName: z.string().min(1).max(100).transform(v => v.trim()),
   phone: z.string().min(10).max(20).transform(v => v.trim()),
   email: z.string().email().max(254).transform(v => v.trim().toLowerCase()),
+  tcNo: z.string().regex(/^[1-9][0-9]{10}$/, 'TC Kimlik No geçersiz'),
 });
 
 const AddressSchema = z.object({
@@ -47,7 +48,6 @@ const AddressSchema = z.object({
   district: z.string().max(100).default('').transform(v => v.trim()),
   city: z.string().min(1).max(100).transform(v => v.trim()),
   postalCode: z.string().max(20).default('').transform(v => v.trim()),
-  country: z.string().max(100).default('Türkiye').transform(v => v.trim()),
 });
 
 const CreatePaymentSchema = z.object({
@@ -237,7 +237,7 @@ export async function POST(req: NextRequest) {
         surname: customer.lastName,
         gsmNumber: normalizePhone(customer.phone),
         email: customer.email,
-        identityNumber: '11111111111',
+        identityNumber: customer.tcNo,
         registrationAddress: fullAddress,
         ip: ip !== 'unknown' ? ip : '127.0.0.1',
         city: shippingAddress.city,

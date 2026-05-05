@@ -140,10 +140,10 @@ async function _processPayment(token: string, ctx: { errorMsg?: string; conversa
 
     // 3. Strict price validation — cent comparison avoids float imprecision
     const expectedPrice = Number(session.total_price);
-    if (Math.round(paidPrice * 100) !== Math.round(expectedPrice * 100)) {
-      console.error('[processPayment] fiyat uyuşmazlığı: ödenen=%s beklenen=%s conversation=%s',
+    if (Math.round(paidPrice * 100) < Math.round(expectedPrice * 100)) {
+      console.error('[processPayment] eksik ödeme: ödenen=%s beklenen=%s conversation=%s',
         paidPrice, expectedPrice, conversationId);
-      ctx.errorMsg = 'Fiyat uyuşmazlığı: ödenen=' + paidPrice + ' beklenen=' + expectedPrice;
+      ctx.errorMsg = 'Eksik ödeme: ödenen=' + paidPrice + ' beklenen=' + expectedPrice;
       return 'failed';
     }
 

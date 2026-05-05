@@ -2,15 +2,30 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import LoginModal from '../components/LoginModal';
 
 export default function OrdersPage() {
     const [isDarkMode, setIsDarkMode] = useState(true);
     const [orders, setOrders] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
     const router = useRouter();
 
+    const checkAuthAndLoad = () => {
+        const verificationCode = localStorage.getItem('verificationCodeVerified');
+        const userEmail = localStorage.getItem('userEmail');
+        if (!userEmail || verificationCode !== 'true') {
+            setIsLoggedIn(false);
+            setIsLoading(false);
+            setIsLoginModalOpen(true);
+            return;
+        }
+        setIsLoggedIn(true);
+        loadOrders(userEmail);
+    };
+
     useEffect(() => {
-        // Dark mode kontrolü
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme === 'light') {
             setIsDarkMode(false);
@@ -18,17 +33,7 @@ export default function OrdersPage() {
         } else {
             document.documentElement.classList.add('dark');
         }
-
-        // Kullanıcı girişi kontrolü
-        const verificationCode = localStorage.getItem('verificationCodeVerified');
-        const userEmail = localStorage.getItem('userEmail');
-        if (!userEmail || verificationCode !== 'true') {
-            router.push('/');
-            return;
-        }
-
-        // Siparişleri yükle
-        loadOrders(userEmail);
+        checkAuthAndLoad();
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -57,10 +62,24 @@ export default function OrdersPage() {
         setIsLoading(false);
     };
 
+    const handleLoginModalClose = () => {
+        setIsLoginModalOpen(false);
+        // Login başarılıysa siparişleri yükle
+        const verificationCode = localStorage.getItem('verificationCodeVerified');
+        const userEmail = localStorage.getItem('userEmail');
+        if (userEmail && verificationCode === 'true') {
+            setIsLoggedIn(true);
+            setIsLoading(true);
+            loadOrders(userEmail);
+        }
+    };
+
     const handleLogout = () => {
         localStorage.removeItem('userEmail');
         localStorage.removeItem('verificationCodeVerified');
-        router.push('/');
+        setIsLoggedIn(false);
+        setOrders([]);
+        setIsLoginModalOpen(true);
     };
 
     const toggleTheme = () => {
@@ -102,6 +121,28 @@ export default function OrdersPage() {
 
     return (
         <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'dark bg-gray-900' : 'bg-white'}`}>
+
+            {/* Giriş yapılmamış ekranı */}
+            {!isLoggedIn && !isLoginModalOpen && (
+                <div className="min-h-screen flex items-center justify-center px-4">
+                    <div className="text-center">
+                        <div className={`w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
+                            <i className={`ri-user-line text-4xl ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}></i>
+                        </div>
+                        <h2 className={`text-2xl font-light mb-3 ${isDarkMode ? 'text-white' : 'text-black'}`}>Siparişlerinizi görmek için giriş yapın</h2>
+                        <p className={`text-sm mb-8 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>E-posta adresinizle doğrulama kodu alarak giriş yapabilirsiniz.</p>
+                        <button
+                            onClick={() => setIsLoginModalOpen(true)}
+                            className={`px-8 py-3 rounded-full font-medium transition-colors ${isDarkMode ? 'bg-white text-black hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-800'}`}
+                        >
+                            Giriş Yap
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Giriş yapılmış - Ana içerik */}
+            {isLoggedIn && (<>
             {/* Navigation */}
             <nav className={`fixed top-0 left-0 right-0 z-20 transition-all duration-200 ${isDarkMode ? 'bg-gray-900 shadow-sm' : 'bg-white shadow-sm'}`}>
                 <div className="flex flex-col items-center px-4 sm:px-8 py-4 sm:py-6">
@@ -322,6 +363,9 @@ export default function OrdersPage() {
                     </div>
                 </div>
             </footer>
+            </>)}
+
+            <LoginModal isOpen={isLoginModalOpen} onClose={handleLoginModalClose} isDarkMode={isDarkMode} />
         </div>
     );
 }

@@ -267,14 +267,21 @@ export default function OrdersPage() {
                 <div className="border-t border-gray-700 pt-3">
                   <p className="text-gray-500 text-xs mb-1">Ödeme Şekli</p>
                   <p className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                    viewingOrder.paymentMethod === 'Mağazadan' 
-                      ? 'bg-purple-500/20 text-purple-400' 
+                    viewingOrder.paymentMethod === 'Mağazadan'
+                      ? 'bg-purple-500/20 text-purple-400'
                       : 'bg-blue-500/20 text-blue-400'
                   }`}>
                     <i className={viewingOrder.paymentMethod === 'Mağazadan' ? 'ri-store-2-line' : 'ri-bank-card-line'}></i>
                     {viewingOrder.paymentMethod || 'Online'}
                   </p>
                 </div>
+
+                {viewingOrder.conversationId && (
+                  <div className="border-t border-gray-700 pt-3">
+                    <p className="text-gray-500 text-xs mb-1">Iyzico Conversation ID</p>
+                    <p className="font-mono text-xs break-all text-gray-300 select-all">{viewingOrder.conversationId}</p>
+                  </div>
+                )}
               </div>
             </div>
 

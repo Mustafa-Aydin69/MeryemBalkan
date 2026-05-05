@@ -94,12 +94,13 @@ export function useMessages() {
     fetchMessages();
   }, [fetchMessages]);
 
-  // Filtered messages
+  // Filtered messages — sadece Bekliyor olanlar gösterilir
   const filteredMessages = messages.filter(
     (msg) =>
-      msg.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      msg.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      msg.message.toLowerCase().includes(searchTerm.toLowerCase())
+      msg.status === 'Bekliyor' &&
+      (msg.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        msg.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        msg.message.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   // Pagination

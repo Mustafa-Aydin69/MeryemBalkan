@@ -421,13 +421,17 @@ export function useProducts() {
           return getR2BaseUrl() + img;
         });
 
+    const featuresText = Array.isArray(product.features)
+      ? product.features.join('\n')
+      : (product.features || '');
+
     setEditingProduct({
       ...product,
       description: product.description ?? "",
       images: product.images ?? [],
       colors: product.colors ?? [],
       size: product.size ?? [],
-      features: product.features ?? [],
+      features: featuresText,
       year: product.year ?? new Date().getFullYear(),
       originalStatus: product.status,
       imagePreviews,
@@ -549,6 +553,10 @@ export function useProducts() {
 
     // 3. DB'yi güncelle
 
+    const featuresArray = typeof editingProduct.features === 'string'
+      ? editingProduct.features.split('\n').map((s: string) => s.trim()).filter(Boolean)
+      : (editingProduct.features || []);
+
     const updateData = {
       title: editingProduct.title,
       collection: editingProduct.category + " Koleksiyonu",
@@ -556,7 +564,7 @@ export function useProducts() {
       price: editingProduct.price,
       status: editingProduct.status,
       year: editingProduct.year || new Date().getFullYear(),
-      features: editingProduct.features || [],
+      features: featuresArray,
       size: editingProduct.size || [],
       colors: editingProduct.colors || [],
       images: uploadedNames,

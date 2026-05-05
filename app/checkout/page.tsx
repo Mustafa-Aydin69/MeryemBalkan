@@ -55,13 +55,25 @@ export default function Checkout() {
     email: '',
     firstName: '',
     lastName: '',
+    tcNo: '',
     address: '',
     city: '',
     postalCode: '',
     phone: '',
-    country: 'Türkiye',
     district: '',
   });
+
+  const TURKISH_CITIES = [
+    'Adana','Adıyaman','Afyonkarahisar','Ağrı','Aksaray','Amasya','Ankara','Antalya','Ardahan',
+    'Artvin','Aydın','Balıkesir','Bartın','Batman','Bayburt','Bilecik','Bingöl','Bitlis','Bolu',
+    'Burdur','Bursa','Çanakkale','Çankırı','Çorum','Denizli','Diyarbakır','Düzce','Edirne',
+    'Elazığ','Erzincan','Erzurum','Eskişehir','Gaziantep','Giresun','Gümüşhane','Hakkari','Hatay',
+    'Iğdır','Isparta','İstanbul','İzmir','Kahramanmaraş','Karabük','Karaman','Kars','Kastamonu',
+    'Kayseri','Kırıkkale','Kırklareli','Kırşehir','Kilis','Kocaeli','Konya','Kütahya','Malatya',
+    'Manisa','Mardin','Mersin','Muğla','Muş','Nevşehir','Niğde','Ordu','Osmaniye','Rize',
+    'Sakarya','Samsun','Siirt','Sinop','Sivas','Şanlıurfa','Şırnak','Tekirdağ','Tokat','Trabzon',
+    'Tunceli','Uşak','Van','Yalova','Yozgat','Zonguldak',
+  ];
 
   useEffect(() => {
     setIsClient(true);
@@ -167,6 +179,7 @@ export default function Checkout() {
     return (
       formData.firstName.trim() !== '' &&
       formData.lastName.trim() !== '' &&
+      formData.tcNo.trim() !== '' &&
       formData.address.trim() !== '' &&
       formData.district.trim() !== '' &&
       formData.city.trim() !== '' &&
@@ -184,9 +197,14 @@ export default function Checkout() {
 
     if (!formData.firstName.trim()) errors.firstName = 'Ad zorunludur';
     if (!formData.lastName.trim()) errors.lastName = 'Soyad zorunludur';
+    if (!formData.tcNo.trim()) {
+      errors.tcNo = 'TC Kimlik No zorunludur';
+    } else if (!/^[1-9][0-9]{10}$/.test(formData.tcNo.trim())) {
+      errors.tcNo = 'TC Kimlik No 11 haneli olmalı ve 0 ile başlamamalıdır';
+    }
     if (!formData.address.trim()) errors.address = 'Adres zorunludur';
     if (!formData.district.trim()) errors.district = 'İlçe zorunludur';
-    if (!formData.city.trim()) errors.city = 'Şehir zorunludur';
+    if (!formData.city.trim()) errors.city = 'Şehir seçiniz';
     if (!formData.postalCode.trim()) errors.postalCode = 'Posta kodu zorunludur';
     if (!formData.phone.trim()) {
       errors.phone = 'Telefon numarası zorunludur';
@@ -263,13 +281,13 @@ export default function Checkout() {
             lastName: formData.lastName,
             phone: formData.phone,
             email: formData.email,
+            tcNo: formData.tcNo,
           },
           shippingAddress: {
             address: formData.address,
             district: formData.district,
             city: formData.city,
             postalCode: formData.postalCode,
-            country: formData.country,
           },
           deliveryMethod,
         }),
@@ -642,218 +660,131 @@ export default function Checkout() {
                 </div>
               </div>
 
-              {/* Adres Bilgileri - Her zaman görüntülenir */}
+              {/* Adres Bilgileri */}
               <div>
-                <h3
-                  className={`text-xl font-medium mb-6 transition-colors ${isDarkMode ? 'text-white' : 'text-black'
-                    }`}
-                >
+                <h3 className={`text-xl font-medium mb-6 transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>
                   {deliveryMethod === 'pickup' ? 'Fatura Adresi' : 'Teslimat Adresi'}
                 </h3>
 
-                <div className="space-y-6">
-                  <div>
-                    <label
-                      htmlFor="country"
-                      className={`block text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'
-                        }`}
-                    >
-                      Ülke/Bölge *
-                    </label>
-                    <select
-                      id="country"
-                      name="country"
-                      value={formData.country || 'Türkiye'}
-                      onChange={handleInputChange}
-                      required
-                      className={`w-full px-4 py-3 border focus:outline-none text-sm pr-8 transition-colors ${isDarkMode
-                        ? 'bg-gray-800 border-gray-600 text-white focus:border-white'
-                        : 'bg-white border-gray-300 text-black focus:border-black'
-                        }`}
-                    >
-                      <option value="Türkiye">Türkiye</option>
-                    </select>
-                  </div>
+                <div className="space-y-8">
+                  {/* Kişisel Bilgiler */}
+                  <div className={`rounded-xl p-5 space-y-4 border ${isDarkMode ? 'border-gray-700 bg-gray-800/40' : 'border-gray-200 bg-gray-50'}`}>
+                    <p className={`text-xs font-semibold uppercase tracking-widest ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Kişisel Bilgiler</p>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                    <div>
-                      <label
-                        htmlFor="firstName"
-                        className={`block text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'
-                          }`}
-                      >
-                        Ad *
-                      </label>
-                      <input
-                        type="text"
-                        id="firstName"
-                        name="firstName"
-                        value={formData.firstName}
-                        onChange={handleInputChange}
-                        required
-                        className={`w-full px-4 py-3 border focus:outline-none text-sm transition-colors ${isDarkMode
-                          ? 'bg-gray-800 border-gray-600 text-white focus:border-white'
-                          : 'bg-white border-gray-300 text-black focus:border-black'
-                          }`}
-                      />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label htmlFor="firstName" className={`block text-sm font-medium mb-1.5 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Ad *</label>
+                        <input
+                          type="text" id="firstName" name="firstName"
+                          value={formData.firstName} onChange={handleInputChange}
+                          data-error={!!formErrors.firstName}
+                          className={`w-full px-4 py-3 rounded-lg border text-sm transition-colors focus:outline-none focus:ring-2 ${formErrors.firstName ? 'border-red-500 focus:ring-red-500/20' : isDarkMode ? 'bg-gray-800 border-gray-600 text-white focus:border-white focus:ring-white/10' : 'bg-white border-gray-300 text-black focus:border-black focus:ring-black/10'}`}
+                        />
+                        {formErrors.firstName && <p className="text-red-500 text-xs mt-1">{formErrors.firstName}</p>}
+                      </div>
+                      <div>
+                        <label htmlFor="lastName" className={`block text-sm font-medium mb-1.5 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Soyad *</label>
+                        <input
+                          type="text" id="lastName" name="lastName"
+                          value={formData.lastName} onChange={handleInputChange}
+                          data-error={!!formErrors.lastName}
+                          className={`w-full px-4 py-3 rounded-lg border text-sm transition-colors focus:outline-none focus:ring-2 ${formErrors.lastName ? 'border-red-500 focus:ring-red-500/20' : isDarkMode ? 'bg-gray-800 border-gray-600 text-white focus:border-white focus:ring-white/10' : 'bg-white border-gray-300 text-black focus:border-black focus:ring-black/10'}`}
+                        />
+                        {formErrors.lastName && <p className="text-red-500 text-xs mt-1">{formErrors.lastName}</p>}
+                      </div>
                     </div>
+
                     <div>
-                      <label
-                        htmlFor="lastName"
-                        className={`block text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'
-                          }`}
-                      >
-                        Soyad *
+                      <label htmlFor="tcNo" className={`block text-sm font-medium mb-1.5 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                        TC Kimlik No *
                       </label>
                       <input
-                        type="text"
-                        id="lastName"
-                        name="lastName"
-                        value={formData.lastName}
-                        onChange={handleInputChange}
-                        required
-                        className={`w-full px-4 py-3 border focus:outline-none text-sm transition-colors ${isDarkMode
-                          ? 'bg-gray-800 border-gray-600 text-white focus:border-white'
-                          : 'bg-white border-gray-300 text-black focus:border-black'
-                          }`}
+                        type="text" id="tcNo" name="tcNo"
+                        value={formData.tcNo} onChange={handleInputChange}
+                        maxLength={11} placeholder="xxxxxxxxxxx"
+                        data-error={!!formErrors.tcNo}
+                        className={`w-full px-4 py-3 rounded-lg border text-sm transition-colors focus:outline-none focus:ring-2 tracking-widest ${formErrors.tcNo ? 'border-red-500 focus:ring-red-500/20' : isDarkMode ? 'bg-gray-800 border-gray-600 text-white focus:border-white focus:ring-white/10 placeholder:text-gray-500' : 'bg-white border-gray-300 text-black focus:border-black focus:ring-black/10 placeholder:text-gray-400'}`}
                       />
+                      {formErrors.tcNo
+                        ? <p className="text-red-500 text-xs mt-1">{formErrors.tcNo}</p>
+                        : <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>Ödeme güvenliği için Iyzico tarafından istenmektedir.</p>
+                      }
                     </div>
-                  </div>
 
-                  <div>
-                    <label
-                      htmlFor="address"
-                      className={`block text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'
-                        }`}
-                    >
-                      Adres *
-                    </label>
-                    <input
-                      type="text"
-                      id="address"
-                      name="address"
-                      value={formData.address}
-                      onChange={handleInputChange}
-                      required
-                      placeholder="Tam adresinizi giriniz"
-                      className={`w-full px-4 py-3 border focus:outline-none text-sm transition-colors ${isDarkMode
-                        ? 'bg-gray-800 border-gray-600 text-white focus:border-white placeholder:text-gray-400'
-                        : 'bg-white border-gray-300 text-black focus:border-black placeholder:text-gray-500'
-                        }`}
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="district"
-                      className={`block text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'
-                        }`}
-                    >
-                      İlçe *
-                    </label>
-                    <input
-                      type="text"
-                      id="district"
-                      name="district"
-                      value={formData.district}
-                      onChange={handleInputChange}
-                      required
-                      className={`w-full px-4 py-3 border focus:outline-none text-sm transition-colors ${isDarkMode
-                        ? 'bg-gray-800 border-gray-600 text-white focus:border-white'
-                        : 'bg-white border-gray-300 text-black focus:border-black'
-                        }`}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label
-                        htmlFor="postalCode"
-                        className={`block text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'
-                          }`}
-                      >
-                        Posta kodu *
-                      </label>
+                      <label htmlFor="email" className={`block text-sm font-medium mb-1.5 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>E-posta *</label>
                       <input
-                        type="text"
-                        id="postalCode"
-                        name="postalCode"
-                        value={formData.postalCode}
-                        onChange={handleInputChange}
-                        required
-                        className={`w-full px-4 py-3 border focus:outline-none text-sm transition-colors ${isDarkMode
-                          ? 'bg-gray-800 border-gray-600 text-white focus:border-white'
-                          : 'bg-white border-gray-300 text-black focus:border-black'
-                          }`}
+                        type="email" id="email" name="email"
+                        value={formData.email} onChange={handleInputChange}
+                        placeholder="ornek@email.com" data-error={!!formErrors.email}
+                        className={`w-full px-4 py-3 rounded-lg border text-sm transition-colors focus:outline-none focus:ring-2 ${formErrors.email ? 'border-red-500 focus:ring-red-500/20' : isDarkMode ? 'bg-gray-800 border-gray-600 text-white focus:border-white focus:ring-white/10 placeholder:text-gray-500' : 'bg-white border-gray-300 text-black focus:border-black focus:ring-black/10 placeholder:text-gray-400'}`}
                       />
+                      {formErrors.email && <p className="text-red-500 text-xs mt-1">{formErrors.email}</p>}
                     </div>
+
                     <div>
-                      <label
-                        htmlFor="city"
-                        className={`block text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'
-                          }`}
-                      >
-                        Şehir *
-                      </label>
+                      <label htmlFor="phone" className={`block text-sm font-medium mb-1.5 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Telefon *</label>
                       <input
-                        type="text"
-                        id="city"
-                        name="city"
-                        value={formData.city}
-                        onChange={handleInputChange}
-                        required
-                        className={`w-full px-4 py-3 border focus:outline-none text-sm transition-colors ${isDarkMode
-                          ? 'bg-gray-800 border-gray-600 text-white focus:border-white'
-                          : 'bg-white border-gray-300 text-black focus:border-black'
-                          }`}
+                        type="tel" id="phone" name="phone"
+                        value={formData.phone} onChange={handleInputChange}
+                        placeholder="0 5XX XXX XX XX" data-error={!!formErrors.phone}
+                        className={`w-full px-4 py-3 rounded-lg border text-sm transition-colors focus:outline-none focus:ring-2 ${formErrors.phone ? 'border-red-500 focus:ring-red-500/20' : isDarkMode ? 'bg-gray-800 border-gray-600 text-white focus:border-white focus:ring-white/10 placeholder:text-gray-500' : 'bg-white border-gray-300 text-black focus:border-black focus:ring-black/10 placeholder:text-gray-400'}`}
                       />
+                      {formErrors.phone && <p className="text-red-500 text-xs mt-1">{formErrors.phone}</p>}
                     </div>
                   </div>
 
-                  <div>
-                    <label
-                      htmlFor="phone"
-                      className={`block text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'
-                        }`}
-                    >
-                      Telefon Numarası *
-                    </label>
-                    <input
-                      type="tel"
-                      id="phone"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      required
-                      placeholder="0 5XX XXX XX XX"
-                      className={`w-full px-4 py-3 border focus:outline-none text-sm transition-colors ${isDarkMode
-                        ? 'bg-gray-800 border-gray-600 text-white focus:border-white placeholder:text-gray-400'
-                        : 'bg-white border-gray-300 text-black focus:border-black placeholder:text-gray-500'
-                        }`}
-                    />
-                  </div>
+                  {/* Adres Bilgileri */}
+                  <div className={`rounded-xl p-5 space-y-4 border ${isDarkMode ? 'border-gray-700 bg-gray-800/40' : 'border-gray-200 bg-gray-50'}`}>
+                    <p className={`text-xs font-semibold uppercase tracking-widest ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Adres Bilgileri</p>
 
-                  <div>
-                    <label
-                      htmlFor="email"
-                      className={`block text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'
-                        }`}
-                    >
-                      E-posta Adresi *
-                    </label>
-                    <input
-                      type="email"
-                      id="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      required
-                      placeholder="ornek@email.com"
-                      className={`w-full px-4 py-3 border focus:outline-none text-sm transition-colors ${isDarkMode
-                        ? 'bg-gray-800 border-gray-600 text-white focus:border-white placeholder:text-gray-400'
-                        : 'bg-white border-gray-300 text-black focus:border-black placeholder:text-gray-500'
-                        }`}
-                    />
+                    <div>
+                      <label htmlFor="address" className={`block text-sm font-medium mb-1.5 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Adres *</label>
+                      <input
+                        type="text" id="address" name="address"
+                        value={formData.address} onChange={handleInputChange}
+                        placeholder="Mahalle, sokak, kapı no..." data-error={!!formErrors.address}
+                        className={`w-full px-4 py-3 rounded-lg border text-sm transition-colors focus:outline-none focus:ring-2 ${formErrors.address ? 'border-red-500 focus:ring-red-500/20' : isDarkMode ? 'bg-gray-800 border-gray-600 text-white focus:border-white focus:ring-white/10 placeholder:text-gray-500' : 'bg-white border-gray-300 text-black focus:border-black focus:ring-black/10 placeholder:text-gray-400'}`}
+                      />
+                      {formErrors.address && <p className="text-red-500 text-xs mt-1">{formErrors.address}</p>}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label htmlFor="city" className={`block text-sm font-medium mb-1.5 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Şehir *</label>
+                        <select
+                          id="city" name="city"
+                          value={formData.city} onChange={handleInputChange}
+                          data-error={!!formErrors.city}
+                          className={`w-full px-4 py-3 rounded-lg border text-sm transition-colors focus:outline-none focus:ring-2 appearance-none ${formErrors.city ? 'border-red-500 focus:ring-red-500/20' : isDarkMode ? 'bg-gray-800 border-gray-600 text-white focus:border-white focus:ring-white/10' : 'bg-white border-gray-300 text-black focus:border-black focus:ring-black/10'}`}
+                        >
+                          <option value="">Şehir seçin...</option>
+                          {TURKISH_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                        {formErrors.city && <p className="text-red-500 text-xs mt-1">{formErrors.city}</p>}
+                      </div>
+                      <div>
+                        <label htmlFor="district" className={`block text-sm font-medium mb-1.5 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>İlçe *</label>
+                        <input
+                          type="text" id="district" name="district"
+                          value={formData.district} onChange={handleInputChange}
+                          data-error={!!formErrors.district}
+                          className={`w-full px-4 py-3 rounded-lg border text-sm transition-colors focus:outline-none focus:ring-2 ${formErrors.district ? 'border-red-500 focus:ring-red-500/20' : isDarkMode ? 'bg-gray-800 border-gray-600 text-white focus:border-white focus:ring-white/10' : 'bg-white border-gray-300 text-black focus:border-black focus:ring-black/10'}`}
+                        />
+                        {formErrors.district && <p className="text-red-500 text-xs mt-1">{formErrors.district}</p>}
+                      </div>
+                    </div>
+
+                    <div className="sm:w-1/2">
+                      <label htmlFor="postalCode" className={`block text-sm font-medium mb-1.5 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Posta Kodu *</label>
+                      <input
+                        type="text" id="postalCode" name="postalCode"
+                        value={formData.postalCode} onChange={handleInputChange}
+                        data-error={!!formErrors.postalCode}
+                        className={`w-full px-4 py-3 rounded-lg border text-sm transition-colors focus:outline-none focus:ring-2 ${formErrors.postalCode ? 'border-red-500 focus:ring-red-500/20' : isDarkMode ? 'bg-gray-800 border-gray-600 text-white focus:border-white focus:ring-white/10' : 'bg-white border-gray-300 text-black focus:border-black focus:ring-black/10'}`}
+                      />
+                      {formErrors.postalCode && <p className="text-red-500 text-xs mt-1">{formErrors.postalCode}</p>}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -947,188 +878,44 @@ export default function Checkout() {
                   </div>
                 </div>
 
-                {/* Eğer farklı adres seçildiyse yeni form aç */}
                 {billingAddressOption === 'different' && (
-                  <div className="mt-6 space-y-6">
-                    <div>
-                      <label
-                        htmlFor="country"
-                        className={`block text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'
-                          }`}
-                      >
-                        Ülke/Bölge *
-                      </label>
-                      <select
-                        id="country"
-                        name="country"
-                        value={formData.country || 'Türkiye'}
-                        onChange={handleInputChange}
-                        required
-                        className={`w-full px-4 py-3 border focus:outline-none text-sm pr-8 transition-colors ${isDarkMode
-                          ? 'bg-gray-800 border-gray-600 text-white focus:border-white'
-                          : 'bg-white border-gray-300 text-black focus:border-black'
-                          }`}
-                      >
-                        <option value="Türkiye">Türkiye</option>
-                      </select>
-                    </div>
-
+                  <div className={`mt-4 rounded-xl p-5 space-y-4 border ${isDarkMode ? 'border-gray-700 bg-gray-800/40' : 'border-gray-200 bg-gray-50'}`}>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label
-                          htmlFor="firstName"
-                          className={`block text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'
-                            }`}
-                        >
-                          Ad *
-                        </label>
-                        <input
-                          type="text"
-                          id="firstName"
-                          name="firstName"
-                          value={formData.firstName}
-                          onChange={handleInputChange}
-                          required
-                          className={`w-full px-4 py-3 border focus:outline-none text-sm transition-colors ${isDarkMode
-                            ? 'bg-gray-800 border-gray-600 text-white focus:border-white'
-                            : 'bg-white border-gray-300 text-black focus:border-black'
-                            }`}
-                        />
+                        <label htmlFor="billingFirstName" className={`block text-sm font-medium mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Ad *</label>
+                        <input type="text" id="billingFirstName" name="firstName" value={formData.firstName} onChange={handleInputChange}
+                          className={`w-full px-4 py-3 rounded-lg border text-sm focus:outline-none focus:ring-2 ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white focus:border-white focus:ring-white/10' : 'bg-white border-gray-300 text-black focus:border-black focus:ring-black/10'}`} />
                       </div>
                       <div>
-                        <label
-                          htmlFor="lastName"
-                          className={`block text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'
-                            }`}
-                        >
-                          Soyad *
-                        </label>
-                        <input
-                          type="text"
-                          id="lastName"
-                          name="lastName"
-                          value={formData.lastName}
-                          onChange={handleInputChange}
-                          required
-                          className={`w-full px-4 py-3 border focus:outline-none text-sm transition-colors ${isDarkMode
-                            ? 'bg-gray-800 border-gray-600 text-white focus:border-white'
-                            : 'bg-white border-gray-300 text-black focus:border-black'
-                            }`}
-                        />
+                        <label htmlFor="billingLastName" className={`block text-sm font-medium mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Soyad *</label>
+                        <input type="text" id="billingLastName" name="lastName" value={formData.lastName} onChange={handleInputChange}
+                          className={`w-full px-4 py-3 rounded-lg border text-sm focus:outline-none focus:ring-2 ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white focus:border-white focus:ring-white/10' : 'bg-white border-gray-300 text-black focus:border-black focus:ring-black/10'}`} />
                       </div>
                     </div>
-
                     <div>
-                      <label
-                        htmlFor="address"
-                        className={`block text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'
-                          }`}
-                      >
-                        Adres *
-                      </label>
-                      <input
-                        type="text"
-                        id="address"
-                        name="address"
-                        value={formData.address}
-                        onChange={handleInputChange}
-                        required
-                        placeholder="Tam adresinizi giriniz"
-                        className={`w-full px-4 py-3 border focus:outline-none text-sm transition-colors ${isDarkMode
-                          ? 'bg-gray-800 border-gray-600 text-white focus:border-white placeholder:text-gray-400'
-                          : 'bg-white border-gray-300 text-black focus:border-black placeholder:text-gray-500'
-                          }`}
-                      />
+                      <label htmlFor="billingAddress" className={`block text-sm font-medium mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Adres *</label>
+                      <input type="text" id="billingAddress" name="address" value={formData.address} onChange={handleInputChange} placeholder="Mahalle, sokak, kapı no..."
+                        className={`w-full px-4 py-3 rounded-lg border text-sm focus:outline-none focus:ring-2 ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white focus:border-white focus:ring-white/10 placeholder:text-gray-500' : 'bg-white border-gray-300 text-black focus:border-black focus:ring-black/10 placeholder:text-gray-400'}`} />
                     </div>
-
-                    <div>
-                      <label
-                        htmlFor="district"
-                        className={`block text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'
-                          }`}
-                      >
-                        İlçe *
-                      </label>
-                      <input
-                        type="text"
-                        id="district"
-                        name="district"
-                        value={formData.district}
-                        onChange={handleInputChange}
-                        required
-                        className={`w-full px-4 py-3 border focus:outline-none text-sm transition-colors ${isDarkMode
-                          ? 'bg-gray-800 border-gray-600 text-white focus:border-white'
-                          : 'bg-white border-gray-300 text-black focus:border-black'
-                          }`}
-                      />
-                    </div>
-
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label
-                          htmlFor="postalCode"
-                          className={`block text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'
-                            }`}
-                        >
-                          Posta kodu *
-                        </label>
-                        <input
-                          type="text"
-                          id="postalCode"
-                          name="postalCode"
-                          value={formData.postalCode}
-                          onChange={handleInputChange}
-                          required
-                          className={`w-full px-4 py-3 border focus:outline-none text-sm transition-colors ${isDarkMode
-                            ? 'bg-gray-800 border-gray-600 text-white focus:border-white'
-                            : 'bg-white border-gray-300 text-black focus:border-black'
-                            }`}
-                        />
+                        <label htmlFor="billingCity" className={`block text-sm font-medium mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Şehir *</label>
+                        <select id="billingCity" name="city" value={formData.city} onChange={handleInputChange}
+                          className={`w-full px-4 py-3 rounded-lg border text-sm focus:outline-none focus:ring-2 appearance-none ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white focus:border-white focus:ring-white/10' : 'bg-white border-gray-300 text-black focus:border-black focus:ring-black/10'}`}>
+                          <option value="">Şehir seçin...</option>
+                          {TURKISH_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
                       </div>
                       <div>
-                        <label
-                          htmlFor="city"
-                          className={`block text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'
-                            }`}
-                        >
-                          Şehir *
-                        </label>
-                        <input
-                          type="text"
-                          id="city"
-                          name="city"
-                          value={formData.city}
-                          onChange={handleInputChange}
-                          required
-                          className={`w-full px-4 py-3 border focus:outline-none text-sm transition-colors ${isDarkMode
-                            ? 'bg-gray-800 border-gray-600 text-white focus:border-white'
-                            : 'bg-white border-gray-300 text-black focus:border-black'
-                            }`}
-                        />
+                        <label htmlFor="billingDistrict" className={`block text-sm font-medium mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>İlçe *</label>
+                        <input type="text" id="billingDistrict" name="district" value={formData.district} onChange={handleInputChange}
+                          className={`w-full px-4 py-3 rounded-lg border text-sm focus:outline-none focus:ring-2 ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white focus:border-white focus:ring-white/10' : 'bg-white border-gray-300 text-black focus:border-black focus:ring-black/10'}`} />
                       </div>
                     </div>
-
-                    <div>
-                      <label
-                        htmlFor="phone"
-                        className={`block text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'
-                          }`}
-                      >
-                        Telefon Numarası *
-                      </label>
-                      <input
-                        type="tel"
-                        id="phone"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleInputChange}
-                        required
-                        placeholder="0 5XX XXX XX XX"
-                        className={`w-full px-4 py-3 border focus:outline-none text-sm transition-colors ${isDarkMode
-                          ? 'bg-gray-800 border-gray-600 text-white focus:border-white placeholder:text-gray-400'
-                          : 'bg-white border-gray-300 text-black focus:border-black placeholder:text-gray-500'
-                          }`}
-                      />
+                    <div className="sm:w-1/2">
+                      <label htmlFor="billingPostalCode" className={`block text-sm font-medium mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Posta Kodu *</label>
+                      <input type="text" id="billingPostalCode" name="postalCode" value={formData.postalCode} onChange={handleInputChange}
+                        className={`w-full px-4 py-3 rounded-lg border text-sm focus:outline-none focus:ring-2 ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white focus:border-white focus:ring-white/10' : 'bg-white border-gray-300 text-black focus:border-black focus:ring-black/10'}`} />
                     </div>
                   </div>
                 )}
