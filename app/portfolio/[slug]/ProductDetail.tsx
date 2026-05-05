@@ -919,7 +919,7 @@ export default function ProductDetail({
             </div>
           </div>
           <div className={`border-t mt-12 pt-8 text-center text-sm transition-colors ${isDarkMode ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-500'}`}>
-            <p>&copy; Meryem Balkan.</p>
+            <p>&copy; 2026 Meryem Balkan Tüm hakları saklıdır.</p>
           </div>
         </div>
       </footer>

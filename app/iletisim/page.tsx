@@ -1,4 +1,4 @@
-
+﻿
 'use client';
 import Link from 'next/link';
 import LoginModal from '../components/LoginModal';
@@ -15,7 +15,8 @@ export default function Iletisim() {
     name: '',
     email: '',
     phone: '',
-    service: '',
+    konu: '',
+    siparisNo: '',
     message: ''
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -85,26 +86,28 @@ export default function Iletisim() {
     e.preventDefault();
 
     try {
-      const { name, email, phone, service, message } = formData;
+      const { name, email, phone, konu, siparisNo, message } = formData;
 
-      // Boş alan kontrolü
-      if (!name || !email || !service || !message) {
+      if (!name || !email || !konu || !message) {
         alert("Lütfen tüm zorunlu alanları doldurun.");
         return;
       }
 
-      // Supabase'e ekle
-      const { data, error } = await supabase
+      const fullMessage = siparisNo
+        ? `Sipariş No: ${siparisNo}\n\n${message}`
+        : message;
+
+      const { error } = await supabase
         .from("mesajlar")
         .insert([
           {
             name,
             email,
             phone,
-            hizmet: service,
-            mesaj: message,
+            hizmet: konu,
+            mesaj: fullMessage,
             cevap: "Bekliyor",
-            tarih: new Date().toISOString().split("T")[0], // YYYY-MM-DD
+            tarih: new Date().toISOString().split("T")[0],
           },
         ]);
 
@@ -114,11 +117,8 @@ export default function Iletisim() {
         return;
       }
 
-      console.log("Supabase ekleme başarılı:", data);
-
-      // Formu sıfırla
       setIsSubmitted(true);
-      setFormData({ name: "", email: "", phone: "", service: "", message: "" });
+      setFormData({ name: "", email: "", phone: "", konu: "", siparisNo: "", message: "" });
     } catch (err) {
       console.error("Beklenmedik hata:", err);
       alert("Bir hata oluştu, lütfen tekrar deneyin.");
@@ -188,96 +188,149 @@ export default function Iletisim() {
             <div>
               <h3 className={`text-xl sm:text-2xl font-light tracking-wide mb-6 sm:mb-8 transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>İLETİŞİM FORMU</h3>
 
-              {isSubmitted && (
-                <div className="bg-green-50 border border-green-200 text-green-800 p-4 rounded mb-6 sm:mb-8">
-                  Mesajınız başarıyla gönderildi! En kısa sürede size dönüş yapacağız.
-                </div>
-              )}
-
-              <form id="contact-form" onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-                <div>
-                  <label htmlFor="name" className={`block text-xs sm:text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>Ad Soyad *</label>
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    required
-                    className={`w-full px-3 sm:px-4 py-2 sm:py-3 border focus:outline-none text-xs sm:text-sm transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white focus:border-white' : 'bg-white border-gray-300 text-black focus:border-black'}`}
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="email" className={`block text-xs sm:text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>E-posta *</label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    required
-                    className={`w-full px-3 sm:px-4 py-2 sm:py-3 border focus:outline-none text-xs sm:text-sm transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white focus:border-white' : 'bg-white border-gray-300 text-black focus:border-black'}`}
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="phone" className={`block text-xs sm:text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>Telefon</label>
-                  <input
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    className={`w-full px-3 sm:px-4 py-2 sm:py-3 border focus:outline-none text-xs sm:text-sm transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white focus:border-white' : 'bg-white border-gray-300 text-black focus:border-black'}`}
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="service" className={`block text-xs sm:text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>Hizmet Türü *</label>
-                  <select
-                    id="service"
-                    name="service"
-                    value={formData.service}
-                    onChange={handleInputChange}
-                    required
-                    className={`w-full px-3 sm:px-4 py-2 sm:py-3 border focus:outline-none text-xs sm:text-sm pr-8 transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white focus:border-white' : 'bg-white border-gray-300 text-black focus:border-black'}`}
-                  >
-                    <option value="">Seçiniz</option>
-                    <option value="gelinlik">Gelinlik</option>
-                    <option value="abiye-elbise">Abiye Elbise</option>
-                    <option value="kinalik">Kınalık</option>
-                    <option value="nisanlik">Nişanlık</option>
-                    <option value="after-party">After Party</option>
-                    <option value="diger">Diğer</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="message" className={`block text-xs sm:text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>Mesaj *</label>
-                  <textarea
-                    id="message"
-                    name="message"
-                    value={formData.message}
-                    onChange={handleInputChange}
-                    rows={5}
-                    maxLength={500}
-                    required
-                    className={`w-full px-3 sm:px-4 py-2 sm:py-3 border focus:outline-none text-xs sm:text-sm resize-vertical transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white focus:border-white' : 'bg-white border-gray-300 text-black focus:border-black'}`}
-                    placeholder="Tasarım tercihlerinizi, renk seçimlerinizi ve özel isteklerinizi belirtiniz..."
-                  ></textarea>
-                  <div className={`text-xs mt-1 transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    {formData.message.length}/500 karakter
+              {isSubmitted ? (
+                <div className={`rounded-2xl border p-10 sm:p-14 text-center transition-colors ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-gray-50'}`}>
+                  <div className={`w-14 h-14 mx-auto mb-5 flex items-center justify-center rounded-full border-2 transition-colors ${isDarkMode ? 'border-gray-500' : 'border-gray-400'}`}>
+                    <i className={`ri-check-line text-xl transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}></i>
                   </div>
+                  <h4 className={`text-base font-medium mb-2 tracking-wide transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>Mesajınız Alındı</h4>
+                  <p className={`text-sm mb-8 transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>En kısa sürede size dönüş yapacağız.</p>
+                  <button
+                    onClick={() => setIsSubmitted(false)}
+                    className={`text-xs tracking-widest underline underline-offset-4 transition-colors ${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-400 hover:text-black'}`}
+                  >
+                    YENİ MESAJ GÖNDER
+                  </button>
                 </div>
+              ) : (
+                <form id="contact-form" onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+                    <div>
+                      <label htmlFor="name" className={`block text-xs font-medium mb-2 tracking-wide transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                        AD SOYAD <span className="text-rose-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        id="name"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        required
+                        placeholder="Adınız ve soyadınız"
+                        className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 text-sm transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-500 focus:ring-gray-500 focus:border-gray-500' : 'bg-white border-gray-200 text-black placeholder-gray-400 focus:ring-gray-300 focus:border-gray-400'}`}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="email" className={`block text-xs font-medium mb-2 tracking-wide transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                        E-POSTA <span className="text-rose-400">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        required
+                        placeholder="ornek@email.com"
+                        className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 text-sm transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-500 focus:ring-gray-500 focus:border-gray-500' : 'bg-white border-gray-200 text-black placeholder-gray-400 focus:ring-gray-300 focus:border-gray-400'}`}
+                      />
+                    </div>
+                  </div>
 
-                <button
-                  type="submit"
-                  className={`px-6 py-2 sm:px-8 sm:py-2.5 text-xs sm:text-sm tracking-wide font-medium transition-colors whitespace-nowrap rounded-full ${isDarkMode ? 'bg-white text-black hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-800'}`}
-                >
-                  GÖNDER
-                </button>
-              </form>
+                  <div>
+                    <label htmlFor="phone" className={`block text-xs font-medium mb-2 tracking-wide transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>TELEFON</label>
+                    <input
+                      type="tel"
+                      id="phone"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      placeholder="0XXX XXX XX XX"
+                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 text-sm transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-500 focus:ring-gray-500 focus:border-gray-500' : 'bg-white border-gray-200 text-black placeholder-gray-400 focus:ring-gray-300 focus:border-gray-400'}`}
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="konu" className={`block text-xs font-medium mb-2 tracking-wide transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                      KONU <span className="text-rose-400">*</span>
+                    </label>
+                    <div className="relative">
+                      <select
+                        id="konu"
+                        name="konu"
+                        value={formData.konu}
+                        onChange={handleInputChange}
+                        required
+                        className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 text-sm appearance-none transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white focus:ring-gray-500 focus:border-gray-500' : 'bg-white border-gray-200 text-black focus:ring-gray-300 focus:border-gray-400'} ${formData.konu === '' ? (isDarkMode ? 'text-gray-500' : 'text-gray-400') : ''}`}
+                      >
+                        <option value="" disabled>Konuyu seçiniz</option>
+                        <option value="Tasarım & Kıyafet Seçimi">Tasarım & Kıyafet Seçimi</option>
+                        <option value="Randevu Talebi">Randevu Talebi</option>
+                        <option value="Kargo & Teslimat">Kargo & Teslimat</option>
+                        <option value="İade Talebi">İade Talebi</option>
+                        <option value="Genel Bilgi">Genel Bilgi</option>
+                        <option value="Diğer">Diğer</option>
+                      </select>
+                      <div className={`pointer-events-none absolute inset-y-0 right-3 flex items-center transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                        <i className="ri-arrow-down-s-line text-lg"></i>
+                      </div>
+                    </div>
+                  </div>
+
+                  {(formData.konu === 'İade Talebi' || formData.konu === 'Kargo & Teslimat') && (
+                    <div>
+                      <label htmlFor="siparisNo" className={`block text-xs font-medium mb-2 tracking-wide transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>SİPARİŞ NUMARASI</label>
+                      <input
+                        type="text"
+                        id="siparisNo"
+                        name="siparisNo"
+                        value={formData.siparisNo}
+                        onChange={handleInputChange}
+                        placeholder="Sipariş numaranızı giriniz"
+                        className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 text-sm transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-500 focus:ring-gray-500 focus:border-gray-500' : 'bg-white border-gray-200 text-black placeholder-gray-400 focus:ring-gray-300 focus:border-gray-400'}`}
+                      />
+                    </div>
+                  )}
+
+                  <div>
+                    <label htmlFor="message" className={`block text-xs font-medium mb-2 tracking-wide transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                      MESAJ <span className="text-rose-400">*</span>
+                    </label>
+                    <textarea
+                      id="message"
+                      name="message"
+                      value={formData.message}
+                      onChange={handleInputChange}
+                      rows={5}
+                      maxLength={500}
+                      required
+                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 text-sm resize-none transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-500 focus:ring-gray-500 focus:border-gray-500' : 'bg-white border-gray-200 text-black placeholder-gray-400 focus:ring-gray-300 focus:border-gray-400'}`}
+                      placeholder={
+                        formData.konu === 'Tasarım & Kıyafet Seçimi' ? 'Tasarım tercihlerinizi, renk seçimlerinizi ve özel isteklerinizi belirtiniz...' :
+                        formData.konu === 'Randevu Talebi' ? 'Tercih ettiğiniz tarih ve saati, hangi ürün için randevu istediğinizi belirtiniz...' :
+                        formData.konu === 'Kargo & Teslimat' ? 'Kargo ile ilgili sorunuzu paylaşınız...' :
+                        formData.konu === 'İade Talebi' ? 'İade nedeninizi ve ürün durumunu kısaca belirtiniz...' :
+                        'Mesajınızı buraya yazabilirsiniz...'
+                      }
+                    ></textarea>
+                    <div className={`flex justify-end text-xs mt-1.5 transition-colors ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                      {formData.message.length}/500
+                    </div>
+                  </div>
+
+                  <div className="pt-1">
+                    <button
+                      type="submit"
+                      className={`w-full py-3.5 text-xs tracking-widest font-medium rounded-lg transition-colors ${isDarkMode ? 'bg-white text-black hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-800'}`}
+                    >
+                      GÖNDER
+                    </button>
+                    <p className={`text-xs mt-3 transition-colors ${isDarkMode ? 'text-gray-600' : 'text-gray-400'}`}>
+                      <span className="text-rose-400">*</span> zorunlu alanlar
+                    </p>
+                  </div>
+                </form>
+              )}
             </div>
 
             {/* Contact Info */}
@@ -394,7 +447,7 @@ export default function Iletisim() {
           </div>
 
           <div className={`border-t mt-8 sm:mt-12 pt-6 sm:pt-8 text-center text-xs sm:text-sm transition-colors ${isDarkMode ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-500'}`}>
-            <p>&copy; Meryem Balkan.</p>
+            <p>&copy; 2026 Meryem Balkan Tüm hakları saklıdır.</p>
           </div>
         </div>
       </footer>

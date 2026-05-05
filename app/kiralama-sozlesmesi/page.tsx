@@ -1,4 +1,4 @@
-
+﻿
 'use client';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
@@ -586,7 +586,7 @@ export default function KiralamaSozlesmesi() {
               isDarkMode ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-500'
             }`}
           >
-            <p>&copy; Meryem Balkan.</p>
+            <p>&copy; 2026 Meryem Balkan Tüm hakları saklıdır.</p>
           </div>
         </div>
       </footer>

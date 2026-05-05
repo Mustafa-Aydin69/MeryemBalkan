@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import LoginModal from '../components/LoginModal';
@@ -580,7 +580,7 @@ export default function Sepet() {
           </div>
 
           <div className={`border-t mt-8 sm:mt-12 pt-6 sm:pt-8 text-center text-sm transition-colors ${isDarkMode ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-500'}`}>
-            <p>&copy; Meryem Balkan.</p>
+            <p>&copy; 2026 Meryem Balkan Tüm hakları saklıdır.</p>
           </div>
         </div>
       </footer>
