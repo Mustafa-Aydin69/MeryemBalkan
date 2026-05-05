@@ -40,6 +40,14 @@ export const ADMIN_CONFIG = {
       MAX_ATTEMPTS: 10,
       WINDOW_MS: 5 * 60 * 1000, // 5 dakikada en fazla 10 istek (IP bazlı)
     },
+    PAYMENT_CREATE: {
+      MAX_ATTEMPTS: 5,
+      WINDOW_MS: 60 * 1000, // 1 dakikada en fazla 5 istek (IP bazlı)
+    },
+    PAYMENT_CALLBACK: {
+      MAX_ATTEMPTS: 30,
+      WINDOW_MS: 60 * 1000, // 1 dakikada en fazla 30 istek (IP bazlı)
+    },
   },
   
   // Lockout ayarları

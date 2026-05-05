@@ -8,7 +8,28 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/app/lib/supabaseAdmin';
 import { verifyAdminToken, enforceAdminRateLimit } from '@/app/lib/admin-auth';
 
-// GET: Tüm siparişleri getir (opsiyonel status filtresi)
+// Flatten orders_items + orders join into the shape the admin UI expects
+function flattenItem(item: any) {
+  const o = item.orders ?? {};
+  return {
+    id: item.id,
+    customerName: o.customer_name ?? '',
+    phone: o.phone ?? '',
+    email: o.email ?? '',
+    address: o.address ?? '',
+    productName: item.product_name,
+    color: item.color,
+    size: item.size,
+    eventDate: item.event_date,
+    orderDate: o.order_date ?? '',
+    price: `${item.price} TL`,
+    status: item.status,
+    shippingCode: item.shipping_code ?? '',
+    paymentMethod: o.payment_method ?? '',
+  };
+}
+
+// GET: Tüm siparişleri getir (opsiyonel status / productName filtresi)
 export async function GET(request: NextRequest) {
   try {
     const payload = await verifyAdminToken(request);
@@ -24,17 +45,31 @@ export async function GET(request: NextRequest) {
 
     const supabase = getSupabaseAdmin();
     let query = supabase
-      .from('siparisler')
-      .select('id, customerName, address, productName, size, color, eventDate, orderDate, status, price, phone, email, shippingCode, paymentMethod');
+      .from('orders_items')
+      .select(`
+        id,
+        product_name,
+        color,
+        size,
+        event_date,
+        price,
+        status,
+        shipping_code,
+        orders!inner(
+          customer_name,
+          phone,
+          email,
+          address,
+          order_date,
+          payment_method
+        )
+      `);
 
-    // Status filtresi
     if (status) {
       query = query.eq('status', status);
     }
-
-    // Product name filtresi
     if (productName) {
-      query = query.eq('productName', productName);
+      query = query.eq('product_name', productName);
     }
 
     const { data, error } = await query;
@@ -44,14 +79,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ data });
+    return NextResponse.json({ data: (data ?? []).map(flattenItem) });
   } catch (error: any) {
     console.error('GET /api/admin/siparisler error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
-// POST: Yeni sipariş oluştur
+// POST: Yeni sipariş oluştur (admin manuel)
+// Expects flat body matching the old siparisler shape:
+// { customerName, phone, email, address, productName, color, size, eventDate, orderDate, price, status, paymentMethod }
 export async function POST(request: NextRequest) {
   try {
     const payload = await verifyAdminToken(request);
@@ -62,15 +99,50 @@ export async function POST(request: NextRequest) {
     if (rateLimitRes) return rateLimitRes;
 
     const body = await request.json();
-
     const supabase = getSupabaseAdmin();
+
+    const conversationId = `admin-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .insert({
+        conversation_id: conversationId,
+        customer_name: body.customerName ?? '',
+        phone: body.phone ?? '',
+        email: body.email || null,
+        address: body.address ?? '',
+        order_date: body.orderDate || new Date().toISOString().split('T')[0],
+        payment_method: body.paymentMethod || 'Admin',
+        shipping_cost: 0,
+        total_price: 0,
+      })
+      .select('id')
+      .single();
+
+    if (orderError) {
+      console.error('Sipariş başlığı oluşturulamadı:', orderError);
+      return NextResponse.json({ error: orderError.message }, { status: 500 });
+    }
+
+    const rawPrice = typeof body.price === 'string'
+      ? parseFloat(body.price.replace(/[^0-9.]/g, '')) || 0
+      : Number(body.price) || 0;
+
     const { data, error } = await supabase
-      .from('siparisler')
-      .insert(body)
+      .from('orders_items')
+      .insert({
+        order_id: order.id,
+        product_name: body.productName ?? '',
+        color: body.color ?? '',
+        size: body.size ?? '',
+        event_date: body.eventDate,
+        price: rawPrice,
+        status: body.status || 'Hazırlanıyor',
+      })
       .select();
 
     if (error) {
-      console.error('Sipariş oluşturulamadı:', error);
+      console.error('Sipariş kalemi oluşturulamadı:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -81,7 +153,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PUT: Sipariş güncelle
+// PUT: Sipariş güncelle (status ve/veya shippingCode)
 export async function PUT(request: NextRequest) {
   try {
     const payload = await verifyAdminToken(request);
@@ -98,16 +170,14 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Missing id or updates' }, { status: 400 });
     }
 
-    // Sadece izin verilen alanları güncelle; boş shippingCode -> null
     const allowedUpdates: Record<string, unknown> = {};
     if (typeof updates.status === 'string' && updates.status.trim()) {
       allowedUpdates.status = updates.status.trim();
     }
-    // shippingCode: sadece dolu değer verilmişse güncelle; null/boş göndermek NOT NULL sütunda 500'e yol açabilir
     if ('shippingCode' in updates) {
       const v = updates.shippingCode;
       const trimmed = v != null && typeof v === 'string' ? v.trim() : '';
-      if (trimmed) allowedUpdates.shippingCode = trimmed;
+      if (trimmed) allowedUpdates.shipping_code = trimmed;
     }
 
     if (Object.keys(allowedUpdates).length === 0) {
@@ -115,15 +185,15 @@ export async function PUT(request: NextRequest) {
     }
 
     const supabase = getSupabaseAdmin();
-    const orderId = typeof id === 'string' ? parseInt(id, 10) : Number(id);
-    if (Number.isNaN(orderId) || orderId < 1) {
+    const itemId = typeof id === 'string' ? parseInt(id, 10) : Number(id);
+    if (Number.isNaN(itemId) || itemId < 1) {
       return NextResponse.json({ error: 'Geçersiz sipariş id' }, { status: 400 });
     }
 
     const { data, error } = await supabase
-      .from('siparisler')
+      .from('orders_items')
       .update(allowedUpdates)
-      .eq('id', orderId)
+      .eq('id', itemId)
       .select();
 
     if (error) {

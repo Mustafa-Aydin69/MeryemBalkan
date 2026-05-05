@@ -52,7 +52,7 @@ function initCleanup() {
   }
 }
 
-export type RateLimitType = 'OTP_REQUEST' | 'OTP_VERIFY' | 'LOGIN' | 'ADMIN_API' | 'ADMIN_API_IP' | 'CHECKOUT_CREATE';
+export type RateLimitType = 'OTP_REQUEST' | 'OTP_VERIFY' | 'LOGIN' | 'ADMIN_API' | 'ADMIN_API_IP' | 'CHECKOUT_CREATE' | 'PAYMENT_CREATE' | 'PAYMENT_CALLBACK';
 
 export interface RateLimitResult {
   allowed: boolean;

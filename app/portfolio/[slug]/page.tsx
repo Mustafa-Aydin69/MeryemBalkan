@@ -2,6 +2,7 @@ import ProductDetail from './ProductDetail';
 import { createClient } from "@supabase/supabase-js";
 import { createSlug, parseIdFromSlug } from '../../utils/slugUtils';
 import { unstable_cache } from 'next/cache';
+import { getSupabaseAdmin } from '@/app/lib/supabaseAdmin';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -103,17 +104,18 @@ const getCachedProductData = unstable_cache(
 
 // Disabled dates - CACHE YOK, her zaman güncel çekilir
 async function getDisabledDates(productTitle: string): Promise<string[]> {
-  const { data } = await supabase
-    .from("siparisler")
-    .select("eventDate")
-    .eq("productName", productTitle)
-    .in("status", ["Hazırlanıyor", "Kirada", "Ödeme Yapıyor"]);
+  const supabaseAdmin = getSupabaseAdmin();
+  const { data } = await supabaseAdmin
+    .from("orders_items")
+    .select("event_date")
+    .eq("product_name", productTitle)
+    .in("status", ["Hazırlanıyor", "Kirada"]);
 
   if (!data || data.length === 0) return [];
 
-  // eventDate'den 7 gün önce ve 7 gün sonrası = toplam 15 gün bloke
+  // event_date'den 7 gün önce ve 7 gün sonrası = toplam 15 gün bloke
   const disabledDates: string[] = [];
-  data.forEach(({ eventDate }) => {
+  data.forEach(({ event_date: eventDate }) => {
     if (!eventDate) return;
     const event = new Date(eventDate);
     for (let i = -7; i <= 7; i++) {

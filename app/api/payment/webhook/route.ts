@@ -1,162 +1,76 @@
-/**
- * Iyzico webhook – ödeme bildirimleri (doğrulamalı)
- * POST /api/payment/webhook
- * Payload doğrulanmadan güvenilmez; iyzico payment.retrieve ile teyit edilir.
- * Her zaman 200 + { success: true } döner (retry döngüsü önlemek için).
- */
-
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-import 'postman-request';
+
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseAdmin } from '@/app/lib/supabaseAdmin';
+import { createHmac, timingSafeEqual } from 'crypto';
+import { processPayment } from '@/app/lib/processPayment';
 
-const Iyzipay = require('iyzipay');
-
-const iyzipay = new Iyzipay({
-  apiKey: process.env.IYZICO_API_KEY || '',
-  secretKey: process.env.IYZICO_SECRET_KEY || '',
-  uri: process.env.IYZICO_BASE_URL || '',
-});
-
-/** conversationId: "123" veya "123-456" -> [123, 456] */
-function parseOrderIds(conversationId: string): number[] {
-  return conversationId
-    .split('-')
-    .map((s) => parseInt(s.trim(), 10))
-    .filter((n) => !Number.isNaN(n) && n > 0);
-}
-
-/** Sipariş tablosundaki price alanını sayıya çevirir (örn. "8500 TL" -> 8500) */
-function parsePriceFromOrder(price: unknown): number {
-  if (typeof price === 'number' && Number.isFinite(price)) return price;
-  const str = String(price ?? '').trim().replace(/\s/g, '');
-  const num = parseFloat(str.replace(/[^\d.,]/g, '').replace(',', '.'));
-  return Number.isFinite(num) ? num : 0;
-}
-
-/** Callback ile aynı: iyzico paidPrice ile DB toplamı karşılaştırmasında kullanılır */
-const PRICE_TOLERANCE = 0.02;
-
-function ok() {
-  return NextResponse.json({ success: true }, { status: 200 });
+/**
+ * Iyzico sends HMAC-SHA256(secretKey, rawBody), Base64-encoded, in x-iyzi-signature header.
+ * Uses timing-safe comparison to prevent timing attacks.
+ */
+function verifySignature(rawBody: string, signatureHeader: string | null): boolean {
+  const secret = process.env.IYZICO_WEBHOOK_SECRET;
+  if (!secret) {
+    // Secret not configured — skip signature check, rely on Iyzico API verification
+    console.warn('[webhook] IYZICO_WEBHOOK_SECRET tanımlı değil, imza doğrulaması atlandı');
+    return true;
+  }
+  if (!signatureHeader) {
+    console.error('[webhook] x-iyzi-signature header eksik');
+    return false;
+  }
+  const expected = createHmac('sha256', secret).update(rawBody).digest('base64');
+  try {
+    return timingSafeEqual(Buffer.from(expected), Buffer.from(signatureHeader));
+  } catch {
+    return false;
+  }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    console.log('Webhook received:', body);
+    const rawBody = await req.text();
+    const signature = req.headers.get('x-iyzi-signature');
 
-    const eventType = body.eventType != null ? String(body.eventType).trim() : '';
-    const paymentId = body.paymentId != null ? String(body.paymentId).trim() : '';
-    const conversationId = body.conversationId != null ? String(body.conversationId).trim() : '';
-    const status = body.status != null ? String(body.status).trim() : '';
-    const _paidPrice = body.paidPrice != null ? body.paidPrice : null;
-    const _signature = body.signature != null ? body.signature : '';
-
-    if (!eventType || !paymentId || !conversationId || !status) {
-      return ok();
+    if (!verifySignature(rawBody, signature)) {
+      console.error('[webhook] imza doğrulaması başarısız');
+      // Return 200 to prevent Iyzico from retrying with a bad secret
+      return NextResponse.json({ received: false, error: 'invalid_signature' }, { status: 200 });
     }
 
-    const retrieveRequest = {
-      locale: 'tr' as const,
-      conversationId,
-      paymentId,
-    };
+    // Parse token — Iyzico sends form-encoded or JSON
+    let token = '';
+    const contentType = req.headers.get('content-type') || '';
 
-    const payment = await new Promise<{
-      status?: string;
-      paymentId?: string;
-      paidPrice?: number | string;
-      basketId?: string;
-      installment?: number | string;
-    }>((resolve, reject) => {
-      iyzipay.payment.retrieve(retrieveRequest, (err: Error | null, res: unknown) => {
-        if (err) return reject(err);
-        resolve(res as typeof payment);
-      });
-    });
-
-    console.log('Webhook: verified payment from iyzico', payment);
-
-    if (payment.status !== 'success') {
-      return ok();
+    if (contentType.includes('application/json')) {
+      try {
+        const json = JSON.parse(rawBody);
+        token = typeof json.token === 'string' ? json.token.trim() : '';
+      } catch {
+        return NextResponse.json({ received: true });
+      }
+    } else {
+      // application/x-www-form-urlencoded (default for Iyzico HPP webhook)
+      const params = new URLSearchParams(rawBody);
+      token = (params.get('token') || '').trim();
     }
 
-    const verifiedPaymentId = payment.paymentId != null ? String(payment.paymentId).trim() : '';
-    const paidPriceRaw = payment.paidPrice;
-    const paidPrice =
-      typeof paidPriceRaw === 'number' && Number.isFinite(paidPriceRaw)
-        ? paidPriceRaw
-        : typeof paidPriceRaw === 'string'
-          ? parseFloat(String(paidPriceRaw).replace(',', '.'))
-          : NaN;
-    const _basketId = payment.basketId;
-    const installment =
-      payment.installment != null
-        ? typeof payment.installment === 'number'
-          ? payment.installment
-          : parseInt(String(payment.installment), 10) || 1
-        : 1;
-
-    if (!verifiedPaymentId || Number.isNaN(paidPrice) || paidPrice <= 0) {
-      return ok();
+    if (!token) {
+      // Non-payment webhook event (e.g. subscription update) — acknowledge and ignore
+      console.log('[webhook] token bulunamadı, event yoksayıldı. payload=%s', rawBody.slice(0, 150));
+      return NextResponse.json({ received: true });
     }
 
-    const orderIds = parseOrderIds(conversationId);
-    if (orderIds.length === 0) {
-      return ok();
-    }
+    console.log('[webhook] token=%s', token.slice(0, 12) + '...');
 
-    const supabase = getSupabaseAdmin();
-    const { data: orders, error: fetchError } = await supabase
-      .from('siparisler')
-      .select('id, price, status, expected_paid_total')
-      .in('id', orderIds)
-      .eq('status', 'Ödeme Yapıyor');
+    const result = await processPayment(token);
+    console.log('[webhook] result=%s token=%s', result, token.slice(0, 12) + '...');
 
-    if (fetchError || !orders || orders.length === 0) {
-      return ok();
-    }
-
-    const storedExpected = orders[0]?.expected_paid_total != null ? Number(orders[0].expected_paid_total) : NaN;
-    const expectedPrice = Number.isFinite(storedExpected) && storedExpected > 0
-      ? storedExpected
-      : orders.reduce((sum, row) => sum + parsePriceFromOrder(row.price), 0);
-    const paidPriceRounded = Math.round(paidPrice * 100) / 100;
-    const expectedRounded = Math.round(expectedPrice * 100) / 100;
-
-    if (Math.abs(paidPriceRounded - expectedRounded) > PRICE_TOLERANCE) {
-      console.error('Webhook price mismatch', {
-        paidPrice: paidPriceRounded,
-        expectedPrice: expectedRounded,
-        conversationId,
-        paymentId: verifiedPaymentId,
-      });
-      return ok();
-    }
-
-    console.log('Webhook: payment persisted', {
-      paymentId: verifiedPaymentId,
-      paidPrice: paidPriceRounded,
-      installment,
-      orderIds,
-    });
-
-    await supabase
-      .from('siparisler')
-      .update({
-        status: 'Hazırlanıyor',
-        OdemeID: verifiedPaymentId,
-        paid_price: paidPriceRounded,
-        installment,
-      })
-      .in('id', orderIds)
-      .eq('status', 'Ödeme Yapıyor');
-
-    return ok();
+    // Always 200 — a non-200 causes Iyzico to retry indefinitely
+    return NextResponse.json({ received: true, result });
   } catch (err) {
-    console.error('Webhook error:', err);
-    return ok();
+    console.error('POST /api/payment/webhook error:', err);
+    return NextResponse.json({ received: true, error: 'internal' }, { status: 200 });
   }
 }

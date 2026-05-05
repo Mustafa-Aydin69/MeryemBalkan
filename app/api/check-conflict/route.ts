@@ -1,27 +1,20 @@
-// Çakışma kontrolü API - Server-side
-// Service Role Key ile RLS bypass eder
-
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/app/lib/supabaseAdmin';
 
-const BLOCKING_STATUSES = ['Hazırlanıyor', 'Kirada', 'Ödeme Yapıyor'];
+const BLOCKING_STATUSES = ['Hazırlanıyor', 'Kirada'];
 
-/**
- * Tarih aralığı hesapla (±7 gün)
- */
 function getDateRange(dateStr: string): { startDate: string; endDate: string } {
   const date = new Date(dateStr);
   const startDate = new Date(date);
   startDate.setDate(startDate.getDate() - 7);
   const endDate = new Date(date);
   endDate.setDate(endDate.getDate() + 7);
-  
   return {
     startDate: startDate.toISOString().split('T')[0],
-    endDate: endDate.toISOString().split('T')[0]
+    endDate: endDate.toISOString().split('T')[0],
   };
 }
 
@@ -32,68 +25,53 @@ export async function POST(request: NextRequest) {
 
     const supabase = getSupabaseAdmin();
 
-    // Ürün durumu kontrolü
     if (action === 'checkProductStatus') {
       const realId = String(productId).split('_')[0];
       const parsedId = parseInt(realId, 10);
-      
       if (isNaN(parsedId)) {
         return NextResponse.json({ isActive: false, productName: null });
       }
-      
       const { data, error } = await supabase
         .from('urunler')
         .select('status, title')
         .eq('id', parsedId)
         .single();
-      
       if (error || !data) {
         return NextResponse.json({ isActive: false, productName: null });
       }
-      
-      return NextResponse.json({
-        isActive: data.status === 'Yayında',
-        productName: data.title
-      });
+      return NextResponse.json({ isActive: data.status === 'Yayında', productName: data.title });
     }
 
-    // Tek ürün çakışma kontrolü
     if (action === 'checkSingleConflict') {
       const { startDate, endDate } = getDateRange(eventDate);
-      
       const { data, error } = await supabase
-        .from('siparisler')
-        .select('id, eventDate, status')
-        .eq('productName', productName)
+        .from('orders_items')
+        .select('id')
+        .eq('product_name', productName)
         .in('status', BLOCKING_STATUSES)
-        .gte('eventDate', startDate)
-        .lte('eventDate', endDate);
-      
+        .gte('event_date', startDate)
+        .lte('event_date', endDate);
       if (error) {
         console.error('Çakışma kontrolü hatası:', error);
         return NextResponse.json({ hasConflict: false, reason: '' });
       }
-      
       if (data && data.length > 0) {
         return NextResponse.json({
           hasConflict: true,
-          reason: 'Bu elbise istediğiniz tarihte başka bir müşteri tarafından kiralanmıştır. Lütfen farklı bir tarih seçiniz.'
+          reason: 'Bu elbise istediğiniz tarihte başka bir müşteri tarafından kiralanmıştır. Lütfen farklı bir tarih seçiniz.',
         });
       }
-      
       return NextResponse.json({ hasConflict: false, reason: '' });
     }
 
-    // Sepet çakışma kontrolü (tüm ürünler)
     if (action === 'checkCartConflicts') {
       const conflicts: { item: any; reason: string }[] = [];
       const validItems: any[] = [];
 
       for (const item of cartItems) {
-        // 1. Ürün yayında mı kontrol et
         const realId = String(item.productId).split('_')[0];
         const parsedId = parseInt(realId, 10);
-        
+
         let isActive = false;
         let productNameFromDB = item.title;
 
@@ -103,7 +81,6 @@ export async function POST(request: NextRequest) {
             .select('status, title')
             .eq('id', parsedId)
             .single();
-          
           if (productData) {
             isActive = productData.status === 'Yayında';
             productNameFromDB = productData.title;
@@ -113,45 +90,36 @@ export async function POST(request: NextRequest) {
         if (!isActive) {
           conflicts.push({
             item,
-            reason: `"${item.title}" ürünü artık mevcut değil veya yayından kaldırılmış.`
+            reason: `"${item.title}" ürünü artık mevcut değil veya yayından kaldırılmış.`,
           });
           continue;
         }
 
-        // 2. Tarih çakışması var mı kontrol et
         const { startDate, endDate } = getDateRange(item.date);
-        
         const { data: conflictData } = await supabase
-          .from('siparisler')
+          .from('orders_items')
           .select('id')
-          .eq('productName', productNameFromDB)
+          .eq('product_name', productNameFromDB)
           .in('status', BLOCKING_STATUSES)
-          .gte('eventDate', startDate)
-          .lte('eventDate', endDate);
+          .gte('event_date', startDate)
+          .lte('event_date', endDate);
 
         if (conflictData && conflictData.length > 0) {
           conflicts.push({
             item,
-            reason: 'Bu elbise istediğiniz tarihte başka bir müşteri tarafından kiralanmıştır. Lütfen farklı bir tarih seçiniz.'
+            reason: 'Bu elbise istediğiniz tarihte başka bir müşteri tarafından kiralanmıştır. Lütfen farklı bir tarih seçiniz.',
           });
         } else {
           validItems.push(item);
         }
       }
 
-      return NextResponse.json({
-        hasConflict: conflicts.length > 0,
-        conflicts,
-        validItems
-      });
+      return NextResponse.json({ hasConflict: conflicts.length > 0, conflicts, validItems });
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   } catch (error: any) {
     console.error('POST /api/check-conflict error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

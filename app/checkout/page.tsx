@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import LoginModal from '../components/LoginModal';
 import PaymentMarks from '../components/PaymentMarks';
 import { useState, useEffect } from 'react';
-import { checkCartConflicts, createPendingOrders } from '../utils/rentalConflict';
+import { checkCartConflicts } from '../utils/rentalConflict';
 
 // Cloudflare R2 URL helper
 const getR2BaseUrl = () => {
@@ -246,76 +246,45 @@ export default function Checkout() {
   // Ödeme sayfasına geçiş işlemi
   const proceedToPayment = async (itemsToProcess: CartItem[]) => {
     setIsSubmitting(true);
-    
+
     try {
-      const fullAddress = `${formData.address}, ${formData.district}, ${formData.city} ${formData.postalCode}`;
-      
-      // Siparişleri "Ödeme Yapıyor" olarak kaydet
-      const { success, orderIds, error } = await createPendingOrders(
-        itemsToProcess,
-        {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          phone: formData.phone,
-          email: formData.email,
-        },
-        fullAddress
-      );
-      
-      if (!success) {
-        throw new Error(error || 'Sipariş oluşturulamadı');
+      const res = await fetch('/api/payment/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cartItems: itemsToProcess.map(item => ({
+            productId: item.productId,
+            color: item.color,
+            size: item.size,
+            date: item.date,
+          })),
+          customer: {
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            phone: formData.phone,
+            email: formData.email,
+          },
+          shippingAddress: {
+            address: formData.address,
+            district: formData.district,
+            city: formData.city,
+            postalCode: formData.postalCode,
+            country: formData.country,
+          },
+          deliveryMethod,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success || !data.paymentPageUrl) {
+        throw new Error(data.error || 'Ödeme sayfası başlatılamadı');
       }
-      
-      // Sipariş verilerini hazırla
-      const orderData = {
-        customer: {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          phone: formData.phone,
-          email: formData.email,
-        },
-        shippingAddress: {
-          address: formData.address,
-          district: formData.district,
-          city: formData.city,
-          postalCode: formData.postalCode,
-          country: formData.country,
-        },
-        billingAddress: billingAddressOption === 'same' 
-          ? null
-          : formData,
-        deliveryMethod,
-        items: itemsToProcess,
-        subtotal: itemsToProcess.reduce((sum, item) => {
-          const cleanPrice = Number(String(item.price || 0).replace(/\./g, '').replace(',', '.'));
-          return sum + (isNaN(cleanPrice) ? 0 : cleanPrice);
-        }, 0),
-        shippingCost,
-        totalPrice: itemsToProcess.reduce((sum, item) => {
-          const cleanPrice = Number(String(item.price || 0).replace(/\./g, '').replace(',', '.'));
-          return sum + (isNaN(cleanPrice) ? 0 : cleanPrice);
-        }, 0) + (Number(shippingCost) || 0),
-        orderIds, // Ödeme sayfasında kullanılacak
-        createdAt: new Date().toISOString(),
-        paymentStartTime: Date.now(), // 5 dk timeout için başlangıç zamanı
-      };
 
-      // Sipariş verilerini localStorage'a kaydet
-      localStorage.setItem('pendingOrder', JSON.stringify(orderData));
-      
-      // Sepeti güncelle (sadece işlenen ürünleri kaldır)
-      const remainingItems = cartItems.filter(
-        item => !itemsToProcess.find(processed => processed.id === item.id)
-      );
-      localStorage.setItem('cartItems', JSON.stringify(remainingItems));
-      window.dispatchEvent(new Event('cartUpdated'));
-
-      // Ödeme sayfasına yönlendir
-      router.push('/odeme');
+      window.location.href = data.paymentPageUrl;
     } catch (error) {
-      console.error('Ödeme işlemi hatası:', error);
-      setFormErrors({ submit: 'Bir hata oluştu. Lütfen tekrar deneyin.' });
-    } finally {
+      console.error('Ödeme başlatma hatası:', error);
+      setFormErrors({ submit: error instanceof Error ? error.message : 'Bir hata oluştu. Lütfen tekrar deneyin.' });
       setIsSubmitting(false);
     }
   };
