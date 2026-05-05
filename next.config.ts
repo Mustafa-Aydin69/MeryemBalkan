@@ -2,18 +2,16 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
-    unoptimized: true, // ✅ Netlify/Render için gerekli
+    unoptimized: true,
   },
   typescript: {
-    ignoreBuildErrors: true, // (Opsiyonel) TS hataları yüzünden build fail olmasın
+    ignoreBuildErrors: true,
   },
   serverExternalPackages: ['iyzipay', 'postman-request'],
-  experimental: {
-    outputFileTracingIncludes: {
-      '/api/payment/create': ['./node_modules/iyzipay/**/*'],
-      '/api/payment/callback': ['./node_modules/iyzipay/**/*'],
-    },
-  } as NextConfig['experimental'],
+  outputFileTracingIncludes: {
+    '/api/payment/create': ['./node_modules/iyzipay/**/*'],
+    '/api/payment/callback': ['./node_modules/iyzipay/**/*'],
+  },
 };
 
 export default nextConfig;
