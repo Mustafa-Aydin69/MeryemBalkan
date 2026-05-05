@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
 
   const rl = checkRateLimit(ip, 'PAYMENT_CALLBACK', ip);
   if (!rl.allowed) {
-    return NextResponse.redirect(resultUrl(req, 'error'));
+    return NextResponse.redirect(resultUrl(req, 'error'), { status: 303 });
   }
   incrementRateLimit(ip, 'PAYMENT_CALLBACK', ip);
 
@@ -26,20 +26,20 @@ export async function POST(req: NextRequest) {
     const rawToken = formData.get('token');
     const token = typeof rawToken === 'string' ? rawToken.trim() : '';
     if (!token) {
-      return NextResponse.redirect(resultUrl(req, 'failed'));
+      return NextResponse.redirect(resultUrl(req, 'failed'), { status: 303 });
     }
 
     const result = await processPayment(token);
 
     if (result === 'success' || result === 'already_processed') {
-      return NextResponse.redirect(resultUrl(req, 'success'));
+      return NextResponse.redirect(resultUrl(req, 'success'), { status: 303 });
     }
     if (result === 'error') {
-      return NextResponse.redirect(resultUrl(req, 'error'));
+      return NextResponse.redirect(resultUrl(req, 'error'), { status: 303 });
     }
-    return NextResponse.redirect(resultUrl(req, 'failed'));
+    return NextResponse.redirect(resultUrl(req, 'failed'), { status: 303 });
   } catch (err) {
     console.error('POST /api/payment/callback error:', err);
-    return NextResponse.redirect(resultUrl(req, 'error'));
+    return NextResponse.redirect(resultUrl(req, 'error'), { status: 303 });
   }
 }

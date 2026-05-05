@@ -43,4 +43,4 @@ kontrolü yoksa → aynı siparişi 2 kere işlersiniz.
 Sen bunu DB’de düşünmüşsün (güzel), ama:
 👉 Kodda gerçekten kontrol ediyor musun?
 ------------------------------------------
-EN SON: Logging
+EN SON: Logging işlemi yapılacak.
