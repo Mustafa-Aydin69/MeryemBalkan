@@ -8,5 +8,11 @@
       "destination": "https://meryembalkan.com.tr/:path*",
       "statusCode": 308
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/cleanup-sessions",
+      "schedule": "0 * * * *"
+    }
   ]
 }

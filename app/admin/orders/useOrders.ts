@@ -14,6 +14,7 @@ const CACHE_KEY: CacheKey = 'orders';
 
 export interface Order {
   id: number;
+  conversationId: string;
   customerName: string;
   productName: string;
   size: string;
@@ -33,6 +34,7 @@ export interface Order {
 function transformOrderData(item: any): Order {
   return {
     id: item.id,
+    conversationId: item.conversationId ?? '',
     customerName: item.customerName,
     productName: item.productName,
     size: item.size,

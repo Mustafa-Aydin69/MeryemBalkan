@@ -4,6 +4,23 @@ import { useState, useRef, useEffect } from 'react';
 import { useOrders } from './useOrders';
 import OrdersTable from './OrdersTable';
 
+type VerifyVerdict = 'ok' | 'mismatch' | 'iyzico_failed' | 'not_found';
+
+interface VerifyResult {
+  verdict: VerifyVerdict;
+  iyzico: {
+    status?: string;
+    paymentStatus?: string;
+    paidPrice?: string;
+    paymentId?: string;
+    errorMessage?: string;
+  } | null;
+  db: {
+    session: { processed: boolean; expires_at: string; total_price: number } | null;
+    order: { id: number; created_at: string } | null;
+  };
+}
+
 const STATUS_FILTER_OPTIONS = [
   { key: 'all', label: 'Tümü' },
   { key: 'Hazırlanıyor', label: 'Hazırlanıyor' },
@@ -20,6 +37,24 @@ function getStatusFilterLabel(statusFilter: string): string {
 export default function OrdersPage() {
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null);
+
+  async function handleVerifyPayment(conversationId: string) {
+    setVerifyLoading(true);
+    setVerifyResult(null);
+    try {
+      const res = await fetch(`/api/payment/verify?conversation_id=${encodeURIComponent(conversationId)}`, {
+        credentials: 'include',
+      });
+      const data = await res.json();
+      setVerifyResult(data);
+    } catch {
+      setVerifyResult(null);
+    } finally {
+      setVerifyLoading(false);
+    }
+  }
 
   const {
     orders,
@@ -148,7 +183,7 @@ export default function OrdersPage() {
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4"
           onClick={(e) => {
-            if (e.target === e.currentTarget) setViewingOrder(null);
+            if (e.target === e.currentTarget) { setViewingOrder(null); setVerifyResult(null); }
           }}
         >
           <div className="rounded-xl w-full max-w-lg shadow-2xl bg-gray-800 text-white border border-gray-700 max-h-[95vh] overflow-hidden flex flex-col">
@@ -156,7 +191,7 @@ export default function OrdersPage() {
             <div className="flex justify-between items-center border-b border-gray-700 p-4 sm:p-6 pb-4 flex-shrink-0">
               <h3 className="text-base sm:text-lg font-medium">Sipariş Detayları</h3>
               <button
-                onClick={() => setViewingOrder(null)}
+                onClick={() => { setViewingOrder(null); setVerifyResult(null); }}
                 className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
               >
                 <i className="ri-close-line text-lg"></i>
@@ -244,13 +279,62 @@ export default function OrdersPage() {
             </div>
 
             {/* Footer - Sabit */}
-            <div className="p-4 sm:p-6 pt-4 border-t border-gray-700 flex-shrink-0">
-              <button
-                onClick={() => setViewingOrder(null)}
-                className="w-full sm:w-auto py-3 px-8 rounded-full border font-medium transition-colors border-gray-600 text-white hover:bg-gray-700"
-              >
-                Kapat
-              </button>
+            <div className="p-4 sm:p-6 pt-4 border-t border-gray-700 flex-shrink-0 space-y-3">
+              {/* Verify sonucu */}
+              {verifyResult && (() => {
+                const v = verifyResult.verdict;
+                const boxCls = v === 'ok'
+                  ? 'rounded-lg p-3 text-sm space-y-1.5 bg-green-900/30 border border-green-700 text-green-300'
+                  : v === 'mismatch'
+                  ? 'rounded-lg p-3 text-sm space-y-1.5 bg-red-900/30 border border-red-700 text-red-300'
+                  : v === 'iyzico_failed'
+                  ? 'rounded-lg p-3 text-sm space-y-1.5 bg-amber-900/30 border border-amber-700 text-amber-300'
+                  : 'rounded-lg p-3 text-sm space-y-1.5 bg-gray-800 border border-gray-600 text-gray-400';
+                const iconCls = v === 'ok' ? 'ri-shield-check-line' : v === 'mismatch' ? 'ri-error-warning-line' : v === 'iyzico_failed' ? 'ri-close-circle-line' : 'ri-question-line';
+                const label = v === 'ok' ? 'Ödeme doğrulandı' : v === 'mismatch' ? 'Kritik: Iyzico başarılı ama sipariş yok!' : v === 'iyzico_failed' ? 'Iyzico: ödeme başarısız' : 'Kayıt bulunamadı';
+                return (
+                  <div className={boxCls}>
+                    <p className="font-medium flex items-center gap-2">
+                      <i className={iconCls}></i>
+                      {label}
+                    </p>
+                    {verifyResult.iyzico && (
+                      <p className="text-xs opacity-75">
+                        {'Iyzico: ' + (verifyResult.iyzico.paymentStatus || verifyResult.iyzico.status || '-')}
+                        {verifyResult.iyzico.paidPrice ? ' · ' + verifyResult.iyzico.paidPrice + ' TL' : ''}
+                        {verifyResult.iyzico.errorMessage ? ' · ' + verifyResult.iyzico.errorMessage : ''}
+                      </p>
+                    )}
+                    {verifyResult.db.order && (
+                      <p className="text-xs opacity-75">
+                        {'Sipariş #' + verifyResult.db.order.id + ' · ' + new Date(verifyResult.db.order.created_at).toLocaleString('tr-TR')}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+
+              <div className="flex gap-2">
+                {/* Ödemeyi Kontrol Et - sadece online ödemeler için */}
+                {/^\d{10,}-[a-z0-9]+$/.test(viewingOrder.conversationId) && (
+                  <button
+                    onClick={() => handleVerifyPayment(viewingOrder.conversationId)}
+                    disabled={verifyLoading}
+                    className="flex-1 py-3 px-4 rounded-full border font-medium transition-colors border-indigo-600 text-indigo-400 hover:bg-indigo-600 hover:text-white disabled:opacity-50 text-sm flex items-center justify-center gap-2"
+                  >
+                    {verifyLoading
+                      ? <><i className="ri-loader-4-line animate-spin"></i> Kontrol ediliyor...</>
+                      : <><i className="ri-shield-check-line"></i> Ödemeyi Kontrol Et</>
+                    }
+                  </button>
+                )}
+                <button
+                  onClick={() => { setViewingOrder(null); setVerifyResult(null); }}
+                  className="py-3 px-8 rounded-full border font-medium transition-colors border-gray-600 text-white hover:bg-gray-700"
+                >
+                  Kapat
+                </button>
+              </div>
             </div>
           </div>
         </div>

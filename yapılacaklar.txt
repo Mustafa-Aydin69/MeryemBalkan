@@ -1,4 +1,4 @@
-Deploy edilecek ve Iyzicoda bildirimler gerçek url ile değiştirilecek.
+Iyzicoda bildirimler gerçek url ile değiştirilecek.
 Bundan sonra Webhook test edilecek  
 
 DAHA SONRA:

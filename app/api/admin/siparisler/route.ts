@@ -13,6 +13,7 @@ function flattenItem(item: any) {
   const o = item.orders ?? {};
   return {
     id: item.id,
+    conversationId: o.conversation_id ?? '',
     customerName: o.customer_name ?? '',
     phone: o.phone ?? '',
     email: o.email ?? '',
@@ -56,6 +57,7 @@ export async function GET(request: NextRequest) {
         status,
         shipping_code,
         orders!inner(
+          conversation_id,
           customer_name,
           phone,
           email,
