@@ -44,20 +44,23 @@ export interface ProcessPaymentOptions {
  *   'error'             — internal error (DB, RPC, etc.)
  */
 export async function processPayment(token: string, options: ProcessPaymentOptions = {}): Promise<PaymentResult> {
-  const result = await _processPayment(token);
+  const ctx: { errorMsg?: string; conversationId?: string } = {};
+  const result = await _processPayment(token, ctx);
 
   // Fire-and-forget — logging never blocks or crashes the main flow
   logPaymentEvent({
     event_type:      options.source ?? 'callback',
     token,
+    conversation_id: ctx.conversationId,
     result,
+    error_msg:       ctx.errorMsg,
     ip:              options.ip,
   }).catch((e) => console.error('[processPayment] log hatası:', e));
 
   return result;
 }
 
-async function _processPayment(token: string): Promise<PaymentResult> {
+async function _processPayment(token: string, ctx: { errorMsg?: string; conversationId?: string }): Promise<PaymentResult> {
   try {
     // 1. Verify payment with Iyzico — single source of truth
     const iyzicoResult = await new Promise<{
@@ -86,12 +89,14 @@ async function _processPayment(token: string): Promise<PaymentResult> {
     );
 
     if (iyzicoResult.status !== 'success' || iyzicoResult.paymentStatus !== 'SUCCESS') {
+      ctx.errorMsg = 'Iyzico: status=' + iyzicoResult.status + ' paymentStatus=' + iyzicoResult.paymentStatus + (iyzicoResult.errorCode ? ' errorCode=' + iyzicoResult.errorCode : '') + (iyzicoResult.errorMessage ? ' msg=' + iyzicoResult.errorMessage : '');
       return 'failed';
     }
 
     const paidPrice = parseFloat(iyzicoResult.paidPrice ?? '0');
     if (!Number.isFinite(paidPrice) || paidPrice <= 0) {
       console.log('[processPayment] geçersiz paidPrice=%s', iyzicoResult.paidPrice);
+      ctx.errorMsg = 'Geçersiz paidPrice: ' + iyzicoResult.paidPrice;
       return 'failed';
     }
 
@@ -109,6 +114,7 @@ async function _processPayment(token: string): Promise<PaymentResult> {
 
     if (claimError) {
       console.error('[processPayment] session claim hatası:', claimError.message);
+      ctx.errorMsg = 'Session claim hatası: ' + claimError.message;
       return 'error';
     }
 
@@ -124,17 +130,20 @@ async function _processPayment(token: string): Promise<PaymentResult> {
         return 'already_processed';
       }
       console.log('[processPayment] session bulunamadı veya süresi dolmuş, token=%s', token.slice(0, 12) + '...');
+      ctx.errorMsg = 'Session bulunamadı veya süresi dolmuş';
       return 'failed';
     }
 
     const session = claimedRows[0];
     const conversationId: string = session.conversation_id;
+    ctx.conversationId = conversationId;
 
     // 3. Strict price validation — cent comparison avoids float imprecision
     const expectedPrice = Number(session.total_price);
     if (Math.round(paidPrice * 100) !== Math.round(expectedPrice * 100)) {
       console.error('[processPayment] fiyat uyuşmazlığı: ödenen=%s beklenen=%s conversation=%s',
         paidPrice, expectedPrice, conversationId);
+      ctx.errorMsg = 'Fiyat uyuşmazlığı: ödenen=' + paidPrice + ' beklenen=' + expectedPrice;
       return 'failed';
     }
 
@@ -186,6 +195,7 @@ async function _processPayment(token: string): Promise<PaymentResult> {
 
       if (conflicts && conflicts.length > 0) {
         console.error('[processPayment] çakışma: "%s" conversation=%s', product.title, conversationId);
+        ctx.errorMsg = 'Tarih çakışması: ' + product.title;
         return 'failed';
       }
     }
@@ -227,6 +237,7 @@ async function _processPayment(token: string): Promise<PaymentResult> {
 
     if (orderItems.length === 0) {
       console.error('[processPayment] ürün verisi eksik, conversation=%s', conversationId);
+      ctx.errorMsg = 'Ürün verisi eksik';
       return 'error';
     }
 
@@ -249,6 +260,7 @@ async function _processPayment(token: string): Promise<PaymentResult> {
         return 'already_processed';
       }
       console.error('[processPayment] sipariş oluşturma hatası:', rpcError.message);
+      ctx.errorMsg = 'RPC hatası: ' + rpcError.message;
       return 'error';
     }
 
@@ -256,6 +268,7 @@ async function _processPayment(token: string): Promise<PaymentResult> {
     return 'success';
   } catch (err) {
     console.error('[processPayment] beklenmeyen hata:', err);
+    ctx.errorMsg = err instanceof Error ? err.message : 'Beklenmeyen hata';
     return 'error';
   }
 }
