@@ -113,21 +113,44 @@ export default function Hakkimda() {
     </nav>
 
     {/* Hero Section */}
-    <section className={`py-12 sm:py-16 lg:py-20 px-4 sm:px-8 transition-colors duration-300 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
-      <div className="max-w-6xl mx-auto h-full flex flex-col justify-center items-center text-center">
-        <h2 className={`text-2xl sm:text-3xl lg:text-4xl font-light tracking-wide mb-6 sm:mb-8 transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>HAKKIMDA</h2>
-        <p className={`text-base sm:text-lg lg:text-xl leading-relaxed mb-6 sm:mb-8 transition-colors ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-          Meryem Balkan Tasarım Atölyesi , zarafetin ve ihtişamın buluştuğu özel bir moda evi olarak Erzincan’da hizmet vermektedir. 
-          Gelinlik, haute couture ve özel kiralama koleksiyonlarımızla, her kadının benzersiz güzelliğini ortaya çıkarmayı ilke edindik.
-        </p>
-        <p className={`text-sm sm:text-base leading-relaxed mb-4 sm:mb-6 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-          Her tasarımımız, özenle seçilmiş kumaşlar, kusursuz işçilik ve estetik detaylarla hayat bulur. 
-          Atölyemizde yalnızca bir kıyafet değil; aynı zamanda asalet, şıklık ve hayallerinize dokunan bir sanat eseri tasarlıyoruz.
-        </p>
-        <p className={`text-sm sm:text-base leading-relaxed transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-          Misyonumuz; en özel anlarınıza değer katmak, size ayrıcalıklı bir deneyim yaşatmak ve hayallerinizdeki görünüme sizi kavuşturmaktır.
-          Meryem Balkan tasarım atölyesi  ile farkınızı ortaya koyun; çünkü gerçek zarafet, detaylarda gizlidir. ✨
-        </p>
+    <section className={`pt-28 sm:pt-36 pb-16 sm:pb-20 px-4 sm:px-8 transition-colors duration-300 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
+      <div className="max-w-5xl mx-auto">
+        <div className="text-center mb-12 sm:mb-16">
+          <p className={`text-xs tracking-[0.4em] mb-3 transition-colors ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>HAKKIMDA</p>
+          <h2 className={`text-2xl sm:text-3xl lg:text-4xl font-light font-serif italic tracking-wide transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>Meryem Balkan Tasarım Atölyesi</h2>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20 items-start">
+          <div>
+            <p className={`text-base sm:text-lg leading-relaxed mb-5 transition-colors ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+              Zarafetin ve ihtişamın buluştuğu özel bir moda evi olarak Erzincan'da hizmet vermektedir. Gelinlik, haute couture ve özel kiralama koleksiyonlarımızla her kadının benzersiz güzelliğini ortaya çıkarmayı ilke edindik.
+            </p>
+            <p className={`text-sm sm:text-base leading-relaxed mb-5 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+              Her tasarımımız, özenle seçilmiş kumaşlar, kusursuz işçilik ve estetik detaylarla hayat bulur. Atölyemizde yalnızca bir kıyafet değil; asalet, şıklık ve hayallerinize dokunan bir sanat eseri tasarlıyoruz.
+            </p>
+            <p className={`text-sm sm:text-base leading-relaxed transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+              Misyonumuz; en özel anlarınıza değer katmak, size ayrıcalıklı bir deneyim yaşatmak ve hayallerinizdeki görünüme sizi kavuşturmaktır.
+            </p>
+          </div>
+          <div className={`border-l-2 pl-8 py-2 transition-colors ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+            <p className={`text-lg sm:text-xl font-light font-serif italic leading-relaxed mb-8 transition-colors ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+              "Gerçek zarafet, detaylarda gizlidir."
+            </p>
+            <div className={`space-y-4 text-sm transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              <div className="flex items-center gap-3">
+                <i className="ri-map-pin-line"></i>
+                <span>Erzincan, Türkiye</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <i className="ri-scissors-line"></i>
+                <span>13+ yıl deneyim</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <i className="ri-global-line"></i>
+                <span>Milano & Stuttgart koleksiyonları</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -137,77 +160,90 @@ export default function Hakkimda() {
 
       {/* Experience Timeline */}
       <section className={`py-12 sm:py-16 lg:py-20 transition-colors duration-300 ${isDarkMode ? 'bg-gray-800' : 'bg-gray-50'}`}>
-        <div className="max-w-4xl mx-auto px-4 sm:px-8">
+        <div className="max-w-3xl mx-auto px-4 sm:px-8">
           <h3 className={`text-2xl sm:text-3xl font-light tracking-wide text-center mb-12 sm:mb-16 transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>DENEYİM</h3>
 
-          <div className="space-y-8 sm:space-y-12">
-            <div className="flex items-start space-x-4 sm:space-x-8">
-              <div className="text-right min-w-16 sm:min-w-24">
-                <span className={`text-base sm:text-lg font-medium transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>2025</span>
+          <div className="space-y-0">
+            <div className="flex gap-5 sm:gap-8">
+              <div className="text-right w-14 sm:w-20 shrink-0 pt-1">
+                <span className={`text-sm font-medium transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>2025</span>
               </div>
-              <div className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full mt-2 ${isDarkMode ? 'bg-white' : 'bg-black'}`}></div>
-              <div className="flex-1">
-                <h4 className={`text-lg sm:text-xl font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>Uluslararası Adım</h4>
-                <p className={`text-sm sm:text-base transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Koleksiyonlarımız, Milano ve Stuttgart’ta düzenlenen özel etkinliklerde sergilendi. 
-                                                                                                                          Bu adım, markamızın uluslararası arenada ilk kez kendini gösterdiği an oldu ve tasarımlarımızın sınırları aştığını kanıtladı. 
-                                                                                                                          Her parçaya yansıyan özen ve zarafet, dünyanın farklı şehirlerindeki kadınlarla buluştu.</p>
+              <div className="flex flex-col items-center shrink-0">
+                <div className={`w-2.5 h-2.5 rounded-full mt-1 shrink-0 transition-colors ${isDarkMode ? 'bg-white' : 'bg-black'}`}></div>
+                <div className={`w-px flex-1 mt-2 transition-colors ${isDarkMode ? 'bg-gray-600' : 'bg-gray-200'}`}></div>
               </div>
-            </div>
-
-            <div className="flex items-start space-x-4 sm:space-x-8">
-              <div className="text-right min-w-16 sm:min-w-24">
-                <span className={`text-base sm:text-lg font-medium transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>2025</span>
-              </div>
-              <div className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full mt-2 ${isDarkMode ? 'bg-white' : 'bg-black'}`}></div>
-              <div className="flex-1">
-                <h4 className={`text-lg sm:text-xl font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>Kişisel Atölye Açılış</h4>
-                <p className={`text-sm sm:text-base transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Tutku ve emekle büyüyen markam, artık daha büyük ve modern bir mekânda sizlerle buluşuyor. Yeni atölye, yaratıcılığımı daha özgür ifade edebileceğim, detaylara daha fazla odaklanabileceğim bir alan sunuyor. 
-                                                                                                                          Gelinlikten her tasarımda zarafet ve incelik bir araya geliyor; kadınların kendilerini özel hissetmeleri için her detay özenle planlanıyor.</p>
+              <div className="flex-1 pb-10">
+                <h4 className={`text-base sm:text-lg font-medium mb-1.5 transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>Uluslararası Adım</h4>
+                <p className={`text-sm leading-relaxed transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Koleksiyonlarımız, Milano ve Stuttgart'ta düzenlenen özel etkinliklerde sergilendi. Markamızın uluslararası arenada ilk kez kendini gösterdiği bu adım, tasarımlarımızın sınırları aştığını kanıtladı.</p>
               </div>
             </div>
 
-            <div className="flex items-start space-x-4 sm:space-x-8">
-              <div className="text-right min-w-16 sm:min-w-24">
-                <span className={`text-base sm:text-lg font-medium transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>2022</span>
+            <div className="flex gap-5 sm:gap-8">
+              <div className="text-right w-14 sm:w-20 shrink-0 pt-1">
+                <span className={`text-sm font-medium transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>2025</span>
               </div>
-              <div className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full mt-2 ${isDarkMode ? 'bg-white' : 'bg-black'}`}></div>
-              <div className="flex-1">
-                <h4 className={`text-lg sm:text-xl font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>İlk Atölye Açılışı </h4>
-                <p className={`text-sm sm:text-base transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>10 yıl süren emek, deneyim ve tutkuyu bir araya getirerek, Erzincan’da kendi tasarım atölyemi hayata geçirdim. Bu atölye, hayallerimi somutlaştırdığım, her detayıyla özenle tasarlanmış bir yaratım alanı oldu. 
-                                                                                                                          Gelinliklerden bir çok koleksiyonlara kadar, her parçaya ruhumu ve zarafet anlayışımı yansıtarak, kadınların kendilerini özel hissetmesini hedefledim.</p>
+              <div className="flex flex-col items-center shrink-0">
+                <div className={`w-2.5 h-2.5 rounded-full mt-1 shrink-0 transition-colors ${isDarkMode ? 'bg-white' : 'bg-black'}`}></div>
+                <div className={`w-px flex-1 mt-2 transition-colors ${isDarkMode ? 'bg-gray-600' : 'bg-gray-200'}`}></div>
               </div>
-            </div>
-
-            <div className="flex items-start space-x-4 sm:space-x-8">
-              <div className="text-right min-w-16 sm:min-w-24">
-                <span className={`text-base sm:text-lg font-medium transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>2019</span>
-              </div>
-              <div className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full mt-2 ${isDarkMode ? 'bg-white' : 'bg-black'}`}></div>
-              <div className="flex-1">
-                <h4 className={`text-lg sm:text-xl font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>İlk Marka Koleksiyonu</h4>
-                <p className={`text-sm sm:text-base transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Kendi markam altında ilk hazır giyim koleksiyonumu çıkararak ticari başarı elde ettim.</p>
+              <div className="flex-1 pb-10">
+                <h4 className={`text-base sm:text-lg font-medium mb-1.5 transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>Kişisel Atölye Açılışı</h4>
+                <p className={`text-sm leading-relaxed transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Tutku ve emekle büyüyen markam, daha büyük ve modern bir mekânda sizlerle buluşuyor. Yaratıcılığımı daha özgür ifade edebildiğim bu alan, her detayıyla özenle planlandı.</p>
               </div>
             </div>
 
-            <div className="flex items-start space-x-4 sm:space-x-8">
-              <div className="text-right min-w-16 sm:min-w-24">
-                <span className={`text-base sm:text-lg font-medium transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>2019</span>
+            <div className="flex gap-5 sm:gap-8">
+              <div className="text-right w-14 sm:w-20 shrink-0 pt-1">
+                <span className={`text-sm font-medium transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>2022</span>
               </div>
-              <div className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full mt-2 ${isDarkMode ? 'bg-white' : 'bg-black'}`}></div>
-              <div className="flex-1">
-                <h4 className={`text-lg sm:text-xl font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>Eğitim</h4>
-                <p className={`text-sm sm:text-base transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Aldığım eğitimle moda tasarımı bilgimi derinleştirdim. Modern teknikler ve geleneksel el işçiliğini harmanlayarak, tasarımlarımda hem şıklığı hem de kalıcılığı ön plana çıkarmayı öğrendim.</p>
+              <div className="flex flex-col items-center shrink-0">
+                <div className={`w-2.5 h-2.5 rounded-full mt-1 shrink-0 transition-colors ${isDarkMode ? 'bg-white' : 'bg-black'}`}></div>
+                <div className={`w-px flex-1 mt-2 transition-colors ${isDarkMode ? 'bg-gray-600' : 'bg-gray-200'}`}></div>
+              </div>
+              <div className="flex-1 pb-10">
+                <h4 className={`text-base sm:text-lg font-medium mb-1.5 transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>İlk Atölye Açılışı</h4>
+                <p className={`text-sm leading-relaxed transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>10 yıl süren emek, deneyim ve tutkuyu bir araya getirerek Erzincan'da kendi tasarım atölyemi hayata geçirdim. Her parçaya ruhumu ve zarafet anlayışımı yansıtarak kadınların kendilerini özel hissetmesini hedefledim.</p>
               </div>
             </div>
 
-            <div className="flex items-start space-x-4 sm:space-x-8">
-              <div className="text-right min-w-16 sm:min-w-24">
-                <span className={`text-base sm:text-lg font-medium transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>2013</span>
+            <div className="flex gap-5 sm:gap-8">
+              <div className="text-right w-14 sm:w-20 shrink-0 pt-1">
+                <span className={`text-sm font-medium transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>2019</span>
               </div>
-              <div className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full mt-2 ${isDarkMode ? 'bg-white' : 'bg-black'}`}></div>
-              <div className="flex-1">
-                <h4 className={`text-lg sm:text-xl font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>Kariyer Başlangıcı</h4>
-                <p className={`text-sm sm:text-base transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>12 yıl önce Erzincan’da kendi imkanlarıyla dikime başlayarak moda yolculuğuma adım attım.</p>
+              <div className="flex flex-col items-center shrink-0">
+                <div className={`w-2.5 h-2.5 rounded-full mt-1 shrink-0 transition-colors ${isDarkMode ? 'bg-white' : 'bg-black'}`}></div>
+                <div className={`w-px flex-1 mt-2 transition-colors ${isDarkMode ? 'bg-gray-600' : 'bg-gray-200'}`}></div>
+              </div>
+              <div className="flex-1 pb-10">
+                <h4 className={`text-base sm:text-lg font-medium mb-1.5 transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>İlk Marka Koleksiyonu</h4>
+                <p className={`text-sm leading-relaxed transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Kendi markam altında ilk hazır giyim koleksiyonumu çıkararak ticari başarı elde ettim.</p>
+              </div>
+            </div>
+
+            <div className="flex gap-5 sm:gap-8">
+              <div className="text-right w-14 sm:w-20 shrink-0 pt-1">
+                <span className={`text-sm font-medium transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>2019</span>
+              </div>
+              <div className="flex flex-col items-center shrink-0">
+                <div className={`w-2.5 h-2.5 rounded-full mt-1 shrink-0 transition-colors ${isDarkMode ? 'bg-white' : 'bg-black'}`}></div>
+                <div className={`w-px flex-1 mt-2 transition-colors ${isDarkMode ? 'bg-gray-600' : 'bg-gray-200'}`}></div>
+              </div>
+              <div className="flex-1 pb-10">
+                <h4 className={`text-base sm:text-lg font-medium mb-1.5 transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>Eğitim</h4>
+                <p className={`text-sm leading-relaxed transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Aldığım eğitimle moda tasarımı bilgimi derinleştirdim. Modern teknikler ve geleneksel el işçiliğini harmanlayarak tasarımlarımda hem şıklığı hem kalıcılığı ön plana çıkarmayı öğrendim.</p>
+              </div>
+            </div>
+
+            <div className="flex gap-5 sm:gap-8">
+              <div className="text-right w-14 sm:w-20 shrink-0 pt-1">
+                <span className={`text-sm font-medium transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>2013</span>
+              </div>
+              <div className="flex flex-col items-center shrink-0">
+                <div className={`w-2.5 h-2.5 rounded-full mt-1 shrink-0 transition-colors ${isDarkMode ? 'bg-white' : 'bg-black'}`}></div>
+              </div>
+              <div className="flex-1 pb-2">
+                <h4 className={`text-base sm:text-lg font-medium mb-1.5 transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>Kariyer Başlangıcı</h4>
+                <p className={`text-sm leading-relaxed transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Erzincan'da kendi imkânlarıyla dikime başlayarak moda yolculuğuna adım atıldı.</p>
               </div>
             </div>
           </div>
@@ -222,29 +258,29 @@ export default function Hakkimda() {
             "Her kadın eşsizdir ve bu eşsizlik kıyafetlerinde de yansımalıdır. Tasarımlarımda sadece güzellik değil, kadının içindeki gücü ve özgüveni ortaya çıkarmayı hedefliyorum."
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 text-center">
-            <div>
-              <div className={`w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 sm:mb-6 flex items-center justify-center border transition-colors ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
-                <i className={`ri-leaf-line text-xl sm:text-2xl transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}></i>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6 text-center mt-2">
+            <div className={`p-6 sm:p-8 rounded-2xl border transition-colors ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-gray-50'}`}>
+              <div className={`w-12 h-12 mx-auto mb-5 flex items-center justify-center rounded-full transition-colors ${isDarkMode ? 'bg-gray-700' : 'bg-white border border-gray-200'}`}>
+                <i className={`ri-leaf-line text-xl transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}></i>
               </div>
-              <h4 className={`text-base sm:text-lg font-medium mb-3 sm:mb-4 transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>Sürdürülebilirlik</h4>
-              <p className={`text-sm sm:text-base transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Çevre dostu kumaşlar ve etik üretim süreçleri</p>
+              <h4 className={`text-xs font-medium mb-3 tracking-widest transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>SÜRDÜRÜLEBİLİRLİK</h4>
+              <p className={`text-sm leading-relaxed transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Çevre dostu kumaşlar ve etik üretim süreçleri</p>
             </div>
 
-            <div>
-              <div className={`w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 sm:mb-6 flex items-center justify-center border transition-colors ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
-                <i className={`ri-heart-line text-xl sm:text-2xl transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}></i>
+            <div className={`p-6 sm:p-8 rounded-2xl border transition-colors ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-gray-50'}`}>
+              <div className={`w-12 h-12 mx-auto mb-5 flex items-center justify-center rounded-full transition-colors ${isDarkMode ? 'bg-gray-700' : 'bg-white border border-gray-200'}`}>
+                <i className={`ri-heart-line text-xl transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}></i>
               </div>
-              <h4 className={`text-base sm:text-lg font-medium mb-3 sm:mb-4 transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>El İşçiliği</h4>
-              <p className={`text-sm sm:text-base transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Geleneksel teknikler ve modern yorumlar</p>
+              <h4 className={`text-xs font-medium mb-3 tracking-widest transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>EL İŞÇİLİĞİ</h4>
+              <p className={`text-sm leading-relaxed transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Geleneksel teknikler ve modern yorumlar</p>
             </div>
 
-            <div>
-              <div className={`w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 sm:mb-6 flex items-center justify-center border transition-colors ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
-                <i className={`ri-star-line text-xl sm:text-2xl transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}></i>
+            <div className={`p-6 sm:p-8 rounded-2xl border transition-colors ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-gray-50'}`}>
+              <div className={`w-12 h-12 mx-auto mb-5 flex items-center justify-center rounded-full transition-colors ${isDarkMode ? 'bg-gray-700' : 'bg-white border border-gray-200'}`}>
+                <i className={`ri-star-line text-xl transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}></i>
               </div>
-              <h4 className={`text-base sm:text-lg font-medium mb-3 sm:mb-4 transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>Kişisellik</h4>
-              <p className={`text-sm sm:text-base transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Her kadının tarzına özel tasarımlar</p>
+              <h4 className={`text-xs font-medium mb-3 tracking-widest transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>KİŞİSELLİK</h4>
+              <p className={`text-sm leading-relaxed transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Her kadının tarzına özel tasarımlar</p>
             </div>
           </div>
         </div>
