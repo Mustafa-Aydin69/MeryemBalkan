@@ -33,6 +33,16 @@ function getR2Client() {
 
 import { verifyAdminToken, enforceAdminRateLimit } from '@/app/lib/admin-auth';
 
+function sanitizeName(raw: string): string {
+  return raw
+    .replace(/\.[^.]+$/, '')          // uzantıyı çıkar
+    .replace(/[^\x00-\x7F]/g, '')     // emoji ve non-ASCII kaldır
+    .replace(/[^a-zA-Z0-9_-]/g, '_') // geçersiz karakterleri _ yap
+    .replace(/_+/g, '_')              // ardışık _'leri tekleştir
+    .replace(/^_+|_+$/g, '')          // baştaki/sondaki _'leri temizle
+    || `file_${Date.now()}`;           // tümü temizlendiyse fallback
+}
+
 // POST: Dosya yükle
 export async function POST(request: NextRequest) {
   try {
@@ -65,14 +75,16 @@ export async function POST(request: NextRequest) {
     let buffer: Buffer = Buffer.from(new Uint8Array(arrayBuffer));
     let contentType = file.type;
 
-    const baseName = (fileName || `${Date.now()}_${file.name}`).replace(/\.[^.]+$/, '');
+    const rawName = fileName || `${Date.now()}_${file.name}`;
+    const baseName = sanitizeName(rawName);
 
     // Video dosyalarını olduğu gibi yükle, görselleri WebP'ye çevir
     const isVideo = file.type.startsWith('video/');
     let uniqueName: string;
 
     if (isVideo) {
-      uniqueName = fileName || `${Date.now()}_${file.name}`;
+      const ext = rawName.replace(/.*\./, '').toLowerCase().replace(/[^a-z0-9]/g, '') || 'mp4';
+      uniqueName = `${baseName}.${ext}`;
     } else {
       buffer = await sharp(buffer).webp({ quality: 85 }).toBuffer();
       contentType = 'image/webp';

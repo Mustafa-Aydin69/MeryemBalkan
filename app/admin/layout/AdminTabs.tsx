@@ -1,6 +1,6 @@
 'use client';
 
-type TabType = 'dashboard' | 'orders' | 'products' | 'messages' | 'rentals';
+type TabType = 'dashboard' | 'orders' | 'products' | 'messages' | 'rentals' | 'instagram';
 
 interface AdminTabsProps {
   activeTab: TabType;
@@ -14,6 +14,7 @@ export default function AdminTabs({ activeTab, setActiveTab }: AdminTabsProps) {
     { key: 'products', label: 'ÜRÜN YÖNETİMİ' },
     { key: 'rentals', label: 'KİRA YÖNETİMİ' },
     { key: 'messages', label: 'MESAJLAR' },
+    { key: 'instagram', label: 'INSTAGRAM' },
   ];
 
   return (

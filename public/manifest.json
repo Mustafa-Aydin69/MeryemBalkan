@@ -1,0 +1,24 @@
+{
+  "name": "Meryem Balkan",
+  "short_name": "Meryem Balkan",
+  "description": "Erzincan'da gelinlik ve abiye kiralama, özel dikim tasarım atölyesi.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#111827",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/images/Anasayfa/Meryem_Balkan_Logo.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/Anasayfa/Meryem_Balkan_Logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -3,6 +3,8 @@ import { Geist, Geist_Mono, Pacifico } from "next/font/google";
 import "./globals.css";
 import PageTransition from "./components/PageTransition";
 import CookieBanner from "./components/CookieBanner";
+import MobileBottomNav from "./components/MobileBottomNav";
+import ServiceWorkerRegister from "./components/ServiceWorkerRegister";
 import { Toaster } from "sonner";
 
 const pacifico = Pacifico({
@@ -26,6 +28,12 @@ export const metadata: Metadata = {
   title: {
     default: "Meryem Balkan | Gelinlik ve Abiye Kiralama",
     template: "%s | Meryem Balkan",
+  },
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Meryem Balkan",
   },
   description:
     "Erzincan'da gelinlik kiralama ve abiye kiralama hizmeti sunan Meryem Balkan Tasarım Atölyesi, özel dikim gelinlik ve nişanlık tasarımlarıyla düğün ve özel günleriniz için zarif ve kişiye özel çözümler sunar.",
@@ -114,8 +122,10 @@ export default function RootLayout({
           }}
         />
 
+        <ServiceWorkerRegister />
         <PageTransition />
         {children}
+        <MobileBottomNav />
         <CookieBanner />
         <Toaster position="top-right" richColors closeButton />
       </body>

@@ -267,7 +267,7 @@ function RentalDetailModal({
               </h4>
               <div className="grid grid-cols-2 gap-3 p-4 bg-gray-700/50 rounded-lg">
                 <div>
-                  <p className="text-xs text-gray-500 mb-1">Kiralama ID</p>
+                  <p className="text-xs text-gray-500 mb-1">Order ID</p>
                   <p className="text-white font-mono">{rental.rentalId}</p>
                 </div>
                 <div>

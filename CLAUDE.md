@@ -32,6 +32,7 @@ Core tables:
 | `payment_sessions` | Iyzico HPP session state; `conversation_id UNIQUE`; `processed` flag is the atomic idempotency guard |
 | `urunler` | Product catalog |
 | `messages` | Contact form submissions; `hizmet` column stores the selected topic (`konu`) |
+| `instagram_feed` | Instagram feed posts; columns: `id`, `image_path` (filename only, no prefix), `instagram_link` (nullable), `sort_order`, `created_at` |
 
 `create_confirmed_order(...)` is a Postgres RPC function that inserts both `orders` and `orders_items` atomically. Always use it for confirmed order creation — never insert into `orders`/`orders_items` separately in application code.
 
@@ -79,6 +80,13 @@ Flow: email whitelist → OTP (Gmail SMTP, 6-digit, 5 min TTL) → JWT (HS256, 1
 - On reply: sends email via `/api/send-reply`, then DELETEs message from DB (does NOT mark as Verildi)
 - Only `status === 'Bekliyor'` messages are shown in the list
 
+**Instagram (`app/admin/instagram/`):**
+- `InstagramPage.tsx` — grid view with hover overlay (reorder left/right, delete); "Gönderi Ekle" button opens a modal
+- Modal: drag-and-drop or click to pick file (`image/*,video/*`), optional Instagram post link, Kaydet/İptal buttons
+- `useInstagram.ts` — `uploadAndAdd(file, instagramLink?)` uploads to R2 via `/api/admin/storage`, saves to `instagram_feed` DB; `deletePost` calls `/api/images/delete` (field: `image`) then `/api/admin/instagram` DELETE — R2 must succeed before DB delete
+- Public feed: `GET /api/instagram` returns up to 15 posts ordered by `sort_order`; homepage coverflow reads `instagram_link` for per-card Instagram redirect
+- Video detection: `isVideoPath(path)` checks extension — grid renders `<video>` with hover-to-play; homepage coverflow renders `<video autoPlay muted loop>`
+
 ### Conflict detection
 
 `/api/check-conflict`, `/api/payment/create`, and `processPayment.ts` all use `orders_items` with `BLOCKING_STATUSES = ['Hazırlanıyor', 'Kirada']` and a ±7-day date window around the event date. All three must stay consistent with each other.
@@ -86,6 +94,8 @@ Flow: email whitelist → OTP (Gmail SMTP, 6-digit, 5 min TTL) → JWT (HS256, 1
 ### Image storage
 
 Product images are on Cloudflare R2. Base URL: `NEXT_PUBLIC_R2_PUBLIC_BASE_URL` / `NEXT_PUBLIC_R2_BUCKET_NAME`. Upload/delete goes through `/api/admin/storage` and `/api/images/delete`.
+
+**Filename sanitization** — `app/api/admin/storage/route.ts` runs `sanitizeName()` on every upload before using it as an R2 key. It strips non-ASCII (emojis, Unicode), replaces spaces/`#`/`@`/dots with `_`, collapses repeated underscores, and falls back to `file_<timestamp>` if the result is empty. This handles Instagram-downloaded filenames with emojis/hashtags. Images are also converted to WebP (quality 85) via `sharp`; videos are stored as-is with their original extension.
 
 R2 URL helper (used in ProductDetail and portfolio pages):
 ```ts
@@ -122,6 +132,13 @@ NEXT_PUBLIC_R2_PUBLIC_BASE_URL
 NEXT_PUBLIC_R2_BUCKET_NAME
 IYZICO_WEBHOOK_SECRET   # optional — HMAC-SHA256 secret for webhook signature verification
 ```
+
+### PWA
+
+- `public/manifest.json` — app name, icons, theme color `#111827`, display standalone
+- `public/sw.js` — network-first service worker; skips caching for `/api/` and `/admin` paths
+- `app/components/ServiceWorkerRegister.tsx` — silent registration in `useEffect`; imported in `app/layout.tsx`
+- `app/layout.tsx` metadata includes `manifest: "/manifest.json"` and `appleWebApp` config
 
 ---
 
@@ -163,6 +180,8 @@ All pages share an identical sticky nav structure:
 - Row 2: `ANASAYFA · ELBİSELER · HAKKIMDA · İLETİŞİM` links
 
 The nav gains a background (`bg-gray-900` / `bg-white`) when `scrollY > 50`. Use the same `showNavBackground` guard across all pages.
+
+**Mobile nav:** On mobile (`sm:` breakpoint), Row 2 links and the cart icon in Row 1 are hidden (`hidden sm:flex` / `hidden sm:contents`). Instead, `app/components/MobileBottomNav.tsx` renders a fixed 5-tab bottom bar (Anasayfa, Elbiseler, Sepet, Hakkımda, İletişim) with glassmorphism styling. It is excluded from `/admin` and SEO-only pages. A `h-14 sm:hidden` spacer div is appended to avoid content overlap. Registered globally in `app/layout.tsx`.
 
 ### Helper className variables (legal/content pages)
 
@@ -206,6 +225,11 @@ Hakkımızda · İletişime Geç · Gizlilik Politikası · KVKK · Aydınlatma 
 | `/mesafeli-satis-sozlesmesi` | `app/mesafeli-satis-sozlesmesi/page.tsx` | Distance sales contract (legal clauses) |
 | `/teslimat-ve-iade-politikasi` | `app/teslimat-ve-iade-politikasi/page.tsx` | Delivery & return policy |
 | `/erzincan-gelinlik-kiralama` | `app/erzincan-gelinlik-kiralama/page.tsx` | SEO landing page — no nav/footer |
+| `/erzincan-abiye-kiralama` | `app/erzincan-abiye-kiralama/page.tsx` | SEO landing page — no nav/footer |
+| `/erzincan-nisanlik-kiralama` | `app/erzincan-nisanlik-kiralama/page.tsx` | SEO landing page — no nav/footer |
+| `/gelinlik-kiralama` | `app/gelinlik-kiralama/page.tsx` | SEO landing page — no nav/footer |
+| `/abiye-kiralama` | `app/abiye-kiralama/page.tsx` | SEO landing page — no nav/footer |
+| `/nisanlik-kiralama` | `app/nisanlik-kiralama/page.tsx` | SEO landing page — no nav/footer |
 | `/admin` | `app/admin/page.tsx` | Admin panel (JWT-protected) |
 
 ### Contact form (`/iletisim`)
@@ -224,4 +248,4 @@ After successful DB insert, if `konu === 'İade Talebi'`, a fire-and-forget POST
 - Never use bare `px-8` or `py-16` on section/footer wrappers — always `px-4 sm:px-8`, `py-12 sm:py-16`.
 - Text sizes: use `text-2xl sm:text-3xl`, `text-base sm:text-lg` etc. — never bare large sizes without a mobile fallback.
 - iframes (e.g. Google Maps): set `height="100%"` and control height via the container div's Tailwind class (`h-64 sm:h-80 lg:h-96`).
-- The `app/erzincan-gelinlik-kiralama/page.tsx` SEO page intentionally has no nav/footer — keep it that way.
+- All SEO landing pages (`/erzincan-*`, `/gelinlik-kiralama`, `/abiye-kiralama`, `/nisanlik-kiralama`) intentionally have no nav/footer — keep it that way. `MobileBottomNav` is also excluded from these pages.

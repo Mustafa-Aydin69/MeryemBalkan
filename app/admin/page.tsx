@@ -8,8 +8,9 @@ import ProductsPage from './products/ProductsPage';
 import MessagesPage from './messages/MessagesPage';
 import KiraYonetimi from './rentals/KiraYonetimi';
 import DashboardPage from './dashboard/DashboardPage';
+import InstagramPage from './instagram/InstagramPage';
 
-type TabType = 'dashboard' | 'orders' | 'products' | 'messages' | 'rentals';
+type TabType = 'dashboard' | 'orders' | 'products' | 'messages' | 'rentals' | 'instagram';
 
 export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
@@ -57,6 +58,7 @@ export default function AdminPanel() {
           {activeTab === 'products' && <ProductsPage />}
           {activeTab === 'rentals' && <KiraYonetimi />}
           {activeTab === 'messages' && <MessagesPage />}
+          {activeTab === 'instagram' && <InstagramPage />}
         </div>
       </main>
               </div>

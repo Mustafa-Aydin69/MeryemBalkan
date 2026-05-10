@@ -22,6 +22,7 @@ interface AdminCacheStore {
   products: CacheEntry<any[]> | null;
   rentals: CacheEntry<any[]> | null;
   messages: CacheEntry<any[]> | null;
+  instagram: CacheEntry<any[]> | null;
 }
 
 // Module-level cache - persists across re-renders
@@ -30,6 +31,7 @@ const cache: AdminCacheStore = {
   products: null,
   rentals: null,
   messages: null,
+  instagram: null,
 };
 
 // Cache keys type
@@ -76,6 +78,7 @@ export function invalidateAllCaches(): void {
   cache.products = null;
   cache.rentals = null;
   cache.messages = null;
+  cache.instagram = null;
 }
 
 /**

@@ -177,7 +177,7 @@ export default function OrdersPage() {
                         </button>
                     </div>
 
-                    <div className="flex space-x-4 sm:space-x-8 text-xs sm:text-sm font-medium tracking-wide">
+                    <div className="hidden sm:flex space-x-4 sm:space-x-8 text-xs sm:text-sm font-medium tracking-wide">
                         <Link href="/" className={`cursor-pointer transition-colors font-light whitespace-nowrap ${isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600'}`}>
                             ANASAYFA
                         </Link>

@@ -24,8 +24,12 @@ export default function Home() {
   const [hasCartItems, setHasCartItems] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [adminTriggerActive, setAdminTriggerActive] = useState(false);
+  const [instagramPosts, setInstagramPosts] = useState<{ id: number; image_path: string; instagram_link?: string | null }[]>([]);
+  const [instagramIndex, setInstagramIndex] = useState(0);
+  const [sliderMode, setSliderMode] = useState<'mobile' | 'desktop'>('desktop');
   const observerRef = useRef<IntersectionObserver | null>(null);
   const productObserverRef = useRef<IntersectionObserver | null>(null);
+  const touchStartX = useRef(0);
   
 
   const typingWords = [
@@ -138,6 +142,11 @@ export default function Home() {
       setTypingStarted(true);
     }, 1000);
 
+    fetch('/api/instagram')
+      .then((r) => r.json())
+      .then(({ posts }) => setInstagramPosts(posts || []))
+      .catch(() => {});
+
     return () => {
       window.removeEventListener('storage', checkCartItems);
       window.removeEventListener('cartUpdated', checkCartItems);
@@ -243,6 +252,14 @@ export default function Home() {
     };
   }, [isClient]);
 
+  useEffect(() => {
+    if (!isClient) return;
+    const check = () => setSliderMode(window.innerWidth < 640 ? 'mobile' : 'desktop');
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, [isClient]);
+
   const toggleTheme = () => {
     const newDarkMode = !isDarkMode;
     setIsDarkMode(newDarkMode);
@@ -283,7 +300,7 @@ export default function Home() {
             <div className="flex items-center space-x-3 sm:space-x-4">
               <Link
                 href="/sepet"
-                className={`w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center cursor-pointer transition-colors ${showNavBackground ? (isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600') : 'text-white hover:text-gray-300'}`}
+                className={`w-6 h-6 sm:w-7 sm:h-7 hidden sm:flex items-center justify-center cursor-pointer transition-colors ${showNavBackground ? (isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600') : 'text-white hover:text-gray-300'}`}
                 aria-label="Sepet"
               >
                 <i className={`ri-shopping-bag-line text-base sm:text-lg ${hasCartItems ? 'animate-bounce' : ''}`}></i>
@@ -298,7 +315,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex flex-wrap justify-center gap-x-4 sm:gap-x-6 md:gap-x-8 gap-y-2 text-xs sm:text-sm font-medium tracking-wide">
+          <div className="hidden sm:flex flex-wrap justify-center gap-x-4 sm:gap-x-6 md:gap-x-8 gap-y-2 text-xs sm:text-sm font-medium tracking-wide">
             <Link href="/" className={`cursor-pointer transition-colors font-light whitespace-nowrap ${showNavBackground ? (isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600') : 'text-white hover:text-gray-300'}`}>ANASAYFA</Link>
             <Link href="/portfolio" className={`cursor-pointer transition-colors font-light whitespace-nowrap ${showNavBackground ? (isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600') : 'text-white hover:text-gray-300'}`}>ELBİSELER</Link>
             <Link href="/hakkimda" className={`cursor-pointer transition-colors font-light whitespace-nowrap ${showNavBackground ? (isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600') : 'text-white hover:text-gray-300'}`}>HAKKIMDA</Link>
@@ -388,6 +405,181 @@ export default function Home() {
           </div>
         ))}
       </section>
+
+      {/* Instagram Feed — Coverflow Slider */}
+      {instagramPosts.length > 0 && (() => {
+        const total = instagramPosts.length;
+        const r2Base = (process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || 'https://cdn.meryembalkan.com.tr').replace(/\/$/, '');
+        const r2Bucket = (process.env.NEXT_PUBLIC_R2_BUCKET_NAME || 'urunler').replace(/^\//, '');
+
+        return (
+          <section className={`relative py-12 sm:py-16 transition-colors duration-300 overflow-hidden ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+            {/* Dekoratif MB monogram — sadece masaüstü */}
+            <span
+              aria-hidden="true"
+              className={`hidden sm:block absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/4 font-serif italic leading-none select-none pointer-events-none ${isDarkMode ? 'text-white' : 'text-black'}`}
+              style={{ fontSize: '26vw', opacity: 0.04 }}
+            >
+              MB
+            </span>
+            <span
+              aria-hidden="true"
+              className={`hidden sm:block absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/4 font-serif italic leading-none select-none pointer-events-none ${isDarkMode ? 'text-white' : 'text-black'}`}
+              style={{ fontSize: '26vw', opacity: 0.04 }}
+            >
+              MB
+            </span>
+
+            {/* Başlık */}
+            <div className="text-center mb-8 sm:mb-10 px-4">
+              <p className={`text-xs tracking-[0.3em] mb-2 transition-colors ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>SOSYAL MEDYA</p>
+              <h3 className={`text-2xl sm:text-3xl font-light tracking-wide font-serif mb-3 transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                BİZİ TAKIP EDİN
+              </h3>
+              <a
+                href="https://www.instagram.com/meryembalkan_ateiler/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`inline-flex items-center gap-1.5 text-sm transition-colors ${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-black'}`}
+              >
+                <i className="ri-instagram-line" />
+                @meryembalkan_ateiler
+              </a>
+            </div>
+
+            {/* Coverflow */}
+            <div className="relative w-full sm:w-[80vw] sm:mx-auto h-[310px] sm:h-[430px] flex items-center justify-center">
+              {/* Sol ok — sadece masaüstü */}
+              <button
+                onClick={() => setInstagramIndex((p) => (p - 1 + total) % total)}
+                className={`hidden sm:block absolute left-3 z-50 p-2 rounded-full border transition-all ${isDarkMode ? 'bg-gray-900/80 border-white/10 text-white/70 hover:text-white hover:bg-white/10' : 'bg-white/80 border-black/10 text-gray-600 hover:text-black hover:bg-white'} backdrop-blur-md`}
+              >
+                <i className="ri-arrow-left-s-line text-xl" />
+              </button>
+
+              {/* Kartlar — mobilde swipe ile kaydırma */}
+              <div
+                className="relative w-full h-full flex items-center justify-center"
+                onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
+                onTouchEnd={(e) => {
+                  const delta = e.changedTouches[0].clientX - touchStartX.current;
+                  if (delta < -50) setInstagramIndex((p) => (p + 1) % total);
+                  else if (delta > 50) setInstagramIndex((p) => (p - 1 + total) % total);
+                }}
+              >
+                {instagramPosts.map((post, index) => {
+                  let offset = index - instagramIndex;
+                  if (offset > Math.floor(total / 2)) offset -= total;
+                  if (offset < -Math.floor(total / 2)) offset += total;
+
+                  let transform = '';
+                  let zIndex = 0;
+                  let opacity = 0;
+                  let filter = 'none';
+
+                  const dir = offset > 0 ? 1 : -1;
+
+                  if (offset === 0) {
+                    transform = 'translateX(0) scale(1)';
+                    zIndex = 50; opacity = 1;
+                  } else if (Math.abs(offset) === 1) {
+                    if (sliderMode === 'desktop') {
+                      transform = `translateX(${dir * 22}vw) scale(0.82)`;
+                      zIndex = 40; opacity = 0.65; filter = 'blur(1.5px)';
+                    } else {
+                      transform = `translateX(${dir * 62}%) scale(0.78)`;
+                      zIndex = 40; opacity = 0.5; filter = 'blur(1px)';
+                    }
+                  } else if (Math.abs(offset) === 2 && sliderMode === 'desktop') {
+                    transform = `translateX(${dir * 38}vw) scale(0.62)`;
+                    zIndex = 30; opacity = 0.35; filter = 'blur(3px)';
+                  } else {
+                    transform = `translateX(${dir * (sliderMode === 'desktop' ? 58 : 110)}vw) scale(0.5)`;
+                    zIndex = 10; opacity = 0;
+                  }
+
+                  const src = `${r2Base}/${r2Bucket}/${post.image_path}`;
+                  const isCenter = offset === 0;
+                  const isVid = /\.(mp4|webm|mov|avi|mkv)$/i.test(post.image_path);
+
+                  return (
+                    <div
+                      key={post.id}
+                      onClick={() => {
+                        if (offset === 1) setInstagramIndex((p) => (p + 1) % total);
+                        if (offset === -1) setInstagramIndex((p) => (p - 1 + total) % total);
+                      }}
+                      className={`absolute w-[180px] h-[260px] sm:w-[250px] sm:h-[365px] rounded-2xl overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] ${
+                        !isCenter ? 'cursor-pointer' : `group shadow-2xl shadow-black/40 ${isDarkMode ? 'ring-1 ring-white/10' : 'ring-1 ring-black/10'}`
+                      }`}
+                      style={{ transform, zIndex, opacity, filter }}
+                    >
+                      {isVid ? (
+                        <video
+                          src={src}
+                          className="w-full h-full object-cover"
+                          muted
+                          loop
+                          playsInline
+                          autoPlay
+                        />
+                      ) : (
+                        <img src={src} alt="" className="w-full h-full object-cover" />
+                      )}
+                      {/* Merkez kart — Instagram linkine yönlendir */}
+                      {isCenter && (
+                        <a
+                          href={post.instagram_link || 'https://www.instagram.com/meryembalkan_ateiler/'}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors duration-300 flex items-center justify-center"
+                        >
+                          <i className="ri-instagram-line text-white text-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        </a>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Sağ ok — sadece masaüstü */}
+              <button
+                onClick={() => setInstagramIndex((p) => (p + 1) % total)}
+                className={`hidden sm:block absolute right-3 z-50 p-2 rounded-full border transition-all ${isDarkMode ? 'bg-gray-900/80 border-white/10 text-white/70 hover:text-white hover:bg-white/10' : 'bg-white/80 border-black/10 text-gray-600 hover:text-black hover:bg-white'} backdrop-blur-md`}
+              >
+                <i className="ri-arrow-right-s-line text-xl" />
+              </button>
+            </div>
+
+            {/* Nokta göstergesi */}
+            <div className="flex justify-center gap-1.5 mt-5">
+              {instagramPosts.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setInstagramIndex(i)}
+                  className={`rounded-full transition-all duration-300 ${
+                    i === instagramIndex
+                      ? `w-4 h-1.5 ${isDarkMode ? 'bg-white' : 'bg-black'}`
+                      : `w-1.5 h-1.5 ${isDarkMode ? 'bg-gray-600' : 'bg-gray-300'}`
+                  }`}
+                />
+              ))}
+            </div>
+
+            {/* Instagram'a git */}
+            <div className="text-center mt-6">
+              <a
+                href="https://www.instagram.com/meryembalkan_ateiler/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`inline-flex items-center gap-2 text-[11px] tracking-widest transition-colors ${isDarkMode ? 'text-gray-500 hover:text-white' : 'text-gray-400 hover:text-black'}`}
+              >
+                <i className="ri-instagram-line" /> INSTAGRAM'DA GÖR
+              </a>
+            </div>
+          </section>
+        );
+      })()}
 
       {/* Contact CTA */}
       <section className={`py-12 sm:py-16 lg:py-20 text-white transition-colors duration-300 ${isDarkMode ? 'bg-gray-800' : 'bg-black'}`}>

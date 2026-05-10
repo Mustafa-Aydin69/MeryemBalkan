@@ -412,7 +412,7 @@ export default function Checkout() {
             </div>
 
             <div className="flex items-center space-x-4">
-              <Link
+              <span className="hidden sm:contents"><Link
                 href="/sepet"
                 className={`${isDarkMode
                   ? 'text-white hover:text-gray-300'
@@ -420,7 +420,7 @@ export default function Checkout() {
                   }`}
               >
                 <i className="ri-shopping-bag-line text-lg"></i>
-              </Link>
+              </Link></span>
               <button
                 onClick={() => setIsLoginModalOpen(true)}
                 className={`w-6 h-6 flex items-center justify-center cursor-pointer transition-colors ${isDarkMode
@@ -433,7 +433,7 @@ export default function Checkout() {
             </div>
           </div>
 
-          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs sm:text-sm font-medium tracking-wide text-center">
+          <div className="hidden sm:flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs sm:text-sm font-medium tracking-wide text-center">
             <Link
               href="/"
               className={`cursor-pointer transition-colors font-light ${isDarkMode
