@@ -123,7 +123,7 @@ export default function OrdersPage() {
               type="text"
               value={searchTermOrders}
               onChange={(e) => setSearchTermOrders(e.target.value)}
-              placeholder="Müşteri, telefon veya e-posta ara..."
+              placeholder="İsim, telefon veya e-posta ara..."
               className="px-3 py-2 rounded-lg transition-colors bg-gray-700 text-white border border-gray-600 focus:border-gray-500 focus:outline-none w-full sm:w-64"
             />
           )}
@@ -204,13 +204,19 @@ export default function OrdersPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <p className="text-gray-500 text-xs mb-1">Sipariş No</p>
-                    <p className="font-mono">#{viewingOrder.id.toString().padStart(4, '0')}</p>
+                    <p className="font-mono">#{viewingOrder.id}</p>
                   </div>
                   <div>
                     <p className="text-gray-500 text-xs mb-1">Durum</p>
                     <p>{viewingOrder.status}</p>
                   </div>
                 </div>
+                {viewingOrder.conversationId && (
+                  <div>
+                    <p className="text-gray-500 text-xs mb-1">Conversation ID</p>
+                    <p className="font-mono text-xs break-all select-all text-gray-300">{viewingOrder.conversationId}</p>
+                  </div>
+                )}
                 
                 <div className="border-t border-gray-700 pt-3">
                   <p className="text-gray-500 text-xs mb-1">Müşteri</p>
@@ -276,12 +282,6 @@ export default function OrdersPage() {
                   </p>
                 </div>
 
-                {viewingOrder.conversationId && (
-                  <div className="border-t border-gray-700 pt-3">
-                    <p className="text-gray-500 text-xs mb-1">Iyzico Conversation ID</p>
-                    <p className="font-mono text-xs break-all text-gray-300 select-all">{viewingOrder.conversationId}</p>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -376,7 +376,7 @@ export default function OrdersPage() {
                 <div className="text-sm space-y-2 text-gray-300">
                   <div className="flex justify-between">
                     <span className="text-gray-500">Sipariş No:</span>
-                    <span className="font-mono">#{editingOrder.id.toString().padStart(4, '0')}</span>
+                    <span className="font-mono">#{editingOrder.id}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">Müşteri:</span>

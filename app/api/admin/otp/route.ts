@@ -3,20 +3,24 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from 'next/server';
-import type { SupabaseClient } from '@supabase/supabase-js';
 
-// Lazy import - build time'da çalıştırılmaz
-let supabaseInstance: SupabaseClient | null = null;
-
-function getSupabase(): SupabaseClient {
-  if (!supabaseInstance) {
-    const { createClient } = require('@supabase/supabase-js');
-    supabaseInstance = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+// Nodemailer transporter — modül seviyesinde bir kez oluşturulur, bağlantı havuzlanır
+let _transporter: any = null;
+function getMailTransporter() {
+  if (!_transporter) {
+    const nodemailer = require('nodemailer');
+    _transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASSWORD,
+      },
+      pool: true,
+    });
   }
-  return supabaseInstance as SupabaseClient;
+  return _transporter;
 }
 
 // Güvenlik gecikmesi (timing attack önlemi)
@@ -86,21 +90,9 @@ export async function POST(request: NextRequest) {
     const otp = generateSecureOTP();
     storeOTP(email, otp);
 
-    // E-posta gönder (nodemailer ile) - runtime'da import
-    try {
-      const nodemailer = require('nodemailer');
-      
-      const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST || 'smtp.gmail.com',
-        port: parseInt(process.env.SMTP_PORT || '587'),
-        secure: process.env.SMTP_SECURE === 'true',
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASSWORD,
-        },
-      });
-
-      await transporter.sendMail({
+    // E-posta gönderimi ve güvenlik gecikmesini paralel çalıştır
+    await Promise.all([
+      getMailTransporter().sendMail({
         from: process.env.SMTP_FROM || process.env.SMTP_USER,
         to: email,
         subject: 'Yetkili Erişim Doğrulama Kodu',
@@ -115,13 +107,11 @@ export async function POST(request: NextRequest) {
             <p style="color: #666; font-size: 14px;">Bu işlemi siz yapmadıysanız bu e-postayı görmezden gelin.</p>
           </div>
         `,
-      });
-    } catch (emailError) {
-      console.error('Email gönderme hatası:', emailError);
-      // Sessizce başarısız ol
-    }
-
-    await securityDelay();
+      }).catch((emailError: unknown) => {
+        console.error('Email gönderme hatası:', emailError);
+      }),
+      securityDelay(),
+    ]);
     return NextResponse.json(
       { message: GENERIC_SUCCESS_MESSAGE },
       { status: 200 }

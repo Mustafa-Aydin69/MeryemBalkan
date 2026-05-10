@@ -13,6 +13,7 @@ function flattenItem(item: any) {
   const o = item.orders ?? {};
   return {
     id: item.id,
+    orderId: item.order_id ?? '',
     conversationId: o.conversation_id ?? '',
     customerName: o.customer_name ?? '',
     phone: o.phone ?? '',
@@ -49,6 +50,7 @@ export async function GET(request: NextRequest) {
       .from('orders_items')
       .select(`
         id,
+        order_id,
         product_name,
         color,
         size,

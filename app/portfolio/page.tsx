@@ -280,8 +280,10 @@ export default function Portfolio() {
 
     const urlParams = new URLSearchParams(window.location.search);
     const category = urlParams.get('category');
-    if (category && ['Gelinlik', 'Nisanlik', 'Kinalik', 'After-Party'].includes(category)) {
-      setActiveFilter(category);
+    if (category) {
+      const validKeys = ['Gelinlik', 'Nisanlik', 'Kinalik', 'After-Party', 'Abiye'];
+      const matched = validKeys.find(k => k.toLowerCase() === category.toLowerCase());
+      if (matched) setActiveFilter(matched);
     }
   }, [isClient]);
 
@@ -587,7 +589,7 @@ export default function Portfolio() {
               <h5 className="font-medium mb-4 tracking-wide text-sm sm:text-base">İLETİŞİM</h5>
               <ul className={`space-y-2 text-sm transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                 <li>Erzincan, Türkiye</li>
-                <li>meryembalkantasarimatölye@gmail.com</li>
+                <li>meryembalkantasarimatolye@gmail.com</li>
               </ul>
             </div>
           </div>

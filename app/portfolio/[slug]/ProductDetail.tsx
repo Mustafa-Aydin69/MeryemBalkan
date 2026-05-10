@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import Link from 'next/link';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import LoginModal from '../../components/LoginModal';
@@ -789,7 +789,7 @@ export default function ProductDetail({
       {/* Related Products */}
       {relatedProducts.length > 0 && (
         <section
-          className={`py-12 px-8 border-t ${isDarkMode ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"
+          className={`py-8 sm:py-12 px-4 sm:px-8 border-t ${isDarkMode ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"
             }`}
         >
           <div className="max-w-7xl mx-auto">
@@ -882,7 +882,7 @@ export default function ProductDetail({
         </section>
       )}
       {/* Footer */}
-      <footer className={`py-16 px-8 border-t transition-colors duration-300 ${isDarkMode ? 'bg-gray-900 text-white border-gray-700' : 'bg-white border-gray-200'}`}>
+      <footer className={`py-12 sm:py-16 px-4 sm:px-8 border-t transition-colors duration-300 ${isDarkMode ? 'bg-gray-900 text-white border-gray-700' : 'bg-white border-gray-200'}`}>
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
             <div className="col-span-2">
@@ -914,7 +914,7 @@ export default function ProductDetail({
               <h5 className="font-medium mb-4 tracking-wide">İLETİŞİM</h5>
               <ul className={`space-y-2 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                 <li>Erzincan, Türkiye</li>
-                <li>meryembalkantasarimatölye@gmail.com</li>
+                <li>meryembalkantasarimatolye@gmail.com</li>
               </ul>
             </div>
           </div>

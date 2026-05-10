@@ -227,8 +227,13 @@ export default function OrdersTable({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-2">
                           <span className="text-sm font-mono text-gray-300">
-                            #{order.id.toString().padStart(4, '0')}
+                            #{order.id}
                           </span>
+                          {order.orderId && (
+                            <span className="text-xs font-mono text-gray-500 hidden sm:inline" title={order.orderId}>
+                              · {order.orderId.slice(0, 8).toUpperCase()}
+                            </span>
+                          )}
                           <span
                             className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
                               order.status

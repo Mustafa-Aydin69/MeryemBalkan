@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { Geist, Geist_Mono, Pacifico } from "next/font/google";
 import "./globals.css";
 import PageTransition from "./components/PageTransition";
+import CookieBanner from "./components/CookieBanner";
 import { Toaster } from "sonner";
 
 const pacifico = Pacifico({
@@ -115,6 +116,7 @@ export default function RootLayout({
 
         <PageTransition />
         {children}
+        <CookieBanner />
         <Toaster position="top-right" richColors closeButton />
       </body>
     </html>

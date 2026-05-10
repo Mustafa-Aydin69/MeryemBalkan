@@ -331,39 +331,39 @@ export function useRentals() {
     }
   };
 
-  // Yeni kiralama oluştur (şimdilik sadece local state'e ekle)
+  // Yeni kiralama oluştur
   const handleCreateRental = async (form: NewRentalForm) => {
-    const newRental: Rental = {
-      rentalId: `KR-${String(rentals.length + 1).padStart(3, '0')}`,
-      product: {
-        id: form.productId || `P-NEW`,
-        name: form.productName,
-        imageUrl: form.productImageUrl || FALLBACK_IMAGE,
-      },
-      customer: {
-        firstName: form.customerFirstName,
-        lastName: form.customerLastName,
-        phone: form.customerPhone,
-        email: form.customerEmail,
-        address: form.customerAddress,
-      },
-      rentalPeriod: {
-        etkinlikTarihi: form.etkinlikTarihi,
-        enGecIadeTarihi: calculateReturnDate(form.etkinlikTarihi),
-      },
-      status: 'musteride',
-      price: form.price,
-      deposit: form.deposit,
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      const response = await fetch('/api/admin/siparisler', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          customerName: `${form.customerFirstName} ${form.customerLastName}`.trim(),
+          phone: form.customerPhone,
+          email: form.customerEmail,
+          address: form.customerAddress,
+          productName: form.productName,
+          color: '',
+          size: '',
+          eventDate: form.etkinlikTarihi,
+          price: form.price,
+          status: 'Kirada',
+          paymentMethod: 'Admin',
+        }),
+      });
 
-    const updatedRentals = [newRental, ...rentals];
-    setRentals(updatedRentals);
-    // Update cache
-    replaceCache(CACHE_KEY, updatedRentals);
-    
-    setIsCreateModalOpen(false);
-    toast.success('Kiralama kaydı oluşturuldu');
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Kiralama oluşturulamadı');
+      }
+
+      await fetchRentals(true);
+      setIsCreateModalOpen(false);
+      toast.success('Kiralama kaydı oluşturuldu');
+    } catch (error: any) {
+      toast.error('Hata: ' + error.message);
+    }
   };
 
   // Verileri yenile (force refresh)

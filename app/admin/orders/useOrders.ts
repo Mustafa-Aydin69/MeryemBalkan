@@ -14,6 +14,7 @@ const CACHE_KEY: CacheKey = 'orders';
 
 export interface Order {
   id: number;
+  orderId: string;
   conversationId: string;
   customerName: string;
   productName: string;
@@ -34,6 +35,7 @@ export interface Order {
 function transformOrderData(item: any): Order {
   return {
     id: item.id,
+    orderId: item.orderId ?? '',
     conversationId: item.conversationId ?? '',
     customerName: item.customerName,
     productName: item.productName,
@@ -109,7 +111,6 @@ export function useOrders() {
   const searchFilteredOrders = orders.filter(
     (order) =>
       order.customerName.toLowerCase().includes(searchTermOrders.toLowerCase()) ||
-      order.productName.toLowerCase().includes(searchTermOrders.toLowerCase()) ||
       order.email.toLowerCase().includes(searchTermOrders.toLowerCase()) ||
       order.phone.toLowerCase().includes(searchTermOrders.toLowerCase())
   );

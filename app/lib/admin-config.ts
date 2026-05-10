@@ -12,7 +12,7 @@ export const ADMIN_CONFIG = {
   get JWT_SECRET(): string {
     return getAdminJWTSecret();
   },
-  JWT_EXPIRES_IN: 15 * 60, // 15 dakika (saniye cinsinden)
+  JWT_EXPIRES_IN: 60 * 60, // 8 saat (saniye cinsinden)
   
   // Rate limiting ayarları
   RATE_LIMIT: {
@@ -72,7 +72,7 @@ export const ADMIN_CONFIG = {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict' as const,
       path: '/',
-      maxAge: 15 * 60, // 15 dakika
+      maxAge: 60 * 60, // 8 saat
     },
   },
 };

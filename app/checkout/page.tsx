@@ -299,6 +299,17 @@ export default function Checkout() {
         throw new Error(data.error || 'Ödeme sayfası başlatılamadı');
       }
 
+      try {
+        const snapshotTotal = itemsToProcess.reduce((sum, item) => sum + (item.price || 0), 0) + shippingCost;
+        localStorage.setItem('lastOrderSnapshot', JSON.stringify({
+          items: itemsToProcess,
+          customerName: `${formData.firstName} ${formData.lastName}`.trim(),
+          totalPrice: snapshotTotal,
+          shippingCost,
+          confirmedAt: new Date().toISOString(),
+        }));
+      } catch {}
+
       window.location.href = data.paymentPageUrl;
     } catch (error) {
       console.error('Ödeme başlatma hatası:', error);
@@ -359,7 +370,7 @@ export default function Checkout() {
   const storeAddress = {
     name: "Meryem Balkan Atölye",
     fullAddress: "Atatürk Mahallesi, Muhsin Yazıcıoğlu Caddesi No: 15/B, Merkez / Erzincan",
-    mail: "meryembalkantasarimatölye@gmail.com"
+    mail: "meryembalkantasarimatolye@gmail.com"
   };
 
   return (
@@ -465,7 +476,7 @@ export default function Checkout() {
 
       {/* Breadcrumb - önceki kod aynı */}
       <section
-        className={`px-8 py-4 border-b pt-32 transition-colors duration-300 ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'
+        className={`px-4 sm:px-8 py-4 border-b pt-32 transition-colors duration-300 ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'
           }`}
       >
         <div className="max-w-6xl mx-auto">
@@ -1140,7 +1151,7 @@ export default function Checkout() {
               <h5 className="font-medium mb-4 tracking-wide text-sm sm:text-base">İLETİŞİM</h5>
               <ul className={`space-y-2 text-sm transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                 <li>Erzincan, Türkiye</li>
-                <li className="break-all">meryembalkantasarimatölye@gmail.com</li>
+                <li className="break-all">meryembalkantasarimatolye@gmail.com</li>
               </ul>
             </div>
           </div>

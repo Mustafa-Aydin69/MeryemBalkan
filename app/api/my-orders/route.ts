@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
       .from('orders_items')
       .select(`
         id,
+        order_id,
         product_name,
         color,
         size,
@@ -74,6 +75,7 @@ export async function POST(request: NextRequest) {
       const o = item.orders ?? {};
       return {
         id: item.id,
+        orderId: item.order_id,
         productName: item.product_name,
         color: item.color,
         size: item.size,

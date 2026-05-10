@@ -432,7 +432,7 @@ export default function Home() {
               <h5 className="font-medium mb-4 tracking-wide text-sm sm:text-base">İLETİŞİM</h5>
               <ul className={`space-y-2 text-sm transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                 <li>Erzincan, Türkiye</li>
-                <li className="break-all">meryembalkantasarimatölye@gmail.com</li>
+                <li className="break-all">meryembalkantasarimatolye@gmail.com</li>
               </ul>
             </div>
           </div>

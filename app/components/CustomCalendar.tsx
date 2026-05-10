@@ -68,22 +68,24 @@ export default function CustomCalendar({
 
   const days = useMemo(() => getDaysInMonth(currentMonth), [currentMonth]);
 
+  const toLocalDateStr = (year: number, month: number, day: number) =>
+    `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
   const isDateDisabled = (day: number) => {
     const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
-    // Past dates are disabled
     if (date < today) return true;
-    
-    // Tarihi ISO formatına çevir (YYYY-MM-DD)
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const dayStr = String(date.getDate()).padStart(2, '0');
-    const dateStr = `${year}-${month}-${dayStr}`;
-    
-    // Check if in disabled dates
-    return disabledSet.has(dateStr);
+    return disabledSet.has(toLocalDateStr(currentMonth.getFullYear(), currentMonth.getMonth(), day));
+  };
+
+  // Gelecekte ama dolu olan günler (kırmızı)
+  const isDateBooked = (day: number) => {
+    const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (date < today) return false;
+    return disabledSet.has(toLocalDateStr(currentMonth.getFullYear(), currentMonth.getMonth(), day));
   };
 
   const isToday = (day: number) => {
@@ -284,17 +286,21 @@ export default function CustomCalendar({
                             ? isDarkMode
                               ? 'bg-white text-black shadow-sm'
                               : 'bg-black text-white shadow-sm'
-                            : isToday(day)
+                            : isToday(day) && !isDateBooked(day)
                               ? isDarkMode
                                 ? 'bg-gray-800 text-white ring-1 ring-gray-600'
                                 : 'bg-gray-100 text-black ring-1 ring-gray-300'
-                              : isDateDisabled(day)
+                              : isDateBooked(day)
                                 ? isDarkMode
-                                  ? 'text-gray-700 cursor-not-allowed'
-                                  : 'text-gray-300 cursor-not-allowed'
-                                : isDarkMode
-                                  ? 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                                  : 'text-gray-700 hover:bg-gray-100 hover:text-black'
+                                  ? 'bg-rose-500/10 text-rose-500 cursor-not-allowed line-through decoration-rose-500/60'
+                                  : 'bg-rose-50 text-rose-400 cursor-not-allowed line-through decoration-rose-300'
+                                : isDateDisabled(day)
+                                  ? isDarkMode
+                                    ? 'text-gray-700 cursor-not-allowed'
+                                    : 'text-gray-300 cursor-not-allowed'
+                                  : isDarkMode
+                                    ? 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                                    : 'text-gray-700 hover:bg-gray-100 hover:text-black'
                         }`}
                       >
                         {day}
@@ -309,6 +315,20 @@ export default function CustomCalendar({
                 ))}
               </motion.div>
             </AnimatePresence>
+
+            {/* Lejant */}
+            <div className={`px-3 py-1.5 flex items-center justify-center gap-4 text-[10px] ${
+              isDarkMode ? 'border-t border-gray-800 text-gray-600' : 'border-t border-gray-100 text-gray-400'
+            }`}>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-sm bg-rose-400/70" />
+                Dolu
+              </span>
+              <span className="flex items-center gap-1">
+                <span className={`w-2 h-2 rounded-sm ${isDarkMode ? 'bg-gray-600' : 'bg-gray-300'}`} />
+                Müsait
+              </span>
+            </div>
 
             {/* Footer */}
             <div className={`px-1.5 sm:px-2 pb-2 pt-0.5 flex gap-1.5 ${

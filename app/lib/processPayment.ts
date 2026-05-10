@@ -1,8 +1,141 @@
-export const runtime = 'nodejs';
+﻿export const runtime = 'nodejs';
 
 import 'postman-request';
+import nodemailer from 'nodemailer';
 import { getSupabaseAdmin } from '@/app/lib/supabaseAdmin';
 import { logPaymentEvent } from '@/app/lib/logPaymentEvent';
+
+
+async function sendAdminOrderNotification(params: {
+  conversationId: string;
+  customerName: string;
+  phone: string;
+  email: string;
+  address: string;
+  totalPrice: number;
+  shippingCost: number;
+  items: Array<{ product_name: string; color: string; size: string; event_date: string; price: number }>;
+}) {
+  const { conversationId, customerName, phone, email, address, totalPrice, shippingCost, items } = params;
+
+  const formatDate = (d: string) =>
+    new Date(d).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  const itemRows = items.map(item => `
+    <tr>
+      <td style="padding:10px;border-bottom:1px solid #eee;color:#333;">${item.product_name}</td>
+      <td style="padding:10px;border-bottom:1px solid #eee;color:#555;">${item.color} / Beden ${item.size}</td>
+      <td style="padding:10px;border-bottom:1px solid #eee;color:#555;">${formatDate(item.event_date)}</td>
+      <td style="padding:10px;border-bottom:1px solid #eee;color:#333;text-align:right;">${item.price.toLocaleString('tr-TR')} TL</td>
+    </tr>
+  `).join('');
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="margin:0;padding:0;font-family:'Segoe UI',sans-serif;background:#f5f5f5;">
+      <table style="width:100%;border-collapse:collapse;">
+        <tr><td style="padding:30px 20px;">
+          <table style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,.1);">
+            <tr>
+              <td style="background:linear-gradient(135deg,#1a1a2e,#16213e);padding:25px 40px;text-align:center;">
+                <h1 style="margin:0;color:#fff;font-size:22px;font-weight:300;letter-spacing:3px;font-style:italic;">MERYEM BALKAN</h1>
+                <p style="margin:6px 0 0;color:#d4af37;font-size:11px;letter-spacing:2px;">YENİ SİPARİŞ BİLDİRİMİ</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:35px 40px;">
+
+                <h2 style="margin:0 0 20px;color:#1a1a2e;font-size:20px;font-weight:500;">
+                  Yeni bir sipariş geldi!
+                </h2>
+
+                <!-- Müşteri bilgileri -->
+                <div style="background:#f8f9fa;border-radius:8px;padding:18px 20px;margin-bottom:20px;">
+                  <h3 style="margin:0 0 12px;color:#1a1a2e;font-size:14px;font-weight:600;letter-spacing:1px;text-transform:uppercase;border-bottom:2px solid #d4af37;padding-bottom:8px;">
+                    Müşteri Bilgileri
+                  </h3>
+                  <table style="width:100%;border-collapse:collapse;font-size:14px;">
+                    <tr><td style="padding:5px 0;color:#666;width:35%;">Ad Soyad:</td><td style="padding:5px 0;color:#333;font-weight:500;">${customerName}</td></tr>
+                    <tr><td style="padding:5px 0;color:#666;">Telefon:</td><td style="padding:5px 0;color:#333;">${phone}</td></tr>
+                    <tr><td style="padding:5px 0;color:#666;">E-posta:</td><td style="padding:5px 0;color:#333;">${email}</td></tr>
+                    <tr><td style="padding:5px 0;color:#666;">Adres:</td><td style="padding:5px 0;color:#333;">${address}</td></tr>
+                    <tr><td style="padding:5px 0;color:#666;">Iyzico Conversation ID:</td><td style="padding:5px 0;color:#333;font-family:monospace;font-size:12px;">${conversationId}</td></tr>
+                  </table>
+                </div>
+
+                <!-- Ürünler -->
+                <div style="background:#f8f9fa;border-radius:8px;padding:18px 20px;margin-bottom:20px;">
+                  <h3 style="margin:0 0 12px;color:#1a1a2e;font-size:14px;font-weight:600;letter-spacing:1px;text-transform:uppercase;border-bottom:2px solid #d4af37;padding-bottom:8px;">
+                    Sipariş Edilen Ürünler
+                  </h3>
+                  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                    <thead>
+                      <tr style="background:#e9ecef;">
+                        <th style="padding:8px 10px;text-align:left;color:#555;font-weight:600;">Ürün</th>
+                        <th style="padding:8px 10px;text-align:left;color:#555;font-weight:600;">Renk / Beden</th>
+                        <th style="padding:8px 10px;text-align:left;color:#555;font-weight:600;">Etkinlik Tarihi</th>
+                        <th style="padding:8px 10px;text-align:right;color:#555;font-weight:600;">Fiyat</th>
+                      </tr>
+                    </thead>
+                    <tbody>${itemRows}</tbody>
+                  </table>
+                </div>
+
+                <!-- Ödeme özeti -->
+                <div style="background:#1a1a2e;border-radius:8px;padding:18px 20px;">
+                  <table style="width:100%;border-collapse:collapse;font-size:14px;">
+                    ${shippingCost > 0 ? `
+                    <tr>
+                      <td style="padding:5px 0;color:#aaa;">Ara toplam:</td>
+                      <td style="padding:5px 0;color:#ddd;text-align:right;">${(totalPrice - shippingCost).toLocaleString('tr-TR')} TL</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:5px 0;color:#aaa;">Kargo:</td>
+                      <td style="padding:5px 0;color:#ddd;text-align:right;">${shippingCost.toLocaleString('tr-TR')} TL</td>
+                    </tr>` : ''}
+                    <tr>
+                      <td style="padding:12px 0 0;color:#d4af37;font-size:16px;font-weight:600;">Toplam Ödenen:</td>
+                      <td style="padding:12px 0 0;color:#d4af37;font-size:16px;font-weight:600;text-align:right;">${totalPrice.toLocaleString('tr-TR')} TL</td>
+                    </tr>
+                  </table>
+                </div>
+
+              </td>
+            </tr>
+            <tr>
+              <td style="background:#f8f9fa;padding:20px 40px;text-align:center;border-top:1px solid #eee;">
+                <p style="margin:0;color:#999;font-size:12px;">© ${new Date().getFullYear()} Meryem Balkan Tasarım Atölyesi</p>
+              </td>
+            </tr>
+          </table>
+        </td></tr>
+      </table>
+    </body>
+    </html>
+  `;
+
+  const adminEmail = process.env.EMAIL_USER;
+  if (!adminEmail) throw new Error('EMAIL_USER env var tanımlı değil');
+
+  const transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    auth: {
+      user: adminEmail,
+      pass: process.env.EMAIL_PASSWORD,
+    },
+  });
+
+  await transporter.sendMail({
+    from: `"Meryem Balkan" <${adminEmail}>`,
+    to: adminEmail,
+    subject: `Yeni Sipariş – ${customerName} (${items.map(i => i.product_name).join(', ')})`,
+    html,
+  });
+}
 
 const Iyzipay = require('iyzipay');
 
@@ -265,6 +398,18 @@ async function _processPayment(token: string, ctx: { errorMsg?: string; conversa
     }
 
     console.log('[processPayment] sipariş oluşturuldu, conversation=%s', conversationId);
+
+    sendAdminOrderNotification({
+      conversationId,
+      customerName,
+      phone: customer.phone,
+      email: customer.email ?? '',
+      address: fullAddress,
+      totalPrice: expectedPrice,
+      shippingCost: Number(session.shipping_cost),
+      items: orderItems,
+    }).catch(e => console.error('[processPayment] admin bildirim e-postası gönderilemedi:', e));
+
     return 'success';
   } catch (err) {
     console.error('[processPayment] beklenmeyen hata:', err);
