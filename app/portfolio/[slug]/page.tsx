@@ -4,6 +4,9 @@ import { createSlug, parseIdFromSlug } from '../../utils/slugUtils';
 import { unstable_cache } from 'next/cache';
 import { getSupabaseAdmin } from '@/app/lib/supabaseAdmin';
 
+// Müsaitlik tarihleri her istekte taze olsun
+export const revalidate = 0;
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!  
