@@ -32,8 +32,17 @@ export default function Iletisim() {
     if (savedTheme === 'light') {
       setIsDarkMode(false);
       document.documentElement.classList.remove('dark');
-    } else {
+    } else if (savedTheme === 'dark') {
+      setIsDarkMode(true);
       document.documentElement.classList.add('dark');
+    } else {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      setIsDarkMode(prefersDark);
+      if (prefersDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
     }
 
     // Sepet durumunu kontrol et
@@ -115,6 +124,14 @@ export default function Iletisim() {
         console.error("Supabase ekleme hatası:", error);
         alert("Mesaj gönderilirken bir hata oluştu!");
         return;
+      }
+
+      if (konu === 'İade Talebi') {
+        fetch('/api/send-return-confirmation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, siparisNo: siparisNo || undefined }),
+        }).catch(() => {});
       }
 
       setIsSubmitted(true);

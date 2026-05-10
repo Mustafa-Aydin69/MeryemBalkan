@@ -67,6 +67,18 @@ Flow: email whitelist → OTP (Gmail SMTP, 6-digit, 5 min TTL) → JWT (HS256, 1
 
 `app/admin/lib/adminCache.ts` is a module-level (not React state) cache. Data is fetched once per section visit and updated in place on CRUD; cache clears only on hard refresh. When editing admin data sections, keep cache mutations in sync with API calls in the `use*.ts` hooks.
 
+**Dashboard (`app/admin/dashboard/DashboardPage.tsx`):**
+- Stat cards: Bu Ay Sipariş (event_date'e göre), Aktif Kiralama (Hazırlanıyor), Kiradakiler (Kirada), Mesajlar (bekleyen)
+- Monthly revenue AreaChart (Recharts) — last 6 months, uses `orderDate` (payment date)
+- Calendar: viewport-aware fixed popup on hover (`getBoundingClientRect()`), busy day highlight (3+ orders = red), no overflow-hidden on grid container
+- Status normalization: `'Sipariş Tamamlandı'` → `'Tamamlandı'` via `normalizeStatus()`
+- 4 statuses in STATUS_CFG: Hazırlanıyor (amber), Kirada (green), Tamamlandı (blue), İptal Edildi (red)
+- Bu Ay Sipariş uses `eventDate.startsWith('YYYY-MM')` — never `new Date()` parsing (timezone-safe)
+
+**Messages (`app/admin/messages/useMessages.ts`):**
+- On reply: sends email via `/api/send-reply`, then DELETEs message from DB (does NOT mark as Verildi)
+- Only `status === 'Bekliyor'` messages are shown in the list
+
 ### Conflict detection
 
 `/api/check-conflict`, `/api/payment/create`, and `processPayment.ts` all use `orders_items` with `BLOCKING_STATUSES = ['Hazırlanıyor', 'Kirada']` and a ±7-day date window around the event date. All three must stay consistent with each other.
@@ -85,6 +97,12 @@ const getR2BaseUrl = () => {
 ```
 
 `app/portfolio/[slug]/ProductDetail.tsx` supports both images and videos (`.mp4`, `.webm`, `.mov`, `.avi`, `.mkv`) in the `product.images` array. Use `isMediaVideo(images, index)` / `getMediaUrl(images, index)` helpers already defined in that file.
+
+The fullscreen viewer supports zoom and pan:
+- Scroll wheel (desktop) and pinch gesture (mobile) to zoom (0.5×–5×)
+- Click-drag to pan when zoomed in
+- +/−/% buttons in top-left corner; zoom resets on image change or close
+- Main product images use `object-contain` (not `object-cover`) so full photo is always visible without cropping
 
 ### Environment variables
 
@@ -111,7 +129,7 @@ IYZICO_WEBHOOK_SECRET   # optional — HMAC-SHA256 secret for webhook signature 
 
 ### Dark / light mode
 
-Every client page manages its own `isDarkMode` state, initialized from `localStorage('theme')` in the first `useEffect`. Toggle writes back to localStorage and adds/removes the `dark` class on `document.documentElement`.
+Every client page manages its own `isDarkMode` state, initialized in the first `useEffect`. Priority order: saved localStorage preference → system `prefers-color-scheme` → dark as ultimate fallback. Toggle writes `'dark'` or `'light'` to localStorage explicitly.
 
 ```ts
 // Pattern used in every page
@@ -121,8 +139,17 @@ useEffect(() => {
   if (savedTheme === 'light') {
     setIsDarkMode(false);
     document.documentElement.classList.remove('dark');
-  } else {
+  } else if (savedTheme === 'dark') {
+    setIsDarkMode(true);
     document.documentElement.classList.add('dark');
+  } else {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    setIsDarkMode(prefersDark);
+    if (prefersDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
   }
 }, []);
 ```
@@ -186,6 +213,8 @@ Hakkımızda · İletişime Geç · Gizlilik Politikası · KVKK · Aydınlatma 
 State field is `konu` (stored as `hizmet` in DB). Options: Tasarım & Kıyafet Seçimi · Randevu Talebi · Kargo & Teslimat · İade Talebi · Genel Bilgi · Diğer.
 
 A conditional `siparisNo` field appears when `konu` is `'İade Talebi'` or `'Kargo & Teslimat'`. If filled, it is prepended to the message as `Sipariş No: ${siparisNo}\n\n` before DB insert.
+
+After successful DB insert, if `konu === 'İade Talebi'`, a fire-and-forget POST to `/api/send-return-confirmation` sends the customer an automatic confirmation email ("2 iş günü içinde dönüş yapacağız"). Errors are silently caught — form success does not depend on this email.
 
 ---
 

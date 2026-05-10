@@ -4,6 +4,13 @@ import { useRouter } from 'next/navigation';
 import LoginModal from '../components/LoginModal';
 import { useState, useEffect } from 'react';
 import { checkCartConflicts } from '../utils/rentalConflict';
+import { createClient } from '@supabase/supabase-js';
+import { createSlug } from '../utils/slugUtils';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 // Cloudflare R2 URL helper
 const getR2BaseUrl = () => {
@@ -43,6 +50,7 @@ export default function Sepet() {
   const [scrollY, setScrollY] = useState(0);
   const [isClient, setIsClient] = useState(false);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [favoriteProducts, setFavoriteProducts] = useState<any[]>([]);
   const [removedItem, setRemovedItem] = useState<CartItem | null>(null);
   const [showUndoMessage, setShowUndoMessage] = useState(false);
   const [isCheckingConflicts, setIsCheckingConflicts] = useState(true);
@@ -58,8 +66,17 @@ export default function Sepet() {
     if (savedTheme === 'light') {
       setIsDarkMode(false);
       document.documentElement.classList.remove('dark');
-    } else {
+    } else if (savedTheme === 'dark') {
+      setIsDarkMode(true);
       document.documentElement.classList.add('dark');
+    } else {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      setIsDarkMode(prefersDark);
+      if (prefersDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
     }
 
     // 🔹 İlk açılışta cartItems'ı yükle ve çakışma kontrolü yap
@@ -100,6 +117,24 @@ export default function Sepet() {
     };
 
     loadAndCheckCart();
+
+    // Favori ürünleri yükle
+    const loadFavorites = async () => {
+      const favIds: number[] = JSON.parse(localStorage.getItem('favorites') || '[]');
+      if (favIds.length === 0) { setFavoriteProducts([]); return; }
+      const { data } = await supabase
+        .from('urunler')
+        .select('id, title, price, images')
+        .in('id', favIds);
+      if (data) {
+        const R2 = `${(process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || 'https://cdn.meryembalkan.com.tr').replace(/\/$/, '')}/${(process.env.NEXT_PUBLIC_R2_BUCKET_NAME || 'urunler').replace(/^\//, '')}/`;
+        setFavoriteProducts(data.map((p: any) => {
+          const imgs = Array.isArray(p.images) ? p.images : (typeof p.images === 'string' ? (() => { try { return JSON.parse(p.images); } catch { return []; } })() : []);
+          return { ...p, image: imgs.length > 0 ? `${R2}${imgs[0]}` : `${R2}1760034813002_Meryem_Balkan_Logo.jpg` };
+        }));
+      }
+    };
+    loadFavorites();
 
     const handleScroll = () => {
       setScrollY(window.scrollY);
@@ -261,6 +296,13 @@ export default function Sepet() {
     if (hasValidItemsRemaining) {
       router.push('/checkout');
     }
+  };
+
+  const removeFavorite = (productId: number) => {
+    const favIds: number[] = JSON.parse(localStorage.getItem('favorites') || '[]');
+    const newFavIds = favIds.filter(id => id !== productId);
+    localStorage.setItem('favorites', JSON.stringify(newFavIds));
+    setFavoriteProducts(prev => prev.filter(p => p.id !== productId));
   };
 
   // Modal'da "Hayır" - Sepette kal ve uyarıyı göster
@@ -539,6 +581,44 @@ export default function Sepet() {
           )}
         </div>
       </div>
+
+      {/* Favoriler Bölümü */}
+      {favoriteProducts.length > 0 && (
+        <div className={`py-12 sm:py-16 px-4 sm:px-8 border-t transition-colors duration-300 ${isDarkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-100 bg-white'}`}>
+          <div className="max-w-4xl mx-auto">
+            <div className="flex items-center gap-3 mb-6 sm:mb-8">
+              <i className="ri-heart-fill text-rose-500 text-xl"></i>
+              <h2 className={`text-xl sm:text-2xl font-light tracking-wide font-serif ${isDarkMode ? 'text-white' : 'text-black'}`}>Favorilerim</h2>
+              <span className={`text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>({favoriteProducts.length})</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
+              {favoriteProducts.map(product => (
+                <div key={product.id} className="group relative">
+                  <Link href={`/portfolio/${createSlug(product.id, product.title)}`} className="block">
+                    <div className={`rounded-xl overflow-hidden mb-3 aspect-[3/4] ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
+                      <img
+                        src={product.image}
+                        alt={product.title}
+                        className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
+                        onError={(e) => { e.currentTarget.src = 'https://cdn.meryembalkan.com.tr/urunler/1760034813002_Meryem_Balkan_Logo.jpg'; }}
+                      />
+                    </div>
+                    <p className={`text-sm font-medium truncate transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>{product.title}</p>
+                    <p className={`text-sm mt-0.5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{product.price.toLocaleString('tr-TR')} ₺</p>
+                  </Link>
+                  <button
+                    onClick={() => removeFavorite(product.id)}
+                    className={`absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 ${isDarkMode ? 'bg-gray-900/80 text-rose-400 hover:text-white' : 'bg-white/90 text-rose-500 hover:text-gray-800'}`}
+                    aria-label="Favorilerden Çıkar"
+                  >
+                    <i className="ri-heart-fill text-xs"></i>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className={`py-12 sm:py-16 px-4 sm:px-8 border-t transition-colors duration-300 ${isDarkMode ? 'bg-gray-900 text-white border-gray-700' : 'bg-white border-gray-200'}`}>

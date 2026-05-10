@@ -7,11 +7,12 @@ import OrdersPage from './orders/OrdersPage';
 import ProductsPage from './products/ProductsPage';
 import MessagesPage from './messages/MessagesPage';
 import KiraYonetimi from './rentals/KiraYonetimi';
+import DashboardPage from './dashboard/DashboardPage';
 
-type TabType = 'orders' | 'products' | 'messages' | 'rentals';
+type TabType = 'dashboard' | 'orders' | 'products' | 'messages' | 'rentals';
 
 export default function AdminPanel() {
-  const [activeTab, setActiveTab] = useState<TabType>('orders');
+  const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [isClient, setIsClient] = useState(false);
   const [scrollY, setScrollY] = useState(0);
 
@@ -51,6 +52,7 @@ export default function AdminPanel() {
       {/* Main Content */}
       <main className="pt-32 pb-16 px-8 bg-gray-900">
         <div className="max-w-7xl mx-auto">
+          {activeTab === 'dashboard' && <DashboardPage onNavigate={(tab) => setActiveTab(tab as TabType)} />}
           {activeTab === 'orders' && <OrdersPage />}
           {activeTab === 'products' && <ProductsPage />}
           {activeTab === 'rentals' && <KiraYonetimi />}

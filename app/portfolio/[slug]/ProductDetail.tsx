@@ -157,8 +157,18 @@ export default function ProductDetail({
     type: 'success' | 'error' | 'warning';
   } | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
+  const [zoom, setZoom] = useState(1);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const panStart = useRef({ x: 0, y: 0 });
+  const panOffsetStart = useRef({ x: 0, y: 0 });
+  const pinchDistRef = useRef(0);
+  const wasDragging = useRef(false);
+  const fullscreenRef = useRef<HTMLDivElement>(null);
 
   // String tarihlerini Date objelerine çevir (memoized)
   const disabledDates = useMemo(() => {
@@ -171,8 +181,17 @@ export default function ProductDetail({
     if (savedTheme === 'light') {
       setIsDarkMode(false);
       document.documentElement.classList.remove('dark');
-    } else {
+    } else if (savedTheme === 'dark') {
+      setIsDarkMode(true);
       document.documentElement.classList.add('dark');
+    } else {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      setIsDarkMode(prefersDark);
+      if (prefersDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
     }
 
     const checkCartItems = () => {
@@ -184,6 +203,12 @@ export default function ProductDetail({
     checkCartItems();
     window.addEventListener('storage', checkCartItems);
     window.addEventListener('cartUpdated', checkCartItems);
+
+    // Favori durumu
+    if (product) {
+      const savedFavs: number[] = JSON.parse(localStorage.getItem('favorites') || '[]');
+      setIsFavorite(savedFavs.includes(product.id));
+    }
 
     return () => {
       window.removeEventListener('storage', checkCartItems);
@@ -198,27 +223,110 @@ export default function ProductDetail({
     return () => window.removeEventListener('scroll', handleScroll);
   }, [isClient]);
 
-  // Fullscreen modda klavye desteği
+  const closeFullscreen = () => {
+    setFullscreen(false);
+    setZoom(1);
+    setPanOffset({ x: 0, y: 0 });
+  };
+
+  // Reset zoom when image changes while in fullscreen
+  useEffect(() => {
+    if (fullscreen) { setZoom(1); setPanOffset({ x: 0, y: 0 }); }
+  }, [currentImageIndex]);
+
+  // Keyboard + scroll wheel handlers for fullscreen
   useEffect(() => {
     if (!fullscreen) return;
-    
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setFullscreen(false);
+        closeFullscreen();
       } else if (e.key === 'ArrowLeft') {
-        setCurrentImageIndex((prev) => 
-          prev === 0 ? product!.images.length - 1 : prev - 1
-        );
+        setCurrentImageIndex((prev) => prev === 0 ? product!.images.length - 1 : prev - 1);
       } else if (e.key === 'ArrowRight') {
-        setCurrentImageIndex((prev) => 
-          prev === product!.images.length - 1 ? 0 : prev + 1
-        );
+        setCurrentImageIndex((prev) => prev === product!.images.length - 1 ? 0 : prev + 1);
+      }
+    };
+
+    const el = fullscreenRef.current;
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const factor = e.deltaY > 0 ? -0.15 : 0.15;
+      setZoom(prev => Math.min(Math.max(prev + factor, 0.5), 5));
+    };
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        pinchDistRef.current = Math.hypot(dx, dy);
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && pinchDistRef.current > 0) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const newDist = Math.hypot(dx, dy);
+        const ratio = newDist / pinchDistRef.current;
+        setZoom(prev => Math.min(Math.max(prev * ratio, 0.5), 5));
+        pinchDistRef.current = newDist;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    if (el) {
+      el.addEventListener('wheel', handleWheel, { passive: false });
+      el.addEventListener('touchstart', handleTouchStart, { passive: true });
+      el.addEventListener('touchmove', handleTouchMove, { passive: false });
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      if (el) {
+        el.removeEventListener('wheel', handleWheel);
+        el.removeEventListener('touchstart', handleTouchStart);
+        el.removeEventListener('touchmove', handleTouchMove);
+      }
+    };
   }, [fullscreen, product!.images.length]);
+
+  const toggleFavorite = () => {
+    if (!product) return;
+    const savedFavs: number[] = JSON.parse(localStorage.getItem('favorites') || '[]');
+    const adding = !isFavorite;
+    const newFavs = adding
+      ? [...savedFavs, product.id]
+      : savedFavs.filter((id) => id !== product.id);
+    localStorage.setItem('favorites', JSON.stringify(newFavs));
+    setIsFavorite(adding);
+    if (adding) {
+      setNotification({ message: 'Favorilere eklendi! Sepet sayfasından görüntüleyebilirsiniz.', type: 'success' });
+      setTimeout(() => setNotification(null), 3500);
+    }
+  };
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    // Mobil: native share sheet
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `Meryem Balkan - ${product?.title}`, url });
+        return;
+      } catch {
+        // Kullanıcı iptal etti, bir şey yapma
+        return;
+      }
+    }
+    // Masaüstü: clipboard
+    try {
+      await navigator.clipboard.writeText(url);
+      setNotification({ message: 'Bağlantı kopyalandı!', type: 'success' });
+      setTimeout(() => setNotification(null), 2000);
+    } catch {
+      setShowShareMenu(prev => !prev);
+    }
+  };
 
   const toggleTheme = () => {
     const newDarkMode = !isDarkMode;
@@ -370,8 +478,27 @@ export default function ProductDetail({
 
       {fullscreen && (
         <div
-          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
-          onClick={() => setFullscreen(false)}
+          ref={fullscreenRef}
+          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center overflow-hidden"
+          onClick={() => { if (!wasDragging.current) closeFullscreen(); wasDragging.current = false; }}
+          onMouseDown={(e) => {
+            if (zoom <= 1) return;
+            wasDragging.current = false;
+            setIsPanning(true);
+            panStart.current = { x: e.clientX, y: e.clientY };
+            panOffsetStart.current = { ...panOffset };
+          }}
+          onMouseMove={(e) => {
+            if (!isPanning) return;
+            wasDragging.current = true;
+            setPanOffset({
+              x: panOffsetStart.current.x + (e.clientX - panStart.current.x),
+              y: panOffsetStart.current.y + (e.clientY - panStart.current.y),
+            });
+          }}
+          onMouseUp={() => setIsPanning(false)}
+          onMouseLeave={() => setIsPanning(false)}
+          style={{ cursor: zoom > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default' }}
         >
           {/* Ana resim veya video */}
           {isMediaVideo(product.images, currentImageIndex) ? (
@@ -387,9 +514,44 @@ export default function ProductDetail({
             <img
               src={getImageUrl(product.images, currentImageIndex)}
               alt={product.title}
-              className="max-h-[85vh] max-w-[90vw] object-contain"
+              className="max-h-[85vh] max-w-[90vw] object-contain select-none"
+              draggable={false}
+              style={{
+                transform: `scale(${zoom}) translate(${panOffset.x / zoom}px, ${panOffset.y / zoom}px)`,
+                transition: isPanning ? 'none' : 'transform 0.12s ease-out',
+                cursor: zoom > 1 ? (isPanning ? 'grabbing' : 'grab') : 'zoom-in',
+              }}
               onClick={(e) => e.stopPropagation()}
             />
+          )}
+
+          {/* Zoom kontrolleri */}
+          {!isMediaVideo(product.images, currentImageIndex) && (
+            <div
+              className="absolute top-4 left-4 sm:top-6 sm:left-6 flex items-center gap-1.5 z-10"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setZoom(prev => Math.min(prev + 0.5, 5))}
+                className="w-9 h-9 bg-white/10 hover:bg-white/25 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all"
+                title="Yakınlaştır"
+              >
+                <i className="ri-zoom-in-line text-base"></i>
+              </button>
+              <button
+                onClick={() => { setZoom(1); setPanOffset({ x: 0, y: 0 }); }}
+                className={`h-9 px-3 backdrop-blur-sm rounded-full flex items-center justify-center text-white text-xs transition-all ${zoom === 1 ? 'bg-white/5 opacity-50' : 'bg-white/10 hover:bg-white/25'}`}
+              >
+                {Math.round(zoom * 100)}%
+              </button>
+              <button
+                onClick={() => setZoom(prev => Math.max(prev - 0.5, 0.5))}
+                className="w-9 h-9 bg-white/10 hover:bg-white/25 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all"
+                title="Uzaklaştır"
+              >
+                <i className="ri-zoom-out-line text-base"></i>
+              </button>
+            </div>
           )}
 
           {/* Önceki buton */}
@@ -397,11 +559,9 @@ export default function ProductDetail({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                setCurrentImageIndex((prev) => 
-                  prev === 0 ? product.images.length - 1 : prev - 1
-                );
+                setCurrentImageIndex((prev) => prev === 0 ? product.images.length - 1 : prev - 1);
               }}
-              className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 w-12 h-12 sm:w-14 sm:h-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all"
+              className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 w-12 h-12 sm:w-14 sm:h-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all z-10"
             >
               <i className="ri-arrow-left-s-line text-2xl sm:text-3xl"></i>
             </button>
@@ -412,11 +572,9 @@ export default function ProductDetail({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                setCurrentImageIndex((prev) => 
-                  prev === product.images.length - 1 ? 0 : prev + 1
-                );
+                setCurrentImageIndex((prev) => prev === product.images.length - 1 ? 0 : prev + 1);
               }}
-              className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 w-12 h-12 sm:w-14 sm:h-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all"
+              className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 w-12 h-12 sm:w-14 sm:h-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all z-10"
             >
               <i className="ri-arrow-right-s-line text-2xl sm:text-3xl"></i>
             </button>
@@ -424,33 +582,28 @@ export default function ProductDetail({
 
           {/* Kapatma butonu */}
           <button
-            onClick={() => setFullscreen(false)}
-            className="absolute top-4 right-4 sm:top-6 sm:right-6 w-10 h-10 sm:w-12 sm:h-12 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all"
+            onClick={(e) => { e.stopPropagation(); closeFullscreen(); }}
+            className="absolute top-4 right-4 sm:top-6 sm:right-6 w-10 h-10 sm:w-12 sm:h-12 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all z-10"
           >
             <i className="ri-close-line text-xl sm:text-2xl"></i>
           </button>
 
           {/* Sayaç */}
           {product.images.length > 1 && (
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full text-white text-sm">
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full text-white text-sm z-10">
               {currentImageIndex + 1} / {product.images.length}
             </div>
           )}
 
-          {/* Thumbnail'ler */}
+          {/* Dot'lar */}
           {product.images.length > 1 && (
-            <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex gap-2">
+            <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex gap-2 z-10">
               {product.images.map((_, i) => (
                 <button
                   key={i}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCurrentImageIndex(i);
-                  }}
+                  onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(i); }}
                   className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all ${
-                    currentImageIndex === i 
-                      ? 'bg-white scale-125' 
-                      : 'bg-white/40 hover:bg-white/60'
+                    currentImageIndex === i ? 'bg-white scale-125' : 'bg-white/40 hover:bg-white/60'
                   }`}
                 />
               ))}
@@ -522,7 +675,8 @@ export default function ProductDetail({
                 {isMediaVideo(product.images, currentImageIndex) ? (
                   <video
                     src={getMediaUrl(product.images, currentImageIndex)}
-                    className="w-full h-[400px] sm:h-[500px] lg:h-[600px] object-cover object-top rounded-md cursor-pointer"
+                    className="w-full h-[400px] sm:h-[500px] lg:h-[600px] object-contain rounded-md cursor-pointer"
+                    style={{ background: isDarkMode ? '#111827' : '#f9fafb' }}
                     onClick={() => setFullscreen(true)}
                     controls
                     playsInline
@@ -531,7 +685,8 @@ export default function ProductDetail({
                   <img
                     src={getImageUrl(product.images, currentImageIndex)}
                     alt={product.title}
-                    className="w-full h-[400px] sm:h-[500px] lg:h-[600px] object-cover object-top rounded-md cursor-pointer"
+                    className="w-full h-[400px] sm:h-[500px] lg:h-[600px] object-contain rounded-md cursor-pointer"
+                    style={{ background: isDarkMode ? '#111827' : '#f9fafb' }}
                     onClick={() => setFullscreen(true)}
                   />
                 )}
@@ -554,7 +709,8 @@ export default function ProductDetail({
                 {isMediaVideo(product.images, currentImageIndex) ? (
                   <video
                     src={getMediaUrl(product.images, currentImageIndex)}
-                    className="w-full h-[55vh] sm:h-[65vh] md:h-[70vh] object-cover object-top cursor-pointer transition-all duration-500 ease-out"
+                    className="w-full h-[55vh] sm:h-[65vh] md:h-[70vh] object-contain cursor-pointer transition-all duration-500 ease-out"
+                    style={{ background: isDarkMode ? '#111827' : '#f9fafb' }}
                     onClick={() => setFullscreen(true)}
                     controls
                     playsInline
@@ -563,7 +719,8 @@ export default function ProductDetail({
                   <img
                     src={getImageUrl(product.images, currentImageIndex)}
                     alt={product.title}
-                    className="w-full h-[55vh] sm:h-[65vh] md:h-[70vh] object-cover object-top cursor-pointer transition-all duration-500 ease-out"
+                    className="w-full h-[55vh] sm:h-[65vh] md:h-[70vh] object-contain cursor-pointer transition-all duration-500 ease-out"
+                    style={{ background: isDarkMode ? '#111827' : '#f9fafb' }}
                     onClick={() => setFullscreen(true)}
                   />
                 )}
@@ -690,6 +847,63 @@ export default function ProductDetail({
               >
                 Sepete ekle
               </button>
+
+              {/* Share & Favorite */}
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <button
+                    onClick={handleShare}
+                    className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border text-sm font-medium transition-all ${
+                      isDarkMode
+                        ? 'border-gray-700 text-gray-400 hover:border-gray-500 hover:text-white'
+                        : 'border-gray-200 text-gray-600 hover:border-gray-400 hover:text-black'
+                    }`}
+                  >
+                    <i className="ri-share-line text-sm"></i>
+                    Paylaş
+                  </button>
+                  {showShareMenu && (
+                    <div className={`absolute top-full left-0 right-0 mt-1 rounded-xl border shadow-xl z-20 overflow-hidden ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(window.location.href);
+                          setShowShareMenu(false);
+                          setNotification({ message: 'Bağlantı kopyalandı!', type: 'success' });
+                          setTimeout(() => setNotification(null), 2000);
+                        }}
+                        className={`w-full flex items-center gap-2.5 px-4 py-3 text-sm text-left transition-colors ${isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-50'}`}
+                      >
+                        <i className="ri-link text-sm"></i> Bağlantıyı Kopyala
+                      </button>
+                      <a
+                        href={`https://wa.me/?text=${encodeURIComponent(`Meryem Balkan - ${product.title}\n${window.location.href}`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setShowShareMenu(false)}
+                        className={`flex items-center gap-2.5 px-4 py-3 text-sm transition-colors ${isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-50'}`}
+                      >
+                        <i className="ri-whatsapp-line text-green-500 text-sm"></i> WhatsApp'ta Paylaş
+                      </a>
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={toggleFavorite}
+                  className={`px-4 py-2.5 rounded-lg border text-sm font-medium transition-all ${
+                    isFavorite
+                      ? isDarkMode
+                        ? 'border-rose-500 bg-rose-500/10 text-rose-400'
+                        : 'border-rose-400 bg-rose-50 text-rose-500'
+                      : isDarkMode
+                        ? 'border-gray-700 text-gray-400 hover:border-gray-500 hover:text-white'
+                        : 'border-gray-200 text-gray-600 hover:border-gray-400 hover:text-black'
+                  }`}
+                  aria-label={isFavorite ? 'Favorilerden Çıkar' : 'Favorilere Ekle'}
+                >
+                  <i className={`text-base ${isFavorite ? 'ri-heart-fill' : 'ri-heart-line'}`}></i>
+                </button>
+              </div>
+
               {/* Description */}
               <div className={`border-t pt-4 sm:pt-6 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                 <button className={`flex justify-between items-center w-full text-left ${isDarkMode ? 'text-white' : 'text-black'}`}>

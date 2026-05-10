@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import LoginModal from '../components/LoginModal';
 import { useState, useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 import { createClient } from "@supabase/supabase-js";
 import { createSlug } from '../utils/slugUtils';
 
@@ -38,6 +39,12 @@ export default function Portfolio() {
   const hasCompletedCycle = useRef<{ [key: number]: boolean }>({});
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [favorites, setFavorites] = useState<Set<number>>(new Set());
+  const [showFilters, setShowFilters] = useState(false);
+  const [priceMin, setPriceMin] = useState('');
+  const [priceMax, setPriceMax] = useState('');
+  const [selectedColors, setSelectedColors] = useState<Set<string>>(new Set());
+  const [sortBy, setSortBy] = useState<'newest' | 'price-asc' | 'price-desc'>('newest');
 
   // Tek bir useEffect ile veri çekme
   useEffect(() => {
@@ -87,6 +94,10 @@ export default function Portfolio() {
           collection: item.collection,
           year: item.year,
           price: `${item.price.toLocaleString("tr-TR")} ₺`,
+          priceNum: typeof item.price === 'number'
+            ? item.price
+            : Number(String(item.price).replace(/\./g, '').replace(',', '.')),
+          colors: Array.isArray(item.colors) ? item.colors : (typeof item.colors === 'string' && item.colors ? (() => { try { return JSON.parse(item.colors); } catch { return []; } })() : []),
           images: parsedImages,
           image:
             parsedImages.length > 0
@@ -103,13 +114,29 @@ export default function Portfolio() {
     fetchProducts();
   }, []);
 
-  // Kategori ve arama filtresi uygula
-  const filteredItems = products.filter(item => {
-    const matchesCategory = activeFilter === 'all' || item.category === activeFilter;
-    const matchesSearch = searchTerm === '' ||
-      item.title.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  // Mevcut ürünlerden benzersiz renkleri topla
+  const allColors = products.reduce<string[]>((acc, p) => {
+    (p.colors || []).forEach((c: string) => { if (!acc.includes(c)) acc.push(c); });
+    return acc;
+  }, []).sort();
+
+  // Kategori, arama, fiyat, renk filtresi + sıralama
+  const filteredItems = products
+    .filter(item => {
+      const matchesCategory = activeFilter === 'all' || item.category === activeFilter;
+      const matchesSearch = searchTerm === '' ||
+        item.title.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesPriceMin = priceMin === '' || item.priceNum >= Number(priceMin);
+      const matchesPriceMax = priceMax === '' || item.priceNum <= Number(priceMax);
+      const matchesColors = selectedColors.size === 0 ||
+        (item.colors || []).some((c: string) => selectedColors.has(c));
+      return matchesCategory && matchesSearch && matchesPriceMin && matchesPriceMax && matchesColors;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'price-asc') return a.priceNum - b.priceNum;
+      if (sortBy === 'price-desc') return b.priceNum - a.priceNum;
+      return 0; // 'newest': DB zaten createdDate desc döndürüyor
+    });
 
   useEffect(() => {
     setIsClient(true);
@@ -117,9 +144,22 @@ export default function Portfolio() {
     if (savedTheme === 'light') {
       setIsDarkMode(false);
       document.documentElement.classList.remove('dark');
-    } else {
+    } else if (savedTheme === 'dark') {
+      setIsDarkMode(true);
       document.documentElement.classList.add('dark');
+    } else {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      setIsDarkMode(prefersDark);
+      if (prefersDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
     }
+
+    // Favorileri yükle
+    const savedFavs: number[] = JSON.parse(localStorage.getItem('favorites') || '[]');
+    setFavorites(new Set(savedFavs));
 
     // Sepet durumunu kontrol et
     const checkCartItems = () => {
@@ -260,6 +300,22 @@ export default function Portfolio() {
     return `${BASE_URL}${item.images[index]}`;
   };
 
+  const toggleFavorite = (e: React.MouseEvent, productId: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setFavorites(prev => {
+      const next = new Set(prev);
+      if (next.has(productId)) {
+        next.delete(productId);
+      } else {
+        next.add(productId);
+        toast.success('Favorilere eklendi! Sepet sayfasından görüntüleyebilirsiniz.');
+      }
+      localStorage.setItem('favorites', JSON.stringify(Array.from(next)));
+      return next;
+    });
+  };
+
   const toggleTheme = () => {
     const newDarkMode = !isDarkMode;
     setIsDarkMode(newDarkMode);
@@ -295,6 +351,33 @@ export default function Portfolio() {
     { key: 'Kinalik', label: 'KINALIK' },
     { key: 'After-Party', label: 'AFTER PARTY' }
   ];
+
+  const colorHexMap: Record<string, string> = {
+    'Siyah': '#000000', 'Beyaz': '#FFFFFF', 'Kırmızı': '#DC2626', 'Mavi': '#2563EB',
+    'Lacivert': '#1E3A5F', 'Yeşil': '#16A34A', 'Sarı': '#EAB308', 'Turuncu': '#EA580C',
+    'Mor': '#9333EA', 'Pembe': '#EC4899', 'Gri': '#6B7280', 'Kahverengi': '#92400E',
+    'Bej': '#D4B896', 'Krem': '#FFFDD0', 'Bordo': '#800020', 'Altın': '#FFD700',
+    'Gümüş': '#C0C0C0', 'Bronz': '#CD7F32', 'Turkuaz': '#40E0D0', 'Eflatun': '#9966CC',
+    'Fuşya': '#FF00FF', 'Mercan': '#FF7F50', 'Zümrüt': '#50C878', 'Mürdüm': '#6B3A6B',
+    'Petrol': '#006064', 'Hardal': '#FFDB58', 'Kiremit': '#CB4154', 'Şampanya': '#F7E7CE',
+    'Pudra': '#F5D0C5', 'Mint': '#98FF98', 'Lila': '#C8A2C8', 'İndigo': '#4B0082',
+    'Kobalt': '#0047AB', 'Vizon': '#8B7355',
+  };
+  const getColorHex = (name: string) => {
+    if (colorHexMap[name]) return colorHexMap[name];
+    for (const [k, v] of Object.entries(colorHexMap)) {
+      if (name.includes(k) || k.includes(name)) return v;
+    }
+    return '#9CA3AF';
+  };
+  const isLightColor = (name: string) =>
+    ['Beyaz', 'Krem', 'Şampanya', 'Sarı', 'Pudra', 'Bej', 'Mint', 'Altın', 'Hardal', 'Gümüş'].some(c => name.includes(c));
+
+  const sortLabels: Record<string, string> = {
+    'newest': 'En Yeniler',
+    'price-asc': 'Fiyat: Düşükten Yükseğe',
+    'price-desc': 'Fiyat: Yüksekten Düşüğe',
+  };
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'dark bg-gray-900' : 'bg-white'}`}>
@@ -382,39 +465,181 @@ export default function Portfolio() {
             </div>
           </div>
 
-          {/* Filter Buttons */}
+          {/* Kategori Filtreleri — orijinal stil */}
           <div
             ref={scrollContainerRef}
-            className="flex items-center gap-3 sm:gap-6 overflow-x-auto scrollbar-hide whitespace-nowrap px-2 sm:px-0 pb-1 justify-start sm:justify-center scroll-smooth"
+            className="flex items-center gap-3 sm:gap-6 overflow-x-auto scrollbar-hide whitespace-nowrap px-2 sm:px-0 pb-1 justify-start sm:justify-center scroll-smooth mb-6"
           >
             {filterButtons.map((filter) => (
               <button
                 key={filter.key}
-                ref={(el: HTMLButtonElement | null) => {
-                  buttonRefs.current[filter.key] = el;
-                }}
+                ref={(el: HTMLButtonElement | null) => { buttonRefs.current[filter.key] = el; }}
                 onClick={() => {
                   setActiveFilter(filter.key);
-                  buttonRefs.current[filter.key]?.scrollIntoView({
-                    behavior: "smooth",
-                    inline: "center",
-                    block: "nearest",
-                  });
+                  buttonRefs.current[filter.key]?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
                 }}
-                className={`pb-2 cursor-pointer whitespace-nowrap transition-colors ${activeFilter === filter.key
-                  ? `border-b-2 ${isDarkMode
-                    ? "border-white text-white"
-                    : "border-black text-black"
-                  }`
-                  : `${isDarkMode
-                    ? "text-gray-400 hover:text-white"
-                    : "text-gray-600 hover:text-black"
-                  }`
-                  }`}
+                className={`pb-2 cursor-pointer whitespace-nowrap transition-colors ${
+                  activeFilter === filter.key
+                    ? `border-b-2 ${isDarkMode ? 'border-white text-white' : 'border-black text-black'}`
+                    : isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'
+                }`}
               >
                 {filter.label}
               </button>
             ))}
+          </div>
+
+          {/* Filtrele Butonu */}
+          <div className="flex justify-center mb-4">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-3 px-6 py-2.5 border rounded-full transition-all duration-500 ${
+                showFilters || priceMin || priceMax || selectedColors.size > 0
+                  ? isDarkMode ? 'bg-white text-black border-white' : 'bg-black text-white border-black'
+                  : isDarkMode
+                    ? 'border-white/20 text-white hover:bg-white hover:text-black'
+                    : 'border-black/20 text-black hover:bg-black hover:text-white'
+              }`}
+            >
+              <i className={`ri-equalizer-line text-sm transition-transform duration-500 ${showFilters ? 'rotate-180' : ''}`}></i>
+              <span className="text-[10px] uppercase tracking-[0.3em] font-medium">Filtrele</span>
+              {(priceMin || priceMax || selectedColors.size > 0) && (
+                <span className={`w-4 h-4 rounded-full text-[9px] flex items-center justify-center font-bold ${
+                  showFilters || priceMin || priceMax || selectedColors.size > 0
+                    ? isDarkMode ? 'bg-black text-white' : 'bg-white text-black'
+                    : isDarkMode ? 'bg-white text-black' : 'bg-black text-white'
+                }`}>
+                  {(priceMin ? 1 : 0) + (priceMax ? 1 : 0) + (selectedColors.size > 0 ? 1 : 0)}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Genişleyebilir Filtre Paneli */}
+          <div className={`overflow-hidden transition-all duration-700 ease-in-out ${showFilters ? 'max-h-[600px] opacity-100 mb-12' : 'max-h-0 opacity-0'}`}>
+            <div className={`backdrop-blur-xl border rounded-3xl p-8 grid grid-cols-1 md:grid-cols-3 gap-10 ${
+              isDarkMode ? 'bg-white/5 border-white/10' : 'bg-black/3 border-black/10'
+            }`}>
+
+              {/* Fiyat Aralığı */}
+              <div>
+                <h3 className={`text-[11px] uppercase tracking-[0.3em] mb-6 flex items-center gap-2 ${isDarkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+                  <span className={`w-4 h-[1px] ${isDarkMode ? 'bg-neutral-600' : 'bg-neutral-400'}`}></span>
+                  Fiyat Aralığı
+                </h3>
+                <div className="flex gap-4 items-center">
+                  <input
+                    type="number"
+                    placeholder="Min ₺"
+                    value={priceMin}
+                    onChange={(e) => setPriceMin(e.target.value)}
+                    className={`w-full bg-transparent border-b py-2 text-sm focus:outline-none font-light transition-colors ${
+                      isDarkMode
+                        ? 'border-neutral-700 text-white placeholder-neutral-600 focus:border-white'
+                        : 'border-neutral-300 text-black placeholder-neutral-400 focus:border-black'
+                    }`}
+                  />
+                  <span className={isDarkMode ? 'text-neutral-600' : 'text-neutral-400'}>—</span>
+                  <input
+                    type="number"
+                    placeholder="Max ₺"
+                    value={priceMax}
+                    onChange={(e) => setPriceMax(e.target.value)}
+                    className={`w-full bg-transparent border-b py-2 text-sm focus:outline-none font-light transition-colors ${
+                      isDarkMode
+                        ? 'border-neutral-700 text-white placeholder-neutral-600 focus:border-white'
+                        : 'border-neutral-300 text-black placeholder-neutral-400 focus:border-black'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              {/* Renk Paleti */}
+              <div>
+                <h3 className={`text-[11px] uppercase tracking-[0.3em] mb-6 flex items-center gap-2 ${isDarkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+                  <span className={`w-4 h-[1px] ${isDarkMode ? 'bg-neutral-600' : 'bg-neutral-400'}`}></span>
+                  Renk Paleti
+                </h3>
+                {allColors.length > 0 ? (
+                  <div className="flex flex-wrap gap-3">
+                    {allColors.map(color => {
+                      const hex = getColorHex(color);
+                      const light = isLightColor(color);
+                      const selected = selectedColors.has(color);
+                      return (
+                        <button
+                          key={color}
+                          onClick={() => setSelectedColors(prev => {
+                            const next = new Set(prev);
+                            if (next.has(color)) next.delete(color);
+                            else next.add(color);
+                            return next;
+                          })}
+                          title={color}
+                          className={`group relative w-8 h-8 rounded-full flex items-center justify-center transition-all border ${
+                            selected
+                              ? isDarkMode ? 'ring-2 ring-white ring-offset-2 ring-offset-gray-900' : 'ring-2 ring-black ring-offset-2'
+                              : isDarkMode ? 'border-white/10' : 'border-black/10'
+                          }`}
+                          style={{ backgroundColor: hex }}
+                        >
+                          {selected && (
+                            <i className={`ri-check-line text-xs ${light ? 'text-black' : 'text-white'}`}></i>
+                          )}
+                          <span className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-1.5 py-0.5 rounded text-[8px] uppercase tracking-tighter whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 ${isDarkMode ? 'bg-gray-800 text-neutral-300' : 'bg-white text-neutral-600 shadow-sm border border-neutral-100'}`}>
+                            {color}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className={`text-sm font-light ${isDarkMode ? 'text-neutral-600' : 'text-neutral-400'}`}>Ürünler yükleniyor...</p>
+                )}
+              </div>
+
+              {/* Sıralama + Uygula */}
+              <div className="flex flex-col justify-between">
+                <div>
+                  <h3 className={`text-[11px] uppercase tracking-[0.3em] mb-6 flex items-center gap-2 ${isDarkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+                    <span className={`w-4 h-[1px] ${isDarkMode ? 'bg-neutral-600' : 'bg-neutral-400'}`}></span>
+                    Sıralama
+                  </h3>
+                  <div className="space-y-1">
+                    {(['newest', 'price-asc', 'price-desc'] as const).map(opt => (
+                      <button
+                        key={opt}
+                        onClick={() => setSortBy(opt)}
+                        className={`w-full text-left flex items-center gap-2 py-2 border-b text-sm font-light transition-colors ${
+                          sortBy === opt
+                            ? isDarkMode ? 'border-white text-white' : 'border-black text-black'
+                            : isDarkMode ? 'border-neutral-800 text-neutral-500 hover:text-white hover:border-neutral-600' : 'border-neutral-200 text-neutral-400 hover:text-black hover:border-neutral-400'
+                        }`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${sortBy === opt ? (isDarkMode ? 'bg-white' : 'bg-black') : 'bg-transparent'}`}></span>
+                        {sortLabels[opt]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex gap-4 mt-8">
+                  <button
+                    onClick={() => { setPriceMin(''); setPriceMax(''); setSelectedColors(new Set()); setSortBy('newest'); setShowFilters(false); }}
+                    className={`text-[10px] uppercase tracking-widest transition-colors ${isDarkMode ? 'text-neutral-500 hover:text-white' : 'text-neutral-400 hover:text-black'}`}
+                  >
+                    Temizle
+                  </button>
+                  <button
+                    onClick={() => setShowFilters(false)}
+                    className={`flex-1 py-3 rounded-full text-[10px] uppercase tracking-[0.3em] font-bold transition-colors ${isDarkMode ? 'bg-white text-black hover:bg-neutral-200' : 'bg-black text-white hover:bg-neutral-800'}`}
+                  >
+                    Sonuçları Göster
+                  </button>
+                </div>
+              </div>
+
+            </div>
           </div>
 
         </div>
@@ -497,6 +722,19 @@ export default function Portfolio() {
                           />
                         )}
                       </div>
+
+                      {/* Favorite Button */}
+                      <button
+                        onClick={(e) => toggleFavorite(e, item.id)}
+                        className={`absolute top-3 right-3 z-30 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
+                          favorites.has(item.id)
+                            ? 'bg-white/90 text-rose-500 shadow-sm'
+                            : 'bg-black/20 text-white/80 hover:bg-white/90 hover:text-rose-500 opacity-0 group-hover:opacity-100'
+                        }`}
+                        aria-label={favorites.has(item.id) ? 'Favorilerden Çıkar' : 'Favorilere Ekle'}
+                      >
+                        <i className={favorites.has(item.id) ? 'ri-heart-fill' : 'ri-heart-line'} style={{ fontSize: '14px' }}></i>
+                      </button>
 
                       {/* Segmented Progress Bar - Sadece birden fazla resim varsa göster */}
                       {hasMultipleImages && hoveredProduct === item.id && (

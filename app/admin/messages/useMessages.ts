@@ -6,7 +6,6 @@ import {
   getCache,
   setCache,
   hasCache,
-  updateCacheItem,
   removeFromCache,
   type CacheKey,
 } from '../lib/adminCache';
@@ -200,35 +199,20 @@ export function useMessages() {
       const mailResult = await mailResponse.json();
 
       if (mailResult.success) {
-        // API route üzerinden durumu güncelle
-        const updateResponse = await fetch('/api/admin/mesajlar', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+        // Yanıt sonrası mesajı veritabanından sil
+        const deleteResponse = await fetch(`/api/admin/mesajlar?id=${selectedMessage.id}`, {
+          method: 'DELETE',
           credentials: 'include',
-          body: JSON.stringify({
-            id: selectedMessage.id,
-            updates: { cevap: 'Verildi' },
-          }),
         });
 
-        if (!updateResponse.ok) {
-          throw new Error('Durum güncellenemedi');
+        if (!deleteResponse.ok) {
+          throw new Error('Mesaj silinemedi');
         }
 
-        // State'i güncelle
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === selectedMessage.id ? { ...m, status: 'Verildi' } : m
-          )
-        );
-        
-        // Update cache
-        updateCacheItem<Message>(CACHE_KEY, selectedMessage.id, (msg) => ({
-          ...msg,
-          status: 'Verildi',
-        }));
+        setMessages((prev) => prev.filter((m) => m.id !== selectedMessage.id));
+        removeFromCache(CACHE_KEY, selectedMessage.id);
 
-        toast.success("Yanıt başarıyla gönderildi! ✅");
+        toast.success("Yanıt gönderildi, mesaj silindi.");
         setReply('');
         setSelectedMessage(null);
       } else {

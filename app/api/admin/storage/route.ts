@@ -6,6 +6,7 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from 'next/server';
 import { S3Client, PutObjectCommand, DeleteObjectsCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import sharp from 'sharp';
 
 // R2 Client oluştur
 function getR2Client() {
@@ -58,13 +59,26 @@ export async function POST(request: NextRequest) {
     }
 
     const r2 = getR2Client();
-    
+
     // File'ı buffer'a çevir
     const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    let buffer: Buffer = Buffer.from(new Uint8Array(arrayBuffer));
+    let contentType = file.type;
 
-    const uniqueName = fileName || `${Date.now()}_${file.name}`;
-    
+    const baseName = (fileName || `${Date.now()}_${file.name}`).replace(/\.[^.]+$/, '');
+
+    // Video dosyalarını olduğu gibi yükle, görselleri WebP'ye çevir
+    const isVideo = file.type.startsWith('video/');
+    let uniqueName: string;
+
+    if (isVideo) {
+      uniqueName = fileName || `${Date.now()}_${file.name}`;
+    } else {
+      buffer = await sharp(buffer).webp({ quality: 85 }).toBuffer();
+      contentType = 'image/webp';
+      uniqueName = `${baseName}.webp`;
+    }
+
     // Object key: urunler/<fileName>
     const objectKey = `urunler/${uniqueName}`;
 
@@ -73,7 +87,7 @@ export async function POST(request: NextRequest) {
       Bucket: bucketName,
       Key: objectKey,
       Body: buffer,
-      ContentType: file.type,
+      ContentType: contentType,
     });
 
     await r2.send(command);
