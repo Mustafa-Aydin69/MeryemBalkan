@@ -1,36 +1,45 @@
-import { NextResponse } from 'next/server';
-import nodemailer from 'nodemailer';
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-function createReplyEmailTemplate(customerName, replyMessage, originalMessage, serviceType) {
+import { NextRequest, NextResponse } from 'next/server';
+import nodemailer from 'nodemailer';
+import { verifyAdminToken, enforceAdminRateLimit } from '@/app/lib/admin-auth';
+
+function createReplyEmailTemplate(
+  customerName: string,
+  replyMessage: string,
+  originalMessage: string,
+  serviceType: string
+): string {
   return `
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="utf-8">
       <style>
-        body { 
+        body {
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          background-color: #f9f9f9; 
-          margin: 0; 
-          padding: 20px; 
+          background-color: #f9f9f9;
+          margin: 0;
+          padding: 20px;
         }
-        .container { 
-          max-width: 650px; 
-          margin: 0 auto; 
+        .container {
+          max-width: 650px;
+          margin: 0 auto;
           background: linear-gradient(to bottom, #ffffff 0%, #fafafa 100%);
-          border-radius: 12px; 
+          border-radius: 12px;
           overflow: hidden;
           box-shadow: 0 4px 20px rgba(0,0,0,0.08);
         }
-        .header { 
+        .header {
           background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
           padding: 40px 30px;
           text-align: center;
         }
-        .logo { 
-          font-size: 28px; 
-          font-weight: 300; 
-          color: #ffffff; 
+        .logo {
+          font-size: 28px;
+          font-weight: 300;
+          color: #ffffff;
           letter-spacing: 6px;
           font-family: 'Georgia', serif;
           font-style: italic;
@@ -44,7 +53,7 @@ function createReplyEmailTemplate(customerName, replyMessage, originalMessage, s
           margin-top: 8px;
           font-weight: 300;
         }
-        .content { 
+        .content {
           padding: 40px 35px;
         }
         .greeting {
@@ -100,7 +109,7 @@ function createReplyEmailTemplate(customerName, replyMessage, originalMessage, s
           margin-top: 10px;
           font-weight: 600;
         }
-        .footer { 
+        .footer {
           background-color: #2c3e50;
           padding: 30px;
           text-align: center;
@@ -137,10 +146,10 @@ function createReplyEmailTemplate(customerName, replyMessage, originalMessage, s
           <h1 class="logo">MERYEM BALKAN</h1>
           <div class="subtitle">HAUTE COUTURE</div>
         </div>
-        
+
         <div class="content">
           <div class="greeting">Merhaba ${customerName},</div>
-          
+
           <div class="reply-box">
             ${replyMessage.replace(/\n/g, '<br>')}
           </div>
@@ -154,7 +163,7 @@ function createReplyEmailTemplate(customerName, replyMessage, originalMessage, s
           </div>
 
           <p style="color: #7f8c8d; font-size: 14px; margin-top: 30px; line-height: 1.6;">
-            Sorularınız veya ek talepleriniz için bize her zaman ulaşabilirsiniz. 
+            Sorularınız veya ek talepleriniz için bize her zaman ulaşabilirsiniz.
             Size yardımcı olmaktan mutluluk duyarız.
           </p>
         </div>
@@ -168,7 +177,7 @@ function createReplyEmailTemplate(customerName, replyMessage, originalMessage, s
             <a href="mailto:meryembalkantasarimatolye@gmail.com" class="contact-link">meryembalkantasarimatolye@gmail.com</a>
           </div>
           <div class="footer-text" style="margin-top: 20px;">
-            © 2025 Meryem Balkan. Tüm hakları saklıdır.
+            © 2026 Meryem Balkan. Tüm hakları saklıdır.
           </div>
         </div>
       </div>
@@ -177,19 +186,20 @@ function createReplyEmailTemplate(customerName, replyMessage, originalMessage, s
   `;
 }
 
-export async function POST(request) {
+export async function POST(request: NextRequest) {
   try {
+    const payload = await verifyAdminToken(request);
+    if (!payload) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+    const rateLimitRes = await enforceAdminRateLimit(request, payload);
+    if (rateLimitRes) return rateLimitRes;
+
     const body = await request.json();
-    console.log('Gelen veri:', body); // Debug için
-    
     const { to, customerName, replyMessage, originalMessage, serviceType } = body;
 
-    // Eksik alan kontrolü
     if (!to || !customerName || !replyMessage || !originalMessage || !serviceType) {
-      return NextResponse.json({
-        success: false,
-        error: 'Eksik parametreler'
-      }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Eksik parametreler' }, { status: 400 });
     }
 
     const transporter = nodemailer.createTransport({
@@ -202,21 +212,15 @@ export async function POST(request) {
 
     const info = await transporter.sendMail({
       from: `"Meryem Balkan" <${process.env.EMAIL_USER}>`,
-      to: to,
+      to,
       subject: `Re: ${serviceType} - Mesajınıza Yanıt`,
       html: createReplyEmailTemplate(customerName, replyMessage, originalMessage, serviceType),
     });
 
-    return NextResponse.json({
-      success: true,
-      messageId: info.messageId
-    });
+    return NextResponse.json({ success: true, messageId: info.messageId });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Mail gönderme hatası:', error);
-    return NextResponse.json({
-      success: false,
-      error: error.message
-    }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

@@ -1,7 +1,9 @@
 ﻿export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+import { NextRequest } from "next/server";
 import nodemailer from "nodemailer";
+import { verifyAdminToken, enforceAdminRateLimit } from '@/app/lib/admin-auth';
 
 // Tarih formatlama (Türkçe)
 function formatDate(dateStr: string): string {
@@ -175,8 +177,15 @@ function getOverdueReminderContent(data: {
   `;
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    const payload = await verifyAdminToken(req);
+    if (!payload) {
+      return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+    const rateLimitRes = await enforceAdminRateLimit(req, payload);
+    if (rateLimitRes) return rateLimitRes;
+
     const body = await req.json();
     const {
       customerName,

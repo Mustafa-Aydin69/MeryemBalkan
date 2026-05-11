@@ -84,6 +84,9 @@ export async function PATCH(request: NextRequest) {
     getSupabaseAdmin().from('instagram_feed').update({ sort_order }).eq('id', id)
   );
 
-  await Promise.all(updates);
+  const results = await Promise.all(updates);
+  const failed = results.find(r => r.error);
+  if (failed) return NextResponse.json({ error: failed.error!.message }, { status: 500 });
+
   return NextResponse.json({ success: true });
 }
