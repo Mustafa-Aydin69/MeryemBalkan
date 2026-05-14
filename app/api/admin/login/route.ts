@@ -11,10 +11,10 @@ let supabaseInstance: SupabaseClient | null = null;
 function getSupabase(): SupabaseClient {
   if (!supabaseInstance) {
     const { createClient } = require('@supabase/supabase-js');
-    supabaseInstance = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !serviceRoleKey) throw new Error('NEXT_PUBLIC_SUPABASE_URL veya SUPABASE_SERVICE_ROLE_KEY tanımlı değil');
+    supabaseInstance = createClient(url, serviceRoleKey);
   }
   return supabaseInstance as SupabaseClient;
 }
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
     const password = sanitizeInput(body.password || '');
 
     // Verification token kontrolü
-    const email = validateVerificationToken(verificationToken);
+    const email = await validateVerificationToken(verificationToken);
     
     if (!email) {
       await securityDelay();
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limit kontrolü
-    const rateLimit = checkRateLimit(email, 'LOGIN', ip);
+    const rateLimit = await checkRateLimit(email, 'LOGIN', ip);
     if (!rateLimit.allowed) {
       await securityDelay();
       return NextResponse.json(
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Denemeyi kaydet
-    incrementRateLimit(email, 'LOGIN', ip);
+    await incrementRateLimit(email, 'LOGIN', ip);
 
     // Şifre kontrolü - Supabase'den admin şifresini al
     const { data: adminData, error: adminError } = await supabase
@@ -133,9 +133,9 @@ export async function POST(request: NextRequest) {
     const token = await createAdminJWT(email);
 
     // Token'ları temizle
-    clearVerificationToken(verificationToken);
-    clearOTP(email);
-    resetRateLimit(email, 'LOGIN', ip);
+    await clearVerificationToken(verificationToken);
+    await clearOTP(email);
+    await resetRateLimit(email, 'LOGIN', ip);
     
     // Response oluştur
     const response = NextResponse.json(

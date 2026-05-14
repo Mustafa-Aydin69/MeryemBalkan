@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation';
 import LoginModal from '../components/LoginModal';
 import PaymentMarks from '../components/PaymentMarks';
 import { useState, useEffect } from 'react';
-import { checkCartConflicts } from '../utils/rentalConflict';
 
 // Cloudflare R2 URL helper
 const getR2BaseUrl = () => {
@@ -236,12 +235,17 @@ export default function Checkout() {
     setIsSubmitting(true);
 
     try {
-      // 🔹 ADIM 1: Çakışma kontrolü yap
-      const { conflicts, validItems } = await checkCartConflicts(cartItems);
+      // 🔹 ADIM 1: Server-side çakışma kontrolü
+      const conflictRes = await fetch('/api/check-conflict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'checkCartConflicts', cartItems }),
+      });
+      const { conflicts, validItems } = await conflictRes.json();
       
       if (conflicts.length > 0) {
         // Çakışma var - modal göster
-        setConflictItems(conflicts.map(c => ({
+        setConflictItems(conflicts.map((c: { item: CartItem; reason: string }) => ({
           itemTitle: c.item.title,
           reason: c.reason
         })));

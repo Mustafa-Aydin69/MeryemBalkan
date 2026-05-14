@@ -3,20 +3,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/app/lib/supabaseAdmin';
-
-const BLOCKING_STATUSES = ['Hazırlanıyor', 'Kirada'];
-
-function getDateRange(dateStr: string): { startDate: string; endDate: string } {
-  const date = new Date(dateStr);
-  const startDate = new Date(date);
-  startDate.setDate(startDate.getDate() - 7);
-  const endDate = new Date(date);
-  endDate.setDate(endDate.getDate() + 7);
-  return {
-    startDate: startDate.toISOString().split('T')[0],
-    endDate: endDate.toISOString().split('T')[0],
-  };
-}
+import { BLOCKING_STATUSES, getConflictDateRange } from '@/app/lib/conflictUtils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,7 +30,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'checkSingleConflict') {
-      const { startDate, endDate } = getDateRange(eventDate);
+      const { startDate, endDate } = getConflictDateRange(eventDate);
       const { data, error } = await supabase
         .from('orders_items')
         .select('id')
@@ -95,7 +82,7 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        const { startDate, endDate } = getDateRange(item.date);
+        const { startDate, endDate } = getConflictDateRange(item.date);
         const { data: conflictData } = await supabase
           .from('orders_items')
           .select('id')

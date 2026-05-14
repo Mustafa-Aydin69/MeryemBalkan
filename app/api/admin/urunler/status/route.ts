@@ -22,9 +22,14 @@ export async function PATCH(request: NextRequest) {
     const { urunIds, status } = body;
 
     // Validation
-    if (!urunIds || !Array.isArray(urunIds) || urunIds.length === 0) {
+    if (
+      !Array.isArray(urunIds) ||
+      urunIds.length === 0 ||
+      urunIds.length > 100 ||
+      !urunIds.every((id) => Number.isInteger(id) && id > 0)
+    ) {
       return NextResponse.json(
-        { error: 'urunIds array gerekli ve boş olmamalı' },
+        { error: 'urunIds geçersiz: integer dizisi, max 100 eleman' },
         { status: 400 }
       );
     }

@@ -130,7 +130,7 @@ export default function DashboardPage({ onNavigate }: Props) {
       const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
       const prefix = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       const revenue = orders
-        .filter(o => (o.orderDate || '').startsWith(prefix))
+        .filter(o => (o.orderDate || '').startsWith(prefix) && normalizeStatus(o.status) !== 'İptal Edildi')
         .reduce((sum, o) => sum + parsePrice(o.price), 0);
       return { ay: MONTHS[d.getMonth()].slice(0, 3), gelir: revenue };
     }),

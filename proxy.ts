@@ -107,12 +107,13 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL('/', request.url));
     }
 
-    // Production'da secret zorunlu; yoksa güvenlik riski
     const secret = process.env.ADMIN_JWT_SECRET;
-    if (process.env.NODE_ENV === 'production' && (!secret || secret.trim() === '')) {
-      return NextResponse.redirect(new URL('/', request.url));
+    if (!secret?.trim()) {
+      const response = NextResponse.redirect(new URL('/', request.url));
+      response.cookies.delete('admin_token');
+      return response;
     }
-    const secretToUse = secret?.trim() || 'dev-fallback-secret-do-not-use-in-production';
+    const secretToUse = secret.trim();
     const result = await verifyJWTInProxy(token, secretToUse);
 
     // Token geçersizse

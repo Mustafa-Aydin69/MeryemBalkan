@@ -2,10 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
-    unoptimized: true,
-  },
-  typescript: {
-    ignoreBuildErrors: true,
+    remotePatterns: [
+      { hostname: 'cdn.meryembalkan.com.tr' },
+    ],
   },
   serverExternalPackages: ['iyzipay', 'postman-request'],
   outputFileTracingIncludes: {

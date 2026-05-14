@@ -4,6 +4,7 @@ import 'postman-request';
 import nodemailer from 'nodemailer';
 import { getSupabaseAdmin } from '@/app/lib/supabaseAdmin';
 import { logPaymentEvent } from '@/app/lib/logPaymentEvent';
+import { BLOCKING_STATUSES, getConflictDateRange } from '@/app/lib/conflictUtils';
 
 
 async function sendAdminOrderNotification(params: {
@@ -144,8 +145,6 @@ const iyzipay = new Iyzipay({
   secretKey: process.env.IYZICO_SECRET_KEY || '',
   uri:       process.env.IYZICO_BASE_URL   || '',
 });
-
-const BLOCKING_STATUSES = ['Hazırlanıyor', 'Kirada'];
 
 function parseDBPrice(raw: unknown): number {
   if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
@@ -312,19 +311,15 @@ async function _processPayment(token: string, ctx: { errorMsg?: string; conversa
       const product = productMap.get(id);
       if (!product) continue;
 
-      const date = new Date(item.date);
-      const start = new Date(date);
-      start.setDate(start.getDate() - 7);
-      const end = new Date(date);
-      end.setDate(end.getDate() + 7);
+      const { startDate, endDate } = getConflictDateRange(item.date);
 
       const { data: conflicts } = await supabase
         .from('orders_items')
         .select('id')
         .eq('product_name', product.title)
         .in('status', BLOCKING_STATUSES)
-        .gte('event_date', start.toISOString().split('T')[0])
-        .lte('event_date', end.toISOString().split('T')[0]);
+        .gte('event_date', startDate)
+        .lte('event_date', endDate);
 
       if (conflicts && conflicts.length > 0) {
         console.error('[processPayment] çakışma: "%s" conversation=%s', product.title, conversationId);

@@ -123,17 +123,20 @@ export async function createPendingOrders(
  * "Ödeme Yapıyor" durumundaki siparişleri sil
  * API route üzerinden çalışır (RLS bypass için)
  */
-export async function deletePendingOrders(orderIds: number[]): Promise<void> {
-  if (orderIds.length === 0) return;
-  
+export async function deletePendingOrders(orderIds: number[]): Promise<boolean> {
+  if (orderIds.length === 0) return true;
+
   try {
-    await fetch('/api/cleanup-orders', {
+    const res = await fetch('/api/cleanup-orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ orderIds }),
     });
+    if (!res.ok) throw new Error(`Cleanup failed: ${res.status}`);
+    return true;
   } catch (error) {
     console.error('Sipariş silme hatası:', error);
+    return false;
   }
 }
 

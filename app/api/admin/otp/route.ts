@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limit kontrolü
-    const rateLimit = checkRateLimit(email, 'OTP_REQUEST', ip);
+    const rateLimit = await checkRateLimit(email, 'OTP_REQUEST', ip);
     if (!rateLimit.allowed) {
       await securityDelay();
       return NextResponse.json(
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Denemeyi kaydet
-    incrementRateLimit(email, 'OTP_REQUEST', ip);
+    await incrementRateLimit(email, 'OTP_REQUEST', ip);
 
     // Whitelist kontrolü (sessizce başarısız ol)
     if (!isWhitelistedEmail(email)) {
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
 
     // OTP oluştur
     const otp = generateSecureOTP();
-    storeOTP(email, otp);
+    await storeOTP(email, otp);
 
     // E-posta gönderimi ve güvenlik gecikmesini paralel çalıştır
     await Promise.all([
@@ -164,7 +164,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Rate limit kontrolü
-    const rateLimit = checkRateLimit(email, 'OTP_VERIFY', ip);
+    const rateLimit = await checkRateLimit(email, 'OTP_VERIFY', ip);
     if (!rateLimit.allowed) {
       await securityDelay();
       return NextResponse.json(
@@ -174,7 +174,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Denemeyi kaydet
-    incrementRateLimit(email, 'OTP_VERIFY', ip);
+    await incrementRateLimit(email, 'OTP_VERIFY', ip);
 
     // Whitelist kontrolü
     if (!isWhitelistedEmail(email)) {
@@ -186,8 +186,8 @@ export async function PUT(request: NextRequest) {
     }
 
     // OTP doğrula
-    const isValid = verifyOTP(email, code);
-    
+    const isValid = await verifyOTP(email, code);
+
     if (!isValid) {
       await securityDelay();
       return NextResponse.json(
@@ -197,11 +197,11 @@ export async function PUT(request: NextRequest) {
     }
 
     // Başarılı - verification token oluştur
-    const verificationToken = createVerificationToken(email);
-    
+    const verificationToken = await createVerificationToken(email);
+
     // Rate limit sıfırla
-    resetRateLimit(email, 'OTP_VERIFY', ip);
-    resetRateLimit(email, 'OTP_REQUEST', ip);
+    await resetRateLimit(email, 'OTP_VERIFY', ip);
+    await resetRateLimit(email, 'OTP_REQUEST', ip);
 
     await securityDelay();
     return NextResponse.json(

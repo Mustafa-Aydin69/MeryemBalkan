@@ -55,8 +55,10 @@ export async function enforceAdminRateLimit(
   const ip = getClientIP(request);
   const email = payload.email;
 
-  const byUser = checkRateLimit(email, 'ADMIN_API', ip);
-  const byIP = checkRateLimit(ip, 'ADMIN_API_IP', ip);
+  const [byUser, byIP] = await Promise.all([
+    checkRateLimit(email, 'ADMIN_API', ip),
+    checkRateLimit(ip, 'ADMIN_API_IP', ip),
+  ]);
 
   if (!byUser.allowed) {
     return NextResponse.json(
@@ -71,7 +73,9 @@ export async function enforceAdminRateLimit(
     );
   }
 
-  incrementRateLimit(email, 'ADMIN_API', ip);
-  incrementRateLimit(ip, 'ADMIN_API_IP', ip);
+  await Promise.all([
+    incrementRateLimit(email, 'ADMIN_API', ip),
+    incrementRateLimit(ip, 'ADMIN_API_IP', ip),
+  ]);
   return null;
 }

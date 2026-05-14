@@ -1,189 +1,91 @@
-// In-memory OTP store (production'da Redis kullanılmalı)
-interface OTPEntry {
-  code: string;
-  email: string;
-  createdAt: number;
-  verified: boolean;
-}
+import { getSupabaseAdmin } from './supabaseAdmin';
 
-// Global store - Next.js hot reload'da korunması için
-declare global {
-  // eslint-disable-next-line no-var
-  var __otpStore: Map<string, OTPEntry> | undefined;
-  // eslint-disable-next-line no-var
-  var __verificationTokenStore: Map<string, { email: string; createdAt: number }> | undefined;
-  // eslint-disable-next-line no-var
-  var __otpCleanupInitialized: boolean | undefined;
-}
+const OTP_EXPIRES_MS = 5 * 60 * 1000;
+const VERIFICATION_TOKEN_EXPIRES_MS = 10 * 60 * 1000;
 
-// Lazy initialization - sadece runtime'da çalışır
-function getOTPStore(): Map<string, OTPEntry> {
-  if (!global.__otpStore) {
-    global.__otpStore = new Map<string, OTPEntry>();
-  }
-  return global.__otpStore;
-}
-
-function getVerificationTokenStore(): Map<string, { email: string; createdAt: number }> {
-  if (!global.__verificationTokenStore) {
-    global.__verificationTokenStore = new Map<string, { email: string; createdAt: number }>();
-  }
-  return global.__verificationTokenStore;
-}
-
-// Config'i lazy load et (build time'da çalışmasın)
-function getOTPConfig() {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { ADMIN_CONFIG } = require('./admin-config');
-  return ADMIN_CONFIG.OTP;
-}
-
-// Cleanup interval'ı güvenli şekilde başlat (sadece runtime'da)
-function initCleanup() {
-  if (typeof global !== 'undefined' && !global.__otpCleanupInitialized) {
-    global.__otpCleanupInitialized = true;
-    
-    // Sadece server-side'da çalışsın
-    if (typeof setInterval !== 'undefined') {
-      setInterval(() => {
-        try {
-          const otpStore = getOTPStore();
-          const config = getOTPConfig();
-          const now = Date.now();
-          
-          for (const [key, entry] of otpStore.entries()) {
-            if (now - entry.createdAt > config.EXPIRES_IN * 2) {
-              otpStore.delete(key);
-            }
-          }
-        } catch {
-          // Build time'da hata olursa sessizce geç
-        }
-      }, 60 * 1000);
-    }
-  }
-}
-
-// Güvenli rastgele OTP oluştur
 export function generateSecureOTP(): string {
   const array = new Uint32Array(1);
   crypto.getRandomValues(array);
-  const otp = (array[0] % 900000 + 100000).toString();
-  return otp;
+  return (array[0] % 900000 + 100000).toString();
 }
 
-// OTP kaydet
-export function storeOTP(email: string, code: string): void {
-  initCleanup();
-  const otpStore = getOTPStore();
-  const key = email.toLowerCase();
-  
-  otpStore.set(key, {
-    code,
-    email: key,
-    createdAt: Date.now(),
+export async function storeOTP(email: string, code: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const expiresAt = new Date(Date.now() + OTP_EXPIRES_MS).toISOString();
+  await supabase.from('otp_store').upsert({
+    email: email.toLowerCase(),
+    otp: code,
+    expires_at: expiresAt,
+    attempts: 0,
     verified: false,
-  });
+    verification_token: null,
+    verification_token_expires_at: null,
+  }, { onConflict: 'email' });
 }
 
-// OTP doğrula
-export function verifyOTP(email: string, code: string): boolean {
-  const otpStore = getOTPStore();
-  const config = getOTPConfig();
+export async function verifyOTP(email: string, code: string): Promise<boolean> {
+  const supabase = getSupabaseAdmin();
   const key = email.toLowerCase();
-  const entry = otpStore.get(key);
-  
-  if (!entry) {
+  const now = new Date().toISOString();
+
+  const { data } = await supabase
+    .from('otp_store')
+    .select('otp, expires_at, verified')
+    .eq('email', key)
+    .single();
+
+  if (!data) return false;
+  if (data.verified) return false;
+  if (data.expires_at < now) {
+    await supabase.from('otp_store').delete().eq('email', key);
     return false;
   }
-  
-  // Süre kontrolü
-  if (Date.now() - entry.createdAt > config.EXPIRES_IN) {
-    otpStore.delete(key);
-    return false;
-  }
-  
-  // Kod kontrolü
-  if (entry.code !== code) {
-    return false;
-  }
-  
-  // Zaten doğrulanmış mı?
-  if (entry.verified) {
-    return false;
-  }
-  
-  // Doğrulama başarılı - işaretle
-  entry.verified = true;
-  otpStore.set(key, entry);
-  
+  if (data.otp !== code) return false;
+
+  await supabase.from('otp_store').update({ verified: true }).eq('email', key);
   return true;
 }
 
-// OTP doğrulama durumunu kontrol et
-export function isOTPVerified(email: string): boolean {
-  const otpStore = getOTPStore();
-  const config = getOTPConfig();
-  const key = email.toLowerCase();
-  const entry = otpStore.get(key);
-  
-  if (!entry) {
-    return false;
-  }
-  
-  // Süre kontrolü
-  if (Date.now() - entry.createdAt > config.EXPIRES_IN) {
-    otpStore.delete(key);
-    return false;
-  }
-  
-  return entry.verified;
+export async function clearOTP(email: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  await supabase.from('otp_store').delete().eq('email', email.toLowerCase());
 }
 
-// OTP temizle
-export function clearOTP(email: string): void {
-  const otpStore = getOTPStore();
-  const key = email.toLowerCase();
-  otpStore.delete(key);
-}
-
-// Doğrulama session token oluştur (OTP doğrulandıktan sonra şifre adımı için)
-export function createVerificationToken(email: string): string {
-  initCleanup();
-  const verificationTokenStore = getVerificationTokenStore();
-  
+export async function createVerificationToken(email: string): Promise<string> {
+  const supabase = getSupabaseAdmin();
   const array = new Uint8Array(32);
   crypto.getRandomValues(array);
-  const token = Array.from(array)
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
-  
-  verificationTokenStore.set(token, {
-    email: email.toLowerCase(),
-    createdAt: Date.now(),
-  });
-  
+  const token = Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
+  const expiresAt = new Date(Date.now() + VERIFICATION_TOKEN_EXPIRES_MS).toISOString();
+
+  await supabase.from('otp_store').update({
+    verification_token: token,
+    verification_token_expires_at: expiresAt,
+  }).eq('email', email.toLowerCase());
+
   return token;
 }
 
-export function validateVerificationToken(token: string): string | null {
-  const verificationTokenStore = getVerificationTokenStore();
-  const entry = verificationTokenStore.get(token);
-  
-  if (!entry) {
-    return null;
-  }
-  
-  // 10 dakika geçerlilik
-  if (Date.now() - entry.createdAt > 10 * 60 * 1000) {
-    verificationTokenStore.delete(token);
-    return null;
-  }
-  
-  return entry.email;
+export async function validateVerificationToken(token: string): Promise<string | null> {
+  const supabase = getSupabaseAdmin();
+  const now = new Date().toISOString();
+
+  const { data } = await supabase
+    .from('otp_store')
+    .select('email, verification_token_expires_at')
+    .eq('verification_token', token)
+    .single();
+
+  if (!data) return null;
+  if (data.verification_token_expires_at < now) return null;
+
+  return data.email;
 }
 
-export function clearVerificationToken(token: string): void {
-  const verificationTokenStore = getVerificationTokenStore();
-  verificationTokenStore.delete(token);
+export async function clearVerificationToken(token: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  await supabase.from('otp_store').update({
+    verification_token: null,
+    verification_token_expires_at: null,
+  }).eq('verification_token', token);
 }

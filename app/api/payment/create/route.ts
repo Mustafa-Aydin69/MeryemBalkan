@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSupabaseAdmin } from '@/app/lib/supabaseAdmin';
 import { checkRateLimit, incrementRateLimit, getClientIP } from '@/app/lib/rate-limiter';
+import { BLOCKING_STATUSES, getConflictDateRange } from '@/app/lib/conflictUtils';
 
 const Iyzipay = require('iyzipay');
 
@@ -24,7 +25,6 @@ const iyzipay = new Iyzipay({
 const SHIPPING_COST_TL = 500;
 const MAX_PRICE_TL = 1_000_000;
 const SESSION_TTL_MS = 30 * 60 * 1000;
-const BLOCKING_STATUSES = ['Hazırlanıyor', 'Kirada'];
 
 const CartItemSchema = z.object({
   productId: z.union([z.string(), z.number()])
@@ -82,14 +82,14 @@ function normalizePhone(phone: string): string {
 export async function POST(req: NextRequest) {
   const ip = getClientIP(req);
 
-  const rateLimit = checkRateLimit(ip, 'PAYMENT_CREATE', ip);
+  const rateLimit = await checkRateLimit(ip, 'PAYMENT_CREATE', ip);
   if (!rateLimit.allowed) {
     return NextResponse.json(
       { success: false, error: 'Çok fazla istek. Lütfen daha sonra tekrar deneyin.' },
       { status: 429, headers: { 'Retry-After': String(rateLimit.retryAfter ?? 60) } }
     );
   }
-  incrementRateLimit(ip, 'PAYMENT_CREATE', ip);
+  await incrementRateLimit(ip, 'PAYMENT_CREATE', ip);
 
   try {
     const body = await req.json();
@@ -137,17 +137,15 @@ export async function POST(req: NextRequest) {
     for (const item of cartItems) {
       const id = parseInt(item.productId.split('_')[0], 10);
       const product = productMap.get(id)!;
-      const date = new Date(item.date);
-      const start = new Date(date); start.setDate(start.getDate() - 7);
-      const end = new Date(date); end.setDate(end.getDate() + 7);
+      const { startDate, endDate } = getConflictDateRange(item.date);
 
       const { data: conflicts } = await supabase
         .from('orders_items')
         .select('id')
         .eq('product_name', product.title)
         .in('status', BLOCKING_STATUSES)
-        .gte('event_date', start.toISOString().split('T')[0])
-        .lte('event_date', end.toISOString().split('T')[0]);
+        .gte('event_date', startDate)
+        .lte('event_date', endDate);
 
       if (conflicts && conflicts.length > 0) {
         return NextResponse.json(

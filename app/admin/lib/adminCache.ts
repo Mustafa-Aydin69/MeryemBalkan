@@ -25,6 +25,14 @@ interface AdminCacheStore {
   instagram: CacheEntry<any[]> | null;
 }
 
+const CACHE_TTL_MS = 15 * 60 * 1000; // JWT süresiyle uyumlu
+
+function isFresh(key: CacheKey): boolean {
+  const entry = cache[key];
+  if (!entry) return false;
+  return Date.now() - entry.timestamp <= CACHE_TTL_MS;
+}
+
 // Module-level cache - persists across re-renders
 const cache: AdminCacheStore = {
   orders: null,
@@ -57,10 +65,10 @@ export function setCache<T>(key: CacheKey, data: T[]): void {
 }
 
 /**
- * Check if cache exists for a section
+ * Check if cache exists and is still fresh
  */
 export function hasCache(key: CacheKey): boolean {
-  return cache[key] !== null;
+  return cache[key] !== null && isFresh(key);
 }
 
 /**

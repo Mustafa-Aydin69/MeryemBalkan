@@ -12,9 +12,8 @@ import { processPayment } from '@/app/lib/processPayment';
 function verifySignature(rawBody: string, signatureHeader: string | null): boolean {
   const secret = process.env.IYZICO_WEBHOOK_SECRET;
   if (!secret) {
-    // Secret not configured — skip signature check, rely on Iyzico API verification
-    console.warn('[webhook] IYZICO_WEBHOOK_SECRET tanımlı değil, imza doğrulaması atlandı');
-    return true;
+    console.error('[webhook] IYZICO_WEBHOOK_SECRET tanımlı değil — istek reddedildi');
+    return false;
   }
   if (!signatureHeader) {
     console.error('[webhook] x-iyzi-signature header eksik');

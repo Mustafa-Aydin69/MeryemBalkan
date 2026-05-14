@@ -15,11 +15,11 @@ function resultUrl(req: NextRequest, status: 'success' | 'failed' | 'error'): st
 export async function POST(req: NextRequest) {
   const ip = getClientIP(req);
 
-  const rl = checkRateLimit(ip, 'PAYMENT_CALLBACK', ip);
+  const rl = await checkRateLimit(ip, 'PAYMENT_CALLBACK', ip);
   if (!rl.allowed) {
     return NextResponse.redirect(resultUrl(req, 'error'), { status: 303 });
   }
-  incrementRateLimit(ip, 'PAYMENT_CALLBACK', ip);
+  await incrementRateLimit(ip, 'PAYMENT_CALLBACK', ip);
 
   try {
     const formData = await req.formData();
