@@ -225,6 +225,7 @@ export async function POST(req: NextRequest) {
       basketId: conversationId,
       paymentGroup: Iyzipay.PAYMENT_GROUP.PRODUCT,
       callbackUrl,
+      forceThreeDS: 1,
       enabledInstallments: [1, 2, 3, 6, 9],
       buyer: {
         id: conversationId,
