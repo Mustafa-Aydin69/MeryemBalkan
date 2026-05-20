@@ -105,7 +105,7 @@ export default function AydinlatmaMetni() {
               <h2 className={sh}>3. İŞLENEN KİŞİSEL VERİ TÜRLERİ</h2>
               <p className={sub}>Kimlik ve İletişim Verileri</p>
               <ul className="space-y-2 mb-5">
-                {['Ad, soyad', 'E-posta adresi', 'Telefon numarası', 'Adres bilgileri'].map((item) => (
+                {['Ad, soyad', 'TC Kimlik No (Iyzico ödeme güvenliği için zorunludur)', 'E-posta adresi', 'Telefon numarası', 'Adres bilgileri'].map((item) => (
                   <li key={item} className={li}><span className={dot}></span><span>{item}</span></li>
                 ))}
               </ul>
@@ -208,7 +208,7 @@ export default function AydinlatmaMetni() {
             </div>
           </div>
           <div className={`border-t mt-8 sm:mt-12 pt-6 sm:pt-8 text-center text-xs sm:text-sm transition-colors ${isDarkMode ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-500'}`}>
-            <p>&copy; 2026 Meryem Balkan Tüm hakları saklıdır.</p>
+            <p>&copy; {new Date().getFullYear()} Meryem Balkan Tüm hakları saklıdır.</p>
           </div>
         </div>
       </footer>

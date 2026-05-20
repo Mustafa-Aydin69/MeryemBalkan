@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { parseImages } from '@/app/utils/parseImages';
 import { toast } from 'sonner';
 import {
   getCache,
@@ -92,21 +93,7 @@ interface SupabaseProduct {
 function getImageUrl(images: string | string[] | undefined | null): string {
   if (!images) return FALLBACK_IMAGE;
 
-  let imageArray: string[] = [];
-
-  if (typeof images === 'string') {
-    try {
-      const parsed = JSON.parse(images);
-      if (Array.isArray(parsed)) {
-        imageArray = parsed;
-      }
-    } catch {
-      // JSON değilse direkt string olabilir
-      imageArray = [images];
-    }
-  } else if (Array.isArray(images)) {
-    imageArray = images;
-  }
+  const imageArray = parseImages(images);
 
   if (imageArray.length === 0) return FALLBACK_IMAGE;
 

@@ -1,1 +1,2 @@
-Iyzicoda bildirimler gerçek url ile değiştirilecek.
+iyzico API geçilecek.
+Sipariş sonrası mail ve telegrama düşecek.

@@ -1,7 +1,6 @@
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-import 'postman-request';
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdminToken, enforceAdminRateLimit } from '@/app/lib/admin-auth';
 import { getSupabaseAdmin } from '@/app/lib/supabaseAdmin';

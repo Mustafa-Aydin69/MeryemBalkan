@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import Link from 'next/link';
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -203,7 +203,7 @@ function SuccessPage({ snapshot, confirmedAt }: { snapshot: OrderSnapshot | null
             Koleksiyona Geri Dön
           </Link>
           <p className="mt-6 text-xs text-gray-600 uppercase tracking-widest">
-            © 2026 Meryem Balkan. Tüm hakları saklıdır.
+            © {new Date().getFullYear()} Meryem Balkan. Tüm hakları saklıdır.
           </p>
         </div>
       </main>
@@ -319,7 +319,7 @@ function FailedPage() {
         {/* Alt navigasyon */}
         <div className="mt-16 sm:mt-20 text-center border-t border-gray-800 pt-10 sm:pt-12">
           <p className="text-xs text-gray-600 uppercase tracking-widest">
-            © 2026 Meryem Balkan Atelier. Tüm hakları saklıdır.
+            © {new Date().getFullYear()} Meryem Balkan Atelier. Tüm hakları saklıdır.
           </p>
         </div>
       </main>

@@ -285,6 +285,8 @@ export function useProducts() {
   };
 
   const removeImage = (index: number) => {
+    const preview = newProduct.imagePreviews[index];
+    if (preview?.startsWith('blob:')) URL.revokeObjectURL(preview);
     setNewProduct((prev) => ({
       ...prev,
       imagePreviews: prev.imagePreviews.filter((_, i) => i !== index),
@@ -295,12 +297,13 @@ export function useProducts() {
 
   const handleDragEnd = (result: any) => {
     if (!result.destination) return;
-
-    const reordered = Array.from(newProduct.imagePreviews);
-    const [removed] = reordered.splice(result.source.index, 1);
-    reordered.splice(result.destination.index, 0, removed);
-
-    setNewProduct((prev) => ({ ...prev, imagePreviews: reordered }));
+    const newPreviews = Array.from(newProduct.imagePreviews);
+    const newFiles = Array.from(newProduct.images);
+    const [movedPreview] = newPreviews.splice(result.source.index, 1);
+    const [movedFile] = newFiles.splice(result.source.index, 1);
+    newPreviews.splice(result.destination.index, 0, movedPreview);
+    newFiles.splice(result.destination.index, 0, movedFile);
+    setNewProduct((prev) => ({ ...prev, imagePreviews: newPreviews, images: newFiles }));
   };
 
   // Upload file to storage via API
@@ -383,17 +386,9 @@ export function useProducts() {
 
       toast.success("Ürün başarıyla eklendi! ✅");
 
-      setNewProduct({
-        title: "",
-        collection: "",
-        category: "",
-        price: "",
-        size: [],
-        colors: [],
-        features: [],
-        description: "",
-        images: [],
-        imagePreviews: [],
+      setNewProduct((prev) => {
+        prev.imagePreviews.forEach((p) => { if (p.startsWith('blob:')) URL.revokeObjectURL(p); });
+        return { title: "", collection: "", category: "", price: "", size: [], colors: [], features: [], description: "", images: [], imagePreviews: [] };
       });
       setUploadError("");
       setIsAddProductModalOpen(false);
@@ -471,6 +466,8 @@ export function useProducts() {
 
     // Eğer yeni eklenen bir dosya ise (File objesi), sadece local state'ten sil
     if (imageToRemove instanceof File) {
+      const blobPreview = editingProduct.imagePreviews?.[index];
+      if (blobPreview?.startsWith('blob:')) URL.revokeObjectURL(blobPreview);
       setEditingProduct((prev: any) => ({
         ...prev,
         images: prev.images.filter((_: any, i: number) => i !== index),

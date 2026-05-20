@@ -71,7 +71,7 @@ export default function CookieBanner() {
 
           {/* Metin */}
           <p className={`text-xs leading-relaxed font-light ${isDark ? 'text-gray-400' : 'text-neutral-600'}`}>
-            Size en iyi deneyimi sunmak ve tercihlerinizi hatırlamak için çerezler kullanıyoruz.{' '}
+            Bu site yalnızca zorunlu işlevsel çerezler kullanmaktadır (tema tercihi, sepet, favoriler). Üçüncü taraf izleme veya reklam çerezi kullanılmamaktadır.{' '}
             <Link
               href="/gizlilik-politikasi"
               className={`underline underline-offset-2 transition-colors ${

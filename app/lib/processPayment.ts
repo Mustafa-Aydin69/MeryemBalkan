@@ -5,6 +5,7 @@ import nodemailer from 'nodemailer';
 import { getSupabaseAdmin } from '@/app/lib/supabaseAdmin';
 import { logPaymentEvent } from '@/app/lib/logPaymentEvent';
 import { BLOCKING_STATUSES, getConflictDateRange } from '@/app/lib/conflictUtils';
+import { iyzipayClient, iyzipayLocale } from '@/app/lib/iyzipayClient';
 
 
 async function sendAdminOrderNotification(params: {
@@ -138,13 +139,6 @@ async function sendAdminOrderNotification(params: {
   });
 }
 
-const Iyzipay = require('iyzipay');
-
-const iyzipay = new Iyzipay({
-  apiKey:    process.env.IYZICO_API_KEY    || '',
-  secretKey: process.env.IYZICO_SECRET_KEY || '',
-  uri:       process.env.IYZICO_BASE_URL   || '',
-});
 
 function parseDBPrice(raw: unknown): number {
   if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
@@ -203,8 +197,8 @@ async function _processPayment(token: string, ctx: { errorMsg?: string; conversa
       errorMessage?: string;
       [k: string]: unknown;
     }>((resolve, reject) => {
-      iyzipay.checkoutForm.retrieve(
-        { locale: Iyzipay.LOCALE.TR, token },
+      iyzipayClient.checkoutForm.retrieve(
+        { locale: iyzipayLocale, token },
         (err: Error | null, res: unknown) => {
           if (err) return reject(err);
           resolve(res as typeof iyzicoResult);
@@ -386,6 +380,12 @@ async function _processPayment(token: string, ctx: { errorMsg?: string; conversa
       if (rpcError.code === '23505') {
         // Unique violation: concurrent callback/webhook already created the order
         return 'already_processed';
+      }
+      if (rpcError.message?.startsWith('conflict:')) {
+        // Advisory lock içinde yakalanan race condition — ödeme başarılı ama tarih doldu
+        console.error('[processPayment] RPC çakışma:', rpcError.message, 'conversation=', conversationId);
+        ctx.errorMsg = 'Tarih çakışması (RPC): ' + rpcError.message;
+        return 'failed';
       }
       console.error('[processPayment] sipariş oluşturma hatası:', rpcError.message);
       ctx.errorMsg = 'RPC hatası: ' + rpcError.message;

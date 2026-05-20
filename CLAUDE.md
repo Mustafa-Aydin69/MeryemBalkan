@@ -10,7 +10,7 @@ npm run build    # Production build
 npm run lint     # ESLint
 ```
 
-No test suite exists. TypeScript errors are suppressed at build time (`ignoreBuildErrors: true` in `next.config.ts`), so always run `npx tsc --noEmit` manually to check types.
+Test suite: `npm test` (Vitest) — 3 dosya, 39 test. `__tests__/` altında `processPayment`, `conflictUtils`, `jwt-utils` coverage'ı var. TypeScript errors are suppressed at build time (`ignoreBuildErrors: true` in `next.config.ts`), so always run `npx tsc --noEmit` manually to check types.
 
 ## Architecture
 
@@ -31,8 +31,10 @@ Core tables:
 | `orders_items` | One row per rented item; FK → `orders.id`; carries `status` and `shipping_code` |
 | `payment_sessions` | Iyzico HPP session state; `conversation_id UNIQUE`; `processed` flag is the atomic idempotency guard |
 | `urunler` | Product catalog |
-| `messages` | Contact form submissions; `hizmet` column stores the selected topic (`konu`) |
+| `mesajlar` | Contact form submissions; `hizmet` column stores the selected topic (`konu`); INSERT via anon client, SELECT/UPDATE/DELETE via service_role only |
 | `instagram_feed` | Instagram feed posts; columns: `id`, `image_path` (filename only, no prefix), `instagram_link` (nullable), `sort_order`, `created_at` |
+| `otp_store` | Admin OTP codes + verification tokens; **service_role only** — RLS enabled, no anon/authenticated policies |
+| `rate_limit_store` | DB-backed rate limit counters for `OTP_REQUEST`, `OTP_VERIFY`, `LOGIN` types; **service_role only** — RLS enabled, no anon/authenticated policies |
 
 `create_confirmed_order(...)` is a Postgres RPC function that inserts both `orders` and `orders_items` atomically. Always use it for confirmed order creation — never insert into `orders`/`orders_items` separately in application code.
 
@@ -45,7 +47,7 @@ Migrations live in `supabase/migrations/` and must be run in filename order.
 3a. Browser redirect → `POST /api/payment/callback` — thin wrapper, calls `processPayment(token)`, redirects to `/odeme-sonuc`.
 3b. Iyzico server-to-server → `POST /api/payment/webhook` — verifies HMAC signature, calls `processPayment(token)`, returns 200.
 
-Both callback and webhook use the shared `app/lib/processPayment.ts` function.
+Both callback and webhook use the shared `app/lib/processPayment.ts` function. Iyzipay client oluşturma `app/lib/iyzipayClient.ts` wrapper'ına alındı — `processPayment.ts` doğrudan `iyzipay` modülünü `require` etmez; bu wrapper'ı import eder (testability için).
 
 **Critical invariants in `processPayment.ts`:**
 - Claims session by `iyzico_token` with `processed=false` + `expires_at` guards — atomic, single-use.
@@ -59,7 +61,9 @@ Flow: email whitelist → OTP (Gmail SMTP, 6-digit, 5 min TTL) → JWT (HS256, 1
 
 - Whitelist: `ADMIN_WHITELIST_EMAILS` env var (comma-separated).
 - All `/api/admin/*` routes call `verifyAdminToken()` then `enforceAdminRateLimit()` from `app/lib/admin-auth.ts`.
-- OTP state and rate-limit state are **in-memory** (`global.__otpStore`, `global.__rateLimitStore`). They reset on server restart; a Redis replacement is noted as a TODO.
+- OTP state → **Supabase DB** (`otp_store` tablosu, `app/lib/otp-store.ts`). Tüm işlemler service_role ile yapılır.
+- Rate-limit state → **iki katmanlı**: `OTP_REQUEST`, `OTP_VERIFY`, `LOGIN` tipleri Supabase DB (`rate_limit_store`); `ADMIN_API`, `PAYMENT_*` vb. tipler in-memory (`global.__rateLimitStore`) — sunucu restart'ta sıfırlanır (`app/lib/rate-limiter.ts`).
+- `global.__otpStore` artık kullanılmıyor; OTP'ler DB'de.
 - JWT secret from `app/lib/secure-config.ts` → `ADMIN_JWT_SECRET` env var.
 
 ### Admin panel UI

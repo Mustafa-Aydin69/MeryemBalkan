@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Product } from './useProducts';
+import { parseImages } from '@/app/utils/parseImages';
 
 // Cloudflare R2 URL helper
 const getR2BaseUrl = () => {
@@ -14,24 +15,8 @@ const getR2BaseUrl = () => {
 function ProductImage({ images, title }: { images: string[] | string | undefined; title: string }) {
   const [hasError, setHasError] = useState(false);
   
-  // images array veya string olabilir
-  let imageUrl = '';
-  if (images) {
-    if (Array.isArray(images) && images.length > 0) {
-      imageUrl = images[0];
-    } else if (typeof images === 'string') {
-      // JSON string olabilir
-      try {
-        const parsed = JSON.parse(images);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          imageUrl = parsed[0];
-        }
-      } catch {
-        // JSON değilse direkt string olabilir
-        imageUrl = images;
-      }
-    }
-  }
+  const parsed = parseImages(images);
+  let imageUrl = parsed[0] ?? '';
   
   // Eğer URL tam değilse base URL ekle
   if (imageUrl && !imageUrl.startsWith('http')) {

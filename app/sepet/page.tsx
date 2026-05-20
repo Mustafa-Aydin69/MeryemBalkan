@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import LoginModal from '../components/LoginModal';
 import { useState, useEffect } from 'react';
 import { checkCartConflicts } from '../utils/rentalConflict';
+import { parseImages } from '../utils/parseImages';
 import { createClient } from '@supabase/supabase-js';
 import { createSlug } from '../utils/slugUtils';
 
@@ -129,7 +130,7 @@ export default function Sepet() {
       if (data) {
         const R2 = `${(process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || 'https://cdn.meryembalkan.com.tr').replace(/\/$/, '')}/${(process.env.NEXT_PUBLIC_R2_BUCKET_NAME || 'urunler').replace(/^\//, '')}/`;
         setFavoriteProducts(data.map((p: any) => {
-          const imgs = Array.isArray(p.images) ? p.images : (typeof p.images === 'string' ? (() => { try { return JSON.parse(p.images); } catch { return []; } })() : []);
+          const imgs = parseImages(p.images);
           return { ...p, image: imgs.length > 0 ? `${R2}${imgs[0]}` : `${R2}1760034813002_Meryem_Balkan_Logo.jpg` };
         }));
       }
@@ -660,7 +661,7 @@ export default function Sepet() {
           </div>
 
           <div className={`border-t mt-8 sm:mt-12 pt-6 sm:pt-8 text-center text-sm transition-colors ${isDarkMode ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-500'}`}>
-            <p>&copy; 2026 Meryem Balkan Tüm hakları saklıdır.</p>
+            <p>&copy; {new Date().getFullYear()} Meryem Balkan Tüm hakları saklıdır.</p>
           </div>
         </div>
       </footer>
