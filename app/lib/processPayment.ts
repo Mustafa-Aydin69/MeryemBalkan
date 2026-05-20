@@ -1,6 +1,5 @@
 ﻿export const runtime = 'nodejs';
 
-import 'postman-request';
 import nodemailer from 'nodemailer';
 import { getSupabaseAdmin } from '@/app/lib/supabaseAdmin';
 import { logPaymentEvent } from '@/app/lib/logPaymentEvent';
