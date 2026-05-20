@@ -42,6 +42,8 @@ const nextConfig: NextConfig = {
       './node_modules/punycode/**/*',
       './node_modules/@postman/**/*',
       './node_modules/url-parse/**/*',
+      './node_modules/universalify/**/*',
+      './node_modules/stream-length/**/*',
     ],
   },
   async headers() {
