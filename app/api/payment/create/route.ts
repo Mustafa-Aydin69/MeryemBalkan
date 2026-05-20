@@ -7,20 +7,6 @@ import { getSupabaseAdmin } from '@/app/lib/supabaseAdmin';
 import { checkRateLimit, incrementRateLimit, getClientIP } from '@/app/lib/rate-limiter';
 import { BLOCKING_STATUSES, getConflictDateRange } from '@/app/lib/conflictUtils';
 
-const Iyzipay = require('iyzipay');
-
-const IYZICO_URI = process.env.IYZICO_BASE_URL || '';
-
-if (!IYZICO_URI) {
-  console.error('[iyzipay] IYZICO_BASE_URL is not set — library will fall back to production endpoint!');
-}
-
-const iyzipay = new Iyzipay({
-  apiKey:    process.env.IYZICO_API_KEY    || '',
-  secretKey: process.env.IYZICO_SECRET_KEY || '',
-  uri:       IYZICO_URI,
-});
-
 const SHIPPING_COST_TL = 500;
 const MAX_PRICE_TL = 1_000_000;
 const SESSION_TTL_MS = 30 * 60 * 1000;
@@ -79,6 +65,18 @@ function normalizePhone(phone: string): string {
 }
 
 export async function POST(req: NextRequest) {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const Iyzipay = require('iyzipay');
+  const IYZICO_URI = process.env.IYZICO_BASE_URL || '';
+  if (!IYZICO_URI) {
+    console.error('[iyzipay] IYZICO_BASE_URL is not set — library will fall back to production endpoint!');
+  }
+  const iyzipay = new Iyzipay({
+    apiKey:    process.env.IYZICO_API_KEY    || '',
+    secretKey: process.env.IYZICO_SECRET_KEY || '',
+    uri:       IYZICO_URI,
+  });
+
   const ip = getClientIP(req);
 
   const rateLimit = await checkRateLimit(ip, 'PAYMENT_CREATE', ip);

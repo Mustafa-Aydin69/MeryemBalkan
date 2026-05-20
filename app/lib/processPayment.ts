@@ -4,7 +4,7 @@ import nodemailer from 'nodemailer';
 import { getSupabaseAdmin } from '@/app/lib/supabaseAdmin';
 import { logPaymentEvent } from '@/app/lib/logPaymentEvent';
 import { BLOCKING_STATUSES, getConflictDateRange } from '@/app/lib/conflictUtils';
-import { iyzipayClient, iyzipayLocale } from '@/app/lib/iyzipayClient';
+import { getIyzipayClient, getIyzipayLocale } from '@/app/lib/iyzipayClient';
 
 
 async function sendAdminOrderNotification(params: {
@@ -196,8 +196,8 @@ async function _processPayment(token: string, ctx: { errorMsg?: string; conversa
       errorMessage?: string;
       [k: string]: unknown;
     }>((resolve, reject) => {
-      iyzipayClient.checkoutForm.retrieve(
-        { locale: iyzipayLocale, token },
+      getIyzipayClient().checkoutForm.retrieve(
+        { locale: getIyzipayLocale(), token },
         (err: Error | null, res: unknown) => {
           if (err) return reject(err);
           resolve(res as typeof iyzicoResult);

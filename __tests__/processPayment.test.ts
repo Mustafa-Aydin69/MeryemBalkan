@@ -9,8 +9,8 @@ const { mockRetrieve, mockFrom, mockRpc } = vi.hoisted(() => ({
 
 // Mocks must be declared before the module import (vi.mock is hoisted by Vitest).
 vi.mock('@/app/lib/iyzipayClient', () => ({
-  iyzipayClient: { checkoutForm: { retrieve: mockRetrieve } },
-  iyzipayLocale: 'tr',
+  getIyzipayClient: () => ({ checkoutForm: { retrieve: mockRetrieve } }),
+  getIyzipayLocale: () => 'tr',
 }));
 
 vi.mock('nodemailer', () => ({
