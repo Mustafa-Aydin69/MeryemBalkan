@@ -5,6 +5,7 @@ import { getSupabaseAdmin } from '@/app/lib/supabaseAdmin';
 import { logPaymentEvent } from '@/app/lib/logPaymentEvent';
 import { BLOCKING_STATUSES, getConflictDateRange } from '@/app/lib/conflictUtils';
 import { getIyzipayClient, getIyzipayLocale } from '@/app/lib/iyzipayClient';
+import { sendTelegramAdminOrderNotification } from '@/app/lib/telegramNotifier';
 
 
 async function sendAdminOrderNotification(params: {
@@ -393,7 +394,7 @@ async function _processPayment(token: string, ctx: { errorMsg?: string; conversa
 
     console.log('[processPayment] sipariş oluşturuldu, conversation=%s', conversationId);
 
-    sendAdminOrderNotification({
+    const adminNotifPayload = {
       conversationId,
       customerName,
       phone: customer.phone,
@@ -402,7 +403,13 @@ async function _processPayment(token: string, ctx: { errorMsg?: string; conversa
       totalPrice: expectedPrice,
       shippingCost: Number(session.shipping_cost),
       items: orderItems,
-    }).catch(e => console.error('[processPayment] admin bildirim e-postası gönderilemedi:', e));
+    };
+
+    sendAdminOrderNotification(adminNotifPayload)
+      .catch(e => console.error('[processPayment] admin bildirim e-postası gönderilemedi:', e));
+
+    sendTelegramAdminOrderNotification(adminNotifPayload)
+      .catch(e => console.error('[telegram] bildirim gönderilemedi:', e));
 
     return 'success';
   } catch (err) {

@@ -135,6 +135,8 @@ ADMIN_JWT_SECRET
 NEXT_PUBLIC_R2_PUBLIC_BASE_URL
 NEXT_PUBLIC_R2_BUCKET_NAME
 IYZICO_WEBHOOK_SECRET   # optional — HMAC-SHA256 secret for webhook signature verification
+TELEGRAM_BOT_TOKEN      # optional — admin sipariş bildirimi için BotFather token'ı
+TELEGRAM_ADMIN_CHAT_ID  # optional — bildirimin düşeceği Telegram chat id
 ```
 
 ### PWA
