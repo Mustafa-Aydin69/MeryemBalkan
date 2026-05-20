@@ -40,6 +40,7 @@ const nextConfig: NextConfig = {
       './node_modules/ecc-jsbn/**/*',
       './node_modules/psl/**/*',
       './node_modules/punycode/**/*',
+      './node_modules/@postman/**/*',
     ],
   },
   async headers() {
