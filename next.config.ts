@@ -6,10 +6,13 @@ const nextConfig: NextConfig = {
       { hostname: 'cdn.meryembalkan.com.tr' },
     ],
   },
-  serverExternalPackages: ['iyzipay'],
+  serverExternalPackages: ['iyzipay', 'postman-request'],
   outputFileTracingIncludes: {
-    '/api/payment/create': ['./node_modules/iyzipay/**/*'],
-    '/api/payment/callback': ['./node_modules/iyzipay/**/*'],
+    '/api/payment/create':   ['./node_modules/iyzipay/**/*', './node_modules/postman-request/**/*'],
+    '/api/payment/callback': ['./node_modules/iyzipay/**/*', './node_modules/postman-request/**/*'],
+    '/api/payment/webhook':  ['./node_modules/postman-request/**/*'],
+    '/api/payment/verify':   ['./node_modules/postman-request/**/*'],
+    '/api/check-conflict':   ['./node_modules/postman-request/**/*'],
   },
   async headers() {
     return [
