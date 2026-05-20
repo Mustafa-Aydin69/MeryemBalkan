@@ -1,2 +1,1 @@
-iyzico API geçilecek.
 Sipariş sonrası mail ve telegrama düşecek.
