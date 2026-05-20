@@ -41,6 +41,7 @@ const nextConfig: NextConfig = {
       './node_modules/psl/**/*',
       './node_modules/punycode/**/*',
       './node_modules/@postman/**/*',
+      './node_modules/url-parse/**/*',
     ],
   },
   async headers() {
