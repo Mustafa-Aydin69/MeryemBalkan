@@ -39,8 +39,12 @@ Thumbs.db
 .vercel
 .turbo
 
+# Test coverage
+coverage/
+
 # Project-specific
 *.md
 .claude
+CLAUDE.md
 supabase
 yapilacaklar.txt
