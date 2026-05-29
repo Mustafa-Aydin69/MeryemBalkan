@@ -1,1 +1,1 @@
-Sipariş sonrası mail ve telegrama düşecek.
+SonarCube ile siteyi oradan geçirip hata var mı bakma işlemi(Jenkins)
