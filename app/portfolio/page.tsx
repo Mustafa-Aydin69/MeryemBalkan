@@ -118,7 +118,7 @@ export default function Portfolio() {
   const allColors = products.reduce<string[]>((acc, p) => {
     (p.colors || []).forEach((c: string) => { if (!acc.includes(c)) acc.push(c); });
     return acc;
-  }, []).sort();
+  }, []).sort((a, b) => a.localeCompare(b, 'tr'));
 
   // Kategori, arama, fiyat, renk filtresi + sıralama
   const filteredItems = products

@@ -166,11 +166,12 @@ export default function MessagesPage() {
 
       {/* MESAJ DETAY VE YANIT MODALI */}
       {selectedMessage && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) setSelectedMessage(null);
           }}
+          onKeyDown={(e) => { if (e.key === 'Escape' && e.target === e.currentTarget) setSelectedMessage(null); }}
         >
           <div className="max-w-lg w-full rounded-xl bg-gray-800 text-white border border-gray-700 shadow-2xl overflow-hidden">
             {/* Header */}

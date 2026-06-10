@@ -185,6 +185,7 @@ export default function OrdersPage() {
           onClick={(e) => {
             if (e.target === e.currentTarget) { setViewingOrder(null); setVerifyResult(null); }
           }}
+          onKeyDown={(e) => { if (e.key === 'Escape' && e.target === e.currentTarget) { setViewingOrder(null); setVerifyResult(null); } }}
         >
           <div className="rounded-xl w-full max-w-lg shadow-2xl bg-gray-800 text-white border border-gray-700 max-h-[95vh] overflow-hidden flex flex-col">
             {/* Header - Sabit */}

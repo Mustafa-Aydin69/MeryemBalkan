@@ -534,6 +534,7 @@ export default function CreateRentalModal({ onClose, onSuccess }: CreateRentalMo
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
+      onKeyDown={(e) => { if (e.key === 'Escape' && e.target === e.currentTarget) onClose(); }}
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
@@ -605,6 +606,9 @@ export default function CreateRentalModal({ onClose, onSuccess }: CreateRentalMo
                                 : 'border-gray-800 hover:border-gray-600'
                           }`}
                           onClick={() => handleProductClick(product.id)}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleProductClick(product.id); }}
+                          role="button"
+                          tabIndex={0}
                         >
                           {/* Product Image */}
                           <div className="relative aspect-[3/4]">

@@ -66,6 +66,7 @@ function ConfirmModal({
       onClick={(e) => {
         if (e.target === e.currentTarget && !isLoading) onCancel();
       }}
+      onKeyDown={(e) => { if (e.key === 'Escape' && e.target === e.currentTarget && !isLoading) onCancel(); }}
     >
       <div className="rounded-xl w-full max-w-md bg-gray-800 text-white border border-gray-700 shadow-2xl p-6">
         <h3 className="text-lg font-medium mb-2">{title}</h3>
@@ -150,6 +151,7 @@ function RentalDetailModal({
         onClick={(e) => {
           if (e.target === e.currentTarget) onClose();
         }}
+        onKeyDown={(e) => { if (e.key === 'Escape' && e.target === e.currentTarget) onClose(); }}
       >
         <div className="rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-gray-800 text-white border border-gray-700 shadow-2xl">
           {/* Header */}

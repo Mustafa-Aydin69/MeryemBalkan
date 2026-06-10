@@ -533,6 +533,9 @@ export default function Checkout() {
                         : 'border-gray-300 bg-white'
                       }`}
                     onClick={() => setDeliveryMethod('pickup')}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setDeliveryMethod('pickup'); }}
+                    role="button"
+                    tabIndex={0}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
@@ -601,6 +604,9 @@ export default function Checkout() {
                         : 'border-gray-300 bg-white'
                       }`}
                     onClick={() => setDeliveryMethod('shipping')}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setDeliveryMethod('shipping'); }}
+                    role="button"
+                    tabIndex={0}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
@@ -825,6 +831,9 @@ export default function Checkout() {
                         : 'border-gray-300 bg-white'
                       }`}
                     onClick={() => setBillingAddressOption('same')}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setBillingAddressOption('same'); }}
+                    role="button"
+                    tabIndex={0}
                   >
                     <div className="flex items-center space-x-3">
                       <div
@@ -864,6 +873,9 @@ export default function Checkout() {
                         : 'border-gray-300 bg-white'
                       }`}
                     onClick={() => setBillingAddressOption('different')}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setBillingAddressOption('different'); }}
+                    role="button"
+                    tabIndex={0}
                   >
                     <div className="flex items-center space-x-3">
                       <div

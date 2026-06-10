@@ -509,6 +509,14 @@ export default function Home() {
                         if (offset === 1) setInstagramIndex((p) => (p + 1) % total);
                         if (offset === -1) setInstagramIndex((p) => (p - 1 + total) % total);
                       }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          if (offset === 1) setInstagramIndex((p) => (p + 1) % total);
+                          if (offset === -1) setInstagramIndex((p) => (p - 1 + total) % total);
+                        }
+                      }}
+                      role={!isCenter ? 'button' : undefined}
+                      tabIndex={!isCenter ? 0 : undefined}
                       className={`absolute w-[180px] h-[260px] sm:w-[250px] sm:h-[365px] rounded-2xl overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] ${
                         !isCenter ? 'cursor-pointer' : `group shadow-2xl shadow-black/40 ${isDarkMode ? 'ring-1 ring-white/10' : 'ring-1 ring-black/10'}`
                       }`}

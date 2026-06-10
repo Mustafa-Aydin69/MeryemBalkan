@@ -574,8 +574,11 @@ export default function ProductsPage() {
                                       className="relative group"
                                     >
                                       {isVideo ? (
-                                        <div 
+                                        <div
                                           onClick={() => setPreviewImage({ src: preview, isVideo: true })}
+                                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setPreviewImage({ src: preview, isVideo: true }); }}
+                                          role="button"
+                                          tabIndex={0}
                                           className="w-full h-20 rounded-lg border border-gray-600 bg-gray-700 flex items-center justify-center relative overflow-hidden cursor-pointer"
                                         >
                                           <video
@@ -592,6 +595,8 @@ export default function ProductsPage() {
                                           src={preview}
                                           alt={`Önizleme ${index + 1}`}
                                           onClick={() => setPreviewImage({ src: preview, isVideo: false })}
+                                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setPreviewImage({ src: preview, isVideo: false }); }}
+                                          tabIndex={0}
                                           className="w-full h-20 object-cover rounded-lg border border-gray-600 transition-transform group-hover:scale-105 cursor-pointer"
                                         />
                                       )}
@@ -879,8 +884,11 @@ export default function ProductsPage() {
                                       className="relative group flex-shrink-0"
                                     >
                                       {isVideo ? (
-                                        <div 
+                                        <div
                                           onClick={() => setPreviewImage({ src: preview, isVideo: true })}
+                                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setPreviewImage({ src: preview, isVideo: true }); }}
+                                          role="button"
+                                          tabIndex={0}
                                           className="w-24 h-24 rounded-lg border border-gray-600 bg-gray-700 flex items-center justify-center relative overflow-hidden cursor-pointer"
                                         >
                                           <video
@@ -897,6 +905,8 @@ export default function ProductsPage() {
                                           src={preview}
                                           alt={`Önizleme ${index + 1}`}
                                           onClick={() => setPreviewImage({ src: preview, isVideo: false })}
+                                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setPreviewImage({ src: preview, isVideo: false }); }}
+                                          tabIndex={0}
                                           className="w-24 h-24 object-cover rounded-lg border border-gray-600 transition-transform group-hover:scale-105 cursor-pointer"
                                         />
                                       )}
@@ -946,6 +956,9 @@ export default function ProductsPage() {
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                   <span
                     onClick={() => handleEditInputChange("status", "Yayında")}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleEditInputChange("status", "Yayında"); }}
+                    tabIndex={0}
+                    role="button"
                     className={`flex-1 py-2 px-4 rounded-full text-sm font-medium text-center cursor-pointer ${
                       editingProduct.status === "Yayında"
                         ? "bg-green-900 text-green-400"
@@ -956,6 +969,9 @@ export default function ProductsPage() {
                   </span>
                   <span
                     onClick={() => handleEditInputChange("status", "Yayında Değil")}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleEditInputChange("status", "Yayında Değil"); }}
+                    tabIndex={0}
+                    role="button"
                     className={`flex-1 py-2 px-4 rounded-full text-sm font-medium text-center cursor-pointer ${
                       editingProduct.status === "Yayında Değil"
                         ? "bg-red-900 text-red-400"
@@ -1142,6 +1158,9 @@ export default function ProductsPage() {
                       <div
                         key={product.id}
                         onClick={() => toggleProductSelection(product.id)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggleProductSelection(product.id); }}
+                        role="button"
+                        tabIndex={0}
                         className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
                           isSelected 
                             ? bulkStatusAction === 'Yayına Al' 
@@ -1268,6 +1287,7 @@ export default function ProductsPage() {
         <div
           className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4"
           onClick={() => setPreviewImage(null)}
+          onKeyDown={(e) => { if (e.key === 'Escape') setPreviewImage(null); }}
         >
           <button
             onClick={() => setPreviewImage(null)}
@@ -1290,6 +1310,8 @@ export default function ProductsPage() {
               alt="Önizleme"
               className="max-w-full max-h-[90vh] object-contain rounded-lg"
               onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+              tabIndex={0}
             />
           )}
         </div>

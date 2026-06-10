@@ -481,6 +481,7 @@ export default function ProductDetail({
           ref={fullscreenRef}
           className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center overflow-hidden"
           onClick={() => { if (!wasDragging.current) closeFullscreen(); wasDragging.current = false; }}
+          onKeyDown={(e) => { if (e.key === 'Escape') closeFullscreen(); }}
           onMouseDown={(e) => {
             if (zoom <= 1) return;
             wasDragging.current = false;
@@ -522,6 +523,8 @@ export default function ProductDetail({
                 cursor: zoom > 1 ? (isPanning ? 'grabbing' : 'grab') : 'zoom-in',
               }}
               onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+              tabIndex={0}
             />
           )}
 
@@ -530,6 +533,7 @@ export default function ProductDetail({
             <div
               className="absolute top-4 left-4 sm:top-6 sm:left-6 flex items-center gap-1.5 z-10"
               onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
             >
               <button
                 onClick={() => setZoom(prev => Math.min(prev + 0.5, 5))}
@@ -688,6 +692,8 @@ export default function ProductDetail({
                     className="w-full h-[400px] sm:h-[500px] lg:h-[600px] object-contain rounded-md cursor-pointer"
                     style={{ background: isDarkMode ? '#111827' : '#f9fafb' }}
                     onClick={() => setFullscreen(true)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') setFullscreen(true); }}
+                    tabIndex={0}
                   />
                 )}
               </div>
@@ -722,6 +728,8 @@ export default function ProductDetail({
                     className="w-full h-[55vh] sm:h-[65vh] md:h-[70vh] object-contain cursor-pointer transition-all duration-500 ease-out"
                     style={{ background: isDarkMode ? '#111827' : '#f9fafb' }}
                     onClick={() => setFullscreen(true)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') setFullscreen(true); }}
+                    tabIndex={0}
                   />
                 )}
 

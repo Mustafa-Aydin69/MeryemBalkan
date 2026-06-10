@@ -159,7 +159,7 @@ export default function Sepet() {
 
   // Sepet güncellendiğinde localStorage'a kaydet (sadece değişiklik varsa)
   useEffect(() => {
-    if (isClient && cartItems.length >= 0) {
+    if (isClient) {
       const currentCartString = JSON.stringify(cartItems);
       const savedCartString = localStorage.getItem('cartItems') || '[]';
 

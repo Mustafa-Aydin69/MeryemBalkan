@@ -70,6 +70,9 @@ export default function InstagramPage() {
       ) : posts.length === 0 ? (
         <div
           onClick={openModal}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') openModal(); }}
+          role="button"
+          tabIndex={0}
           className="border-2 border-dashed border-gray-700 rounded-xl py-20 flex flex-col items-center gap-3 text-gray-500 cursor-pointer hover:border-gray-500 transition-colors"
         >
           <i className="ri-instagram-line text-4xl" />
@@ -145,6 +148,9 @@ export default function InstagramPage() {
           {posts.length < 15 && (
             <div
               onClick={openModal}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') openModal(); }}
+              role="button"
+              tabIndex={0}
               className="aspect-square rounded-lg border-2 border-dashed border-gray-700 hover:border-gray-500 flex flex-col items-center justify-center gap-2 text-gray-500 cursor-pointer transition-colors"
             >
               <i className="ri-add-line text-2xl" />
@@ -172,9 +178,12 @@ export default function InstagramPage() {
             {!modalPreview ? (
               <div
                 onClick={() => fileInputRef.current?.click()}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click(); }}
                 onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                 onDragLeave={() => setDragOver(false)}
                 onDrop={handleDrop}
+                role="button"
+                tabIndex={0}
                 className={`border-2 border-dashed rounded-xl h-48 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors ${
                   dragOver ? 'border-indigo-500 bg-indigo-500/10' : 'border-gray-600 hover:border-gray-400'
                 } text-gray-400`}
