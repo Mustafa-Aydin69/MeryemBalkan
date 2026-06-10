@@ -22,6 +22,7 @@
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "extend": "^3.0.2",
+    "firebase-admin": "^14.0.0",
     "framer-motion": "^12.23.22",
     "iyzipay": "^2.0.65",
     "jspdf": "^3.0.4",
