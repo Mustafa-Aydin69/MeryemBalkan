@@ -163,8 +163,9 @@ export function useProducts() {
 
   // Filtering
   const filteredProducts = allProducts.filter((product) => {
-    // Status filter
-    if (statusFilter !== 'all' && product.status !== statusFilter) {
+    // Status filter — NULL/undefined → 'Yayında Değil' olarak ele al
+    const effectiveStatus = product.status || 'Yayında Değil';
+    if (statusFilter !== 'all' && effectiveStatus !== statusFilter) {
       return false;
     }
     
@@ -375,6 +376,7 @@ export function useProducts() {
           features: [newProduct.features],
           description: newProduct.description,
           images: uploadedNames,
+          status: 'Yayında Değil',
           year: new Date().getFullYear(),
           createdDate: new Date().toISOString(),
         }),

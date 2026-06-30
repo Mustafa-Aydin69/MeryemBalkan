@@ -56,6 +56,11 @@ export const metadata: Metadata = {
     locale: "tr_TR",
     type: "website",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "Erzincan Gelinlik ve Abiye Kiralama | Meryem Balkan",
+    description: "Erzincan'da özel dikim gelinlik ve abiye kiralama hizmeti.",
+  },
 };
 
 export default function RootLayout({

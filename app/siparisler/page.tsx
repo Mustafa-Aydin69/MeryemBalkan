@@ -237,11 +237,6 @@ export default function OrdersPage() {
                                                 >
                                                     {formatDate(order.orderDate)}
                                                 </p>
-                                                {order.id && (
-                                                    <span className={`text-xs font-mono px-2 py-0.5 rounded ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-500'}`}>
-                                                        Sipariş ID {order.id}
-                                                    </span>
-                                                )}
                                             </div>
                                         </div>
 

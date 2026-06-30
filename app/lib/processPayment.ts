@@ -1,11 +1,12 @@
 ﻿export const runtime = 'nodejs';
 
-import nodemailer from 'nodemailer';
+import { sendEmail, renderEmailShell } from '@/app/lib/email-service';
 import { getSupabaseAdmin } from '@/app/lib/supabaseAdmin';
 import { logPaymentEvent } from '@/app/lib/logPaymentEvent';
 import { BLOCKING_STATUSES, getConflictDateRange } from '@/app/lib/conflictUtils';
 import { getIyzipayClient, getIyzipayLocale } from '@/app/lib/iyzipayClient';
-import { sendTelegramAdminOrderNotification } from '@/app/lib/telegramNotifier';
+import { captureError } from '@/app/lib/error-tracking';
+import { sendNewOrderPushToAdmins } from '@/app/lib/fcm-service';
 
 
 async function sendAdminOrderNotification(params: {
@@ -121,24 +122,109 @@ async function sendAdminOrderNotification(params: {
   const adminEmail = process.env.EMAIL_USER;
   if (!adminEmail) throw new Error('EMAIL_USER env var tanımlı değil');
 
-  const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
-    auth: {
-      user: adminEmail,
-      pass: process.env.EMAIL_PASSWORD,
-    },
-  });
-
-  await transporter.sendMail({
-    from: `"Meryem Balkan" <${adminEmail}>`,
+  await sendEmail({
     to: adminEmail,
     subject: `Yeni Sipariş – ${customerName} (${items.map(i => i.product_name).join(', ')})`,
     html,
+    fromName: 'Meryem Balkan',
   });
 }
 
+
+async function sendCustomerOrderConfirmation(params: {
+  conversationId: string;
+  customerName: string;
+  email: string;
+  address: string;
+  totalPrice: number;
+  shippingCost: number;
+  items: Array<{ product_name: string; color: string; size: string; event_date: string; price: number }>;
+}) {
+  const { conversationId, customerName, email, address, totalPrice, shippingCost, items } = params;
+
+  const formatDate = (d: string) =>
+    new Date(d).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  const itemRows = items.map(item => `
+    <tr>
+      <td style="padding:10px;border-bottom:1px solid #eee;color:#333;">${item.product_name}</td>
+      <td style="padding:10px;border-bottom:1px solid #eee;color:#555;">${item.color} / Beden ${item.size}</td>
+      <td style="padding:10px;border-bottom:1px solid #eee;color:#555;">${formatDate(item.event_date)}</td>
+      <td style="padding:10px;border-bottom:1px solid #eee;color:#333;text-align:right;">${item.price.toLocaleString('tr-TR')} TL</td>
+    </tr>
+  `).join('');
+
+  const content = `
+    <h2 style="margin:0 0 20px;color:#1a1a2e;font-size:20px;font-weight:500;">
+      Sayın ${customerName}, siparişiniz alındı!
+    </h2>
+
+    <p style="margin:0 0 20px;color:#444;font-size:15px;line-height:1.7;">
+      Ödemeniz başarıyla tamamlandı. Siparişiniz en kısa sürede hazırlanmaya başlanacaktır.
+    </p>
+
+    <!-- Sipariş edilen ürünler -->
+    <div style="background:#f8f9fa;border-radius:8px;padding:18px 20px;margin-bottom:20px;">
+      <h3 style="margin:0 0 12px;color:#1a1a2e;font-size:14px;font-weight:600;letter-spacing:1px;text-transform:uppercase;border-bottom:2px solid #d4af37;padding-bottom:8px;">
+        Sipariş Edilen Ürünler
+      </h3>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="background:#e9ecef;">
+            <th style="padding:8px 10px;text-align:left;color:#555;font-weight:600;">Ürün</th>
+            <th style="padding:8px 10px;text-align:left;color:#555;font-weight:600;">Renk / Beden</th>
+            <th style="padding:8px 10px;text-align:left;color:#555;font-weight:600;">Etkinlik Tarihi</th>
+            <th style="padding:8px 10px;text-align:right;color:#555;font-weight:600;">Fiyat</th>
+          </tr>
+        </thead>
+        <tbody>${itemRows}</tbody>
+      </table>
+    </div>
+
+    <!-- Ödeme özeti -->
+    <div style="background:#1a1a2e;border-radius:8px;padding:18px 20px;margin-bottom:20px;">
+      <table style="width:100%;border-collapse:collapse;font-size:14px;">
+        ${shippingCost > 0 ? `
+        <tr>
+          <td style="padding:5px 0;color:#aaa;">Ara toplam:</td>
+          <td style="padding:5px 0;color:#ddd;text-align:right;">${(totalPrice - shippingCost).toLocaleString('tr-TR')} TL</td>
+        </tr>
+        <tr>
+          <td style="padding:5px 0;color:#aaa;">Kargo:</td>
+          <td style="padding:5px 0;color:#ddd;text-align:right;">${shippingCost.toLocaleString('tr-TR')} TL</td>
+        </tr>` : ''}
+        <tr>
+          <td style="padding:12px 0 0;color:#d4af37;font-size:16px;font-weight:600;">Toplam Ödenen:</td>
+          <td style="padding:12px 0 0;color:#d4af37;font-size:16px;font-weight:600;text-align:right;">${totalPrice.toLocaleString('tr-TR')} TL</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Teslimat adresi -->
+    <div style="background:#f8f9fa;border-radius:8px;padding:16px 20px;margin-bottom:20px;">
+      <p style="margin:0 0 6px;color:#666;font-size:13px;text-transform:uppercase;letter-spacing:1px;">Teslimat Adresi</p>
+      <p style="margin:0;color:#333;font-size:14px;">${address}</p>
+    </div>
+
+    <!-- Sipariş referansı -->
+    <div style="background:#f8f9fa;border-radius:8px;padding:16px 20px;margin-bottom:20px;">
+      <p style="margin:0 0 6px;color:#666;font-size:13px;">Sipariş Referans No</p>
+      <p style="margin:0;color:#333;font-size:13px;font-family:monospace;">${conversationId}</p>
+    </div>
+
+    <p style="margin:0;color:#444;font-size:14px;line-height:1.7;">
+      Herhangi bir sorunuz olursa bizimle iletişime geçmekten çekinmeyin.<br/>
+      <strong style="color:#1a1a2e;">Meryem Balkan Tasarım Atölyesi</strong> 💜
+    </p>
+  `;
+
+  await sendEmail({
+    to: email,
+    subject: 'Siparişiniz Alındı – Meryem Balkan',
+    html: renderEmailShell(content),
+    fromName: 'Meryem Balkan',
+  });
+}
 
 function parseDBPrice(raw: unknown): number {
   if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
@@ -241,6 +327,7 @@ async function _processPayment(token: string, ctx: { errorMsg?: string; conversa
     if (claimError) {
       console.error('[processPayment] session claim hatası:', claimError.message);
       ctx.errorMsg = 'Session claim hatası: ' + claimError.message;
+      captureError({ error: claimError, source: 'processPayment', severity: 'error', context: { step: 'session_claim' } }).catch(() => {});
       return 'error';
     }
 
@@ -374,6 +461,8 @@ async function _processPayment(token: string, ctx: { errorMsg?: string; conversa
       p_shipping_cost:   Number(session.shipping_cost),
       p_total_price:     expectedPrice,
       p_items:           orderItems,
+      p_coupon_code:     (session.coupon_code as string | null) ?? null,
+      p_discount_amount: Number(session.discount_amount ?? 0),
     });
 
     if (rpcError) {
@@ -389,6 +478,7 @@ async function _processPayment(token: string, ctx: { errorMsg?: string; conversa
       }
       console.error('[processPayment] sipariş oluşturma hatası:', rpcError.message);
       ctx.errorMsg = 'RPC hatası: ' + rpcError.message;
+      captureError({ error: rpcError, source: 'processPayment', severity: 'fatal', context: { step: 'create_order_rpc', conversationId: ctx.conversationId } }).catch(() => {});
       return 'error';
     }
 
@@ -408,13 +498,26 @@ async function _processPayment(token: string, ctx: { errorMsg?: string; conversa
     sendAdminOrderNotification(adminNotifPayload)
       .catch(e => console.error('[processPayment] admin bildirim e-postası gönderilemedi:', e));
 
-    sendTelegramAdminOrderNotification(adminNotifPayload)
-      .catch(e => console.error('[telegram] bildirim gönderilemedi:', e));
+    sendNewOrderPushToAdmins(adminNotifPayload).catch(e => console.error('[fcm] sipariş push hatası:', e));
+
+    // Müşteri onay e-postası — yalnızca e-posta adresi mevcutsa
+    if (customer.email) {
+      sendCustomerOrderConfirmation({
+        conversationId,
+        customerName,
+        email: customer.email,
+        address: fullAddress,
+        totalPrice: expectedPrice,
+        shippingCost: Number(session.shipping_cost),
+        items: orderItems,
+      }).catch(e => console.error('[processPayment] müşteri onay e-postası gönderilemedi:', e));
+    }
 
     return 'success';
   } catch (err) {
     console.error('[processPayment] beklenmeyen hata:', err);
     ctx.errorMsg = err instanceof Error ? err.message : 'Beklenmeyen hata';
+    captureError({ error: err, source: 'processPayment', severity: 'fatal', context: { step: 'unexpected', conversationId: ctx.conversationId } }).catch(() => {});
     return 'error';
   }
 }

@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { getSupabaseAdmin } from '@/app/lib/supabaseAdmin';
 import { checkRateLimit, incrementRateLimit, getClientIP } from '@/app/lib/rate-limiter';
 import { BLOCKING_STATUSES, getConflictDateRange } from '@/app/lib/conflictUtils';
+import { validateCoupon } from '@/app/lib/validateCoupon';
 
 const SHIPPING_COST_TL = 500;
 const MAX_PRICE_TL = 1_000_000;
@@ -40,6 +41,7 @@ const CreatePaymentSchema = z.object({
   customer: CustomerSchema,
   shippingAddress: AddressSchema,
   deliveryMethod: z.enum(['pickup', 'shipping']),
+  couponCode: z.string().trim().max(50).optional(),
 });
 
 function parseDBPrice(raw: unknown): number {
@@ -95,7 +97,7 @@ export async function POST(req: NextRequest) {
       const message = Object.values(parsed.error.flatten().fieldErrors).flat().join(' ') || 'Geçersiz istek';
       return NextResponse.json({ success: false, error: message }, { status: 400 });
     }
-    const { cartItems, customer, shippingAddress, deliveryMethod } = parsed.data;
+    const { cartItems, customer, shippingAddress, deliveryMethod, couponCode } = parsed.data;
 
     const supabase = getSupabaseAdmin();
 
@@ -158,7 +160,21 @@ export async function POST(req: NextRequest) {
       const id = parseInt(item.productId.split('_')[0], 10);
       itemsTotal += productMap.get(id)!.price;
     }
-    const totalPrice = itemsTotal + shippingCost;
+
+    // Kupon doğrulama — sunucuda yeniden doğrulanır; client indirimine asla güvenilmez
+    let appliedCouponCode: string | null = null;
+    let discountAmount = 0;
+    if (couponCode) {
+      const couponResult = await validateCoupon(couponCode, itemsTotal, customer.email);
+      if (couponResult.ok) {
+        appliedCouponCode = couponResult.code;
+        discountAmount = couponResult.discount;
+      }
+      // Geçersiz kupon: indirim 0 olarak devam et (UI zaten önizledi)
+    }
+
+    const grossPrice = itemsTotal + shippingCost;           // indirimsiz (Iyzico basket toplamı)
+    const totalPrice = (itemsTotal - discountAmount) + shippingCost; // müşterinin ödeyeceği
 
     if (totalPrice <= 0 || totalPrice > MAX_PRICE_TL) {
       return NextResponse.json({ success: false, error: 'Geçersiz tutar' }, { status: 400 });
@@ -176,7 +192,9 @@ export async function POST(req: NextRequest) {
         shipping_address: shippingAddress,
         delivery_method: deliveryMethod,
         shipping_cost: shippingCost,
-        total_price: totalPrice,
+        total_price: totalPrice,          // indirimli tutar — processPayment.ts bunu expectedPrice olarak kullanır
+        coupon_code: appliedCouponCode,
+        discount_amount: discountAmount,
         expires_at: expiresAt,
       });
 
@@ -219,8 +237,8 @@ export async function POST(req: NextRequest) {
     const iyzicoRequest = {
       locale: Iyzipay.LOCALE.TR,
       conversationId,
-      price: totalPrice.toFixed(2),
-      paidPrice: totalPrice.toFixed(2),
+      price: grossPrice.toFixed(2),       // indirimsiz; basketItems toplamına eşit (Iyzico zorunluluğu)
+      paidPrice: totalPrice.toFixed(2),  // indirimli; müşterinin gerçekte ödediği
       currency: Iyzipay.CURRENCY.TRY,
       basketId: conversationId,
       paymentGroup: Iyzipay.PAYMENT_GROUP.PRODUCT,

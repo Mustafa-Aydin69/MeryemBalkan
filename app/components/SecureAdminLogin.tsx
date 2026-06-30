@@ -15,16 +15,34 @@ export default function SecureAdminLogin({ isOpen, onClose }: SecureAdminLoginPr
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [sessionId, setSessionId] = useState('');
+  const [matchCode, setMatchCode] = useState('');
   const [approved, setApproved] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const waitingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? 'hidden' : 'unset';
     return () => { document.body.style.overflow = 'unset'; };
   }, [isOpen]);
+
+  useEffect(() => {
+    if (step === 'waiting') {
+      waitingTimeoutRef.current = setTimeout(() => {
+        stopPolling();
+        setError('Oturum süresi doldu. Lütfen tekrar deneyin.');
+        setStep('credentials');
+      }, 55000);
+    }
+    return () => {
+      if (waitingTimeoutRef.current) {
+        clearTimeout(waitingTimeoutRef.current);
+        waitingTimeoutRef.current = null;
+      }
+    };
+  }, [step]);
 
   useEffect(() => {
     if ((step === 'waiting' || step === 'approved') && sessionId) {
@@ -39,10 +57,11 @@ export default function SecureAdminLogin({ isOpen, onClose }: SecureAdminLoginPr
             router.push('/admin');
           } else if (data.status === 'expired') {
             stopPolling();
-            setError('Oturum süresi doldu. Lütfen tekrar deneyin.');
+            setError('Giriş isteği reddedildi veya süresi doldu. Lütfen tekrar deneyin.');
             setStep('credentials');
-          } else if (data.approved && !approved) {
+          } else if (data.pre_approved && !approved) {
             setApproved(true);
+            if (data.matchCode) setMatchCode(data.matchCode);
             setStep('approved');
           }
         } catch {
@@ -58,6 +77,10 @@ export default function SecureAdminLogin({ isOpen, onClose }: SecureAdminLoginPr
       clearInterval(pollingRef.current);
       pollingRef.current = null;
     }
+    if (waitingTimeoutRef.current) {
+      clearTimeout(waitingTimeoutRef.current);
+      waitingTimeoutRef.current = null;
+    }
   }
 
   function handleClose() {
@@ -68,6 +91,7 @@ export default function SecureAdminLogin({ isOpen, onClose }: SecureAdminLoginPr
       setEmail('');
       setPassword('');
       setSessionId('');
+      setMatchCode('');
       setApproved(false);
       setError('');
       setIsLoading(false);
@@ -89,6 +113,7 @@ export default function SecureAdminLogin({ isOpen, onClose }: SecureAdminLoginPr
 
       if (res.ok && data.sessionId) {
         setSessionId(data.sessionId);
+        if (data.matchCode) setMatchCode(data.matchCode);
         setStep('waiting');
       } else {
         setError('E-posta veya şifre hatalı.');
@@ -211,7 +236,7 @@ export default function SecureAdminLogin({ isOpen, onClose }: SecureAdminLoginPr
               <div>
                 <p className="text-white font-medium mb-2">Telefon onayı bekleniyor</p>
                 <p className="text-sm text-gray-400">
-                  Telefonuna bildirim gönderildi. Uygulamayı açıp girişi onayla.
+                  Telefonuna bildirim gönderildi. Uygulamayı açıp bildirimi onayla.
                 </p>
               </div>
               <div className="flex justify-center gap-1">
@@ -232,20 +257,25 @@ export default function SecureAdminLogin({ isOpen, onClose }: SecureAdminLoginPr
             </div>
           )}
 
-          {/* Step 3: Onaylandı — OTP bekleniyor */}
+          {/* Step 3: Telefon onayladı — matchCode göster */}
           {step === 'approved' && (
-            <div className="text-center space-y-6 py-4">
+            <div className="text-center space-y-5 py-4">
               <div className="flex justify-center">
                 <div className="w-16 h-16 rounded-full bg-green-900/40 border border-green-700 flex items-center justify-center">
-                  <i className="ri-checkbox-circle-line text-3xl text-green-400"></i>
+                  <i className="ri-smartphone-line text-3xl text-green-400"></i>
                 </div>
               </div>
               <div>
-                <p className="text-white font-medium mb-2">Telefon onayladı</p>
-                <p className="text-sm text-gray-400">
-                  Maile gelen 6 haneli kodu telefon uygulamasına gir.
-                </p>
+                <p className="text-white font-medium mb-1">Telefon onayladı</p>
+                <p className="text-sm text-gray-400">Bu kodu telefon uygulamasına gir:</p>
               </div>
+              {matchCode && (
+                <div className="bg-gray-800 border border-gray-700 rounded-xl py-5 px-8 inline-block">
+                  <span className="text-5xl font-mono font-bold tracking-[0.35em] text-white">
+                    {matchCode}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-center gap-1">
                 {[0, 1, 2].map((i) => (
                   <div

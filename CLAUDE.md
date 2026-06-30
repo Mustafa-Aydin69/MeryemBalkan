@@ -4,13 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
+flutter emulators --launch Pixel6_API33
+
 ```bash
 npm run dev      # Development server on 0.0.0.0:3000 (cross-env)
 npm run build    # Production build
 npm run lint     # ESLint
 ```
 
-Test suite: `npm test` (Vitest) — 3 dosya, 39 test. `__tests__/` altında `processPayment`, `conflictUtils`, `jwt-utils` coverage'ı var. TypeScript errors are suppressed at build time (`ignoreBuildErrors: true` in `next.config.ts`), so always run `npx tsc --noEmit` manually to check types.
+Test suite: `npm test` (Vitest) — `__tests__/` altında `processPayment`, `conflictUtils` coverage'ı var (`jwt-utils` testi Faz 6'da kaldırıldı). TypeScript errors are suppressed at build time (`ignoreBuildErrors: true` in `next.config.ts`), so always run `npx tsc --noEmit` manually to check types.
 
 ## Architecture
 
@@ -33,8 +35,11 @@ Core tables:
 | `urunler` | Product catalog |
 | `mesajlar` | Contact form submissions; `hizmet` column stores the selected topic (`konu`); INSERT via anon client, SELECT/UPDATE/DELETE via service_role only |
 | `instagram_feed` | Instagram feed posts; columns: `id`, `image_path` (filename only, no prefix), `instagram_link` (nullable), `sort_order`, `created_at` |
-| `otp_store` | Admin OTP codes + verification tokens; **service_role only** — RLS enabled, no anon/authenticated policies |
-| `rate_limit_store` | DB-backed rate limit counters for `OTP_REQUEST`, `OTP_VERIFY`, `LOGIN` types; **service_role only** — RLS enabled, no anon/authenticated policies |
+| `admin_users` | Admin hesapları; `email`, `auth_user_id` (Supabase Auth UUID), `is_active`, `revoked_at` |
+| `devices` | Flutter cihaz kaydı; `auth_user_id`, `device_identifier`, `platform`, `fcm_token`, `supabase_session_id`, `revoked_at` |
+| `login_challenges` | 2FA oturum durumu; `session_id`, `auth_user_id`, `match_code`, `browser_nonce_hash`, `approved`, `pre_approved`, `expires_at` |
+| `web_sessions` | Opak web oturumu token hash'i; `token_hash`, `auth_user_id`, `nonce_hash`, `ip`, `user_agent`, `expires_at` |
+| `rate_limit_store` | DB-backed rate limit counters for `LOGIN` types; **service_role only** — RLS enabled, no anon/authenticated policies |
 
 `create_confirmed_order(...)` is a Postgres RPC function that inserts both `orders` and `orders_items` atomically. Always use it for confirmed order creation — never insert into `orders`/`orders_items` separately in application code.
 
@@ -57,14 +62,32 @@ Both callback and webhook use the shared `app/lib/processPayment.ts` function. I
 
 ### Admin authentication
 
-Flow: email whitelist → OTP (Gmail SMTP, 6-digit, 5 min TTL) → JWT (HS256, 15 min, `httpOnly` cookie).
+Flow: email + şifre (Supabase Auth) → FCM push (telefon onayı) → number-matching (4 haneli kod) → opak web session cookie (`admin_session`).
 
 - Whitelist: `ADMIN_WHITELIST_EMAILS` env var (comma-separated).
-- All `/api/admin/*` routes call `verifyAdminToken()` then `enforceAdminRateLimit()` from `app/lib/admin-auth.ts`.
-- OTP state → **Supabase DB** (`otp_store` tablosu, `app/lib/otp-store.ts`). Tüm işlemler service_role ile yapılır.
-- Rate-limit state → **iki katmanlı**: `OTP_REQUEST`, `OTP_VERIFY`, `LOGIN` tipleri Supabase DB (`rate_limit_store`); `ADMIN_API`, `PAYMENT_*` vb. tipler in-memory (`global.__rateLimitStore`) — sunucu restart'ta sıfırlanır (`app/lib/rate-limiter.ts`).
-- `global.__otpStore` artık kullanılmıyor; OTP'ler DB'de.
-- JWT secret from `app/lib/secure-config.ts` → `ADMIN_JWT_SECRET` env var.
+- **Edge guard:** `middleware.ts` — tüm `/api/admin/*` rotalarını cookie (`admin_session`) veya Bearer header varlığına göre filtreler; yalnızca auth-flow rotaları (`/api/admin/auth/*`) muaf.
+- Route içi: `verifyAdminToken()` then `enforceAdminRateLimit()` from `app/lib/admin-auth.ts`.
+- `verifyAdminToken` — web'de `admin_session` cookie + CSRF kontrolü; mobilde `Authorization: Bearer` Supabase JWT.
+- Şifreler Supabase Auth'da (bcrypt) saklanır — `password_hash` kolonu yok.
+- Rate-limit state → **iki katmanlı**: `LOGIN` tipi Supabase DB (`rate_limit_store`); `ADMIN_API`, `PAYMENT_*`, `MOBILE_APPROVE`, `STATUS_POLL`, `REGISTER_DEVICE` in-memory (`app/lib/rate-limiter.ts`).
+
+**2FA number-matching akışı:**
+1. `POST /api/admin/auth/login` — Supabase Auth ile email+şifre doğrular (`createIsolatedSupabaseClient`), `login_challenges` kaydı oluşturur, FCM push gönderir
+2. Flutter push alır → `PATCH /api/admin/auth/pre-approve` (web'e match_code gösterir) → kullanıcı kodu telefona girer
+3. Flutter `PATCH /api/admin/auth/approve` — Bearer token + `submitted_match_code` gönderir; backend `login_challenges.match_code` ile karşılaştırır
+4. Web `GET /api/admin/auth/status/{sessionId}` ile polling; nonce doğrulaması → `createWebSession` → `admin_session` cookie → `/admin`'e yönlendirme
+
+**İlgili dosyalar:**
+- `middleware.ts` — edge-level auth guard; `/api/admin/*` rotalarını filtreler
+- `app/lib/admin-auth.ts` — `verifyAdminToken`, `enforceAdminRateLimit`
+- `app/lib/web-session.ts` — opak session token oluşturma/doğrulama (`web_sessions` tablosu)
+- `app/lib/csrf.ts` — CSRF token kontrolü
+- `app/lib/login-challenge.ts` — `login_challenges` tablosu CRUD
+- `app/lib/devices.ts` — `devices` tablosu CRUD (`upsertDevice`, `findActiveDevice`)
+- `app/lib/supabase-auth-verify.ts` — `verifyBearerToken`, `verifyMobileBearer`
+- `app/lib/fcm-service.ts` — Firebase Admin SDK, `sendLoginApprovalPush()`
+- `app/api/admin/register-device/route.ts` — FCM token kayıt; Bearer-only; `REGISTER_DEVICE` rate limit
+- `app/api/admin/auth/{login,approve,reject,pre-approve,status}/route.ts`
 
 ### Admin panel UI
 
@@ -118,26 +141,6 @@ The fullscreen viewer supports zoom and pan:
 - +/−/% buttons in top-left corner; zoom resets on image change or close
 - Main product images use `object-contain` (not `object-cover`) so full photo is always visible without cropping
 
-### Environment variables
-
-```
-NEXT_PUBLIC_SUPABASE_URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY
-SUPABASE_SERVICE_ROLE_KEY
-IYZICO_API_KEY
-IYZICO_SECRET_KEY
-IYZICO_BASE_URL
-NEXT_PUBLIC_SITE_URL
-EMAIL_USER
-EMAIL_PASSWORD
-ADMIN_WHITELIST_EMAILS
-ADMIN_JWT_SECRET
-NEXT_PUBLIC_R2_PUBLIC_BASE_URL
-NEXT_PUBLIC_R2_BUCKET_NAME
-IYZICO_WEBHOOK_SECRET   # optional — HMAC-SHA256 secret for webhook signature verification
-TELEGRAM_BOT_TOKEN      # optional — admin sipariş bildirimi için BotFather token'ı
-TELEGRAM_ADMIN_CHAT_ID  # optional — bildirimin düşeceği Telegram chat id
-```
 
 ### PWA
 

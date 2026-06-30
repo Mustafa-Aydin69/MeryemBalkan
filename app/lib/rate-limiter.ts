@@ -1,7 +1,13 @@
 import { getSupabaseAdmin } from './supabaseAdmin';
 
-// OTP ve LOGIN rate limitleri Supabase'de; diğerleri in-memory (yüksek frekans)
-const DB_BACKED_TYPES: RateLimitType[] = ['OTP_REQUEST', 'OTP_VERIFY', 'LOGIN'];
+// Güvenlik-kritik tipler Supabase'de (kalıcı, instance'lar-arası ortak).
+// STATUS_POLL bilinçli olarak dışarıda — yüksek frekanslı polling, güvenlik yüzeyi değil.
+const DB_BACKED_TYPES: RateLimitType[] = [
+  'OTP_REQUEST', 'OTP_VERIFY', 'LOGIN',
+  'PAYMENT_CREATE', 'PAYMENT_CALLBACK', 'CHECKOUT_CREATE',
+  'ADMIN_API', 'ADMIN_API_IP', 'MOBILE_APPROVE',
+  'REGISTER_DEVICE', 'COUPON_VALIDATE',
+];
 
 declare global {
   // eslint-disable-next-line no-var
@@ -22,7 +28,9 @@ function getInMemoryStore(): Map<string, InMemoryEntry> {
 export type RateLimitType =
   | 'OTP_REQUEST' | 'OTP_VERIFY' | 'LOGIN'
   | 'ADMIN_API' | 'ADMIN_API_IP'
-  | 'CHECKOUT_CREATE' | 'PAYMENT_CREATE' | 'PAYMENT_CALLBACK';
+  | 'CHECKOUT_CREATE' | 'PAYMENT_CREATE' | 'PAYMENT_CALLBACK'
+  | 'MOBILE_APPROVE' | 'STATUS_POLL' | 'REGISTER_DEVICE'
+  | 'COUPON_VALIDATE';
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -83,23 +91,8 @@ async function checkDB(key: string, type: RateLimitType): Promise<RateLimitResul
 async function incrementDB(key: string, type: RateLimitType): Promise<void> {
   const supabase = getSupabaseAdmin();
   const config = getConfig(type);
-  const now = new Date().toISOString();
-
-  const { data } = await supabase
-    .from('rate_limit_store')
-    .select('count, window_start')
-    .eq('key', key)
-    .single();
-
-  const windowExpired = !data || new Date(data.window_start).getTime() + config.WINDOW_MS < Date.now();
-  if (windowExpired) {
-    await supabase.from('rate_limit_store').upsert(
-      { key, count: 1, window_start: now, locked_until: null },
-      { onConflict: 'key' }
-    );
-  } else {
-    await supabase.from('rate_limit_store').update({ count: data.count + 1 }).eq('key', key);
-  }
+  // Atomik INSERT ... ON CONFLICT DO UPDATE — lost-update imkânsız (satır kilidi)
+  await supabase.rpc('increment_rate_limit', { p_key: key, p_window_ms: config.WINDOW_MS });
 }
 
 async function resetDB(key: string): Promise<void> {
@@ -188,9 +181,13 @@ export async function resetRateLimit(
 }
 
 export function getClientIP(request: Request): string {
-  const forwardedFor = request.headers.get('x-forwarded-for');
-  if (forwardedFor) return forwardedFor.split(',')[0].trim();
+  // Vercel'de güvenilir header (istemci ekleyemez); öncelik sırası:
+  const vercelIP = request.headers.get('x-vercel-forwarded-for');
+  if (vercelIP) return vercelIP.split(',')[0].trim();
   const realIP = request.headers.get('x-real-ip');
   if (realIP) return realIP;
+  // Son çare — Vercel dışı ortamlarda (local dev, diğer platformlar)
+  const forwardedFor = request.headers.get('x-forwarded-for');
+  if (forwardedFor) return forwardedFor.split(',')[0].trim();
   return 'unknown';
 }

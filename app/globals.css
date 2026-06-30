@@ -14,3 +14,75 @@
   scrollbar-width: none; /* Firefox */
 }
 
+/* ---- Instagram Feed Background ---- */
+.igbg-lace {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.12;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.igbg-orb {
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  filter: blur(90px);
+  background: rgba(217, 167, 160, 0.35);
+  pointer-events: none;
+  z-index: 1;
+  animation: igbg-orb-drift 18s ease-in-out infinite alternate;
+}
+.igbg-orb-1 { top: 8%;    left: -8%; }
+.igbg-orb-2 { bottom: 4%; right: -10%; animation-delay: -8s; }
+
+@keyframes igbg-orb-drift {
+  from { transform: translate(0, 0)        scale(1); }
+  to   { transform: translate(40px, -30px) scale(1.12); }
+}
+
+.igbg-petal {
+  position: absolute;
+  top: -40px;
+  width: 14px;
+  height: 14px;
+  border-radius: 80% 20% 80% 20%;
+  background: #D9A7A0;
+  opacity: 0;
+  filter: blur(0.3px);
+  box-shadow: 0 0 6px rgba(217, 167, 160, 0.45);
+  animation: igbg-petal-fall linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes igbg-petal-fall {
+  0%   { transform: translateY(-10vh) rotate(0deg)   translateX(0);    opacity: 0; }
+  10%  { opacity: 0.55; }
+  50%  { transform: translateY(50vh)  rotate(180deg) translateX(40px); }
+  100% { transform: translateY(110vh) rotate(360deg) translateX(-30px); opacity: 0; }
+}
+
+.igbg-watermark {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  pointer-events: none;
+  opacity: 0.035;
+  font-family: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
+  font-size: 18rem;
+  font-weight: 500;
+  color: #ffffff;
+  user-select: none;
+}
+
+@media (max-width: 768px) {
+  .igbg-watermark { font-size: 10rem; }
+}
+

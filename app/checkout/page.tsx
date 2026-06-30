@@ -50,6 +50,12 @@ export default function Checkout() {
   const [showConflictModal, setShowConflictModal] = useState(false);
   const [conflictItems, setConflictItems] = useState<ConflictInfo[]>([]);
   const [validItemsForPayment, setValidItemsForPayment] = useState<CartItem[]>([]);
+  const [couponInput, setCouponInput] = useState('');
+  const [appliedCouponCode, setAppliedCouponCode] = useState<string | null>(null);
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [couponError, setCouponError] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+
   const [formData, setFormData] = useState({
     email: '',
     firstName: '',
@@ -294,6 +300,7 @@ export default function Checkout() {
             postalCode: formData.postalCode,
           },
           deliveryMethod,
+          ...(appliedCouponCode ? { couponCode: appliedCouponCode } : {}),
         }),
       });
 
@@ -320,6 +327,45 @@ export default function Checkout() {
       setFormErrors({ submit: error instanceof Error ? error.message : 'Bir hata oluştu. Lütfen tekrar deneyin.' });
       setIsSubmitting(false);
     }
+  };
+
+  const handleApplyCoupon = async () => {
+    const code = couponInput.trim().toUpperCase();
+    if (!code) return;
+    setCouponLoading(true);
+    setCouponError('');
+    try {
+      const res = await fetch('/api/coupon/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          cartItems: cartItems.map(i => ({ productId: i.productId })),
+          email: formData.email || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (data.valid) {
+        setAppliedCouponCode(data.code as string);
+        setCouponDiscount(data.discount as number);
+        setCouponError('');
+      } else {
+        setAppliedCouponCode(null);
+        setCouponDiscount(0);
+        setCouponError(data.error || 'Geçersiz kupon kodu.');
+      }
+    } catch {
+      setCouponError('Bağlantı hatası. Tekrar deneyin.');
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCouponCode(null);
+    setCouponDiscount(0);
+    setCouponInput('');
+    setCouponError('');
   };
 
   // Çakışma modalında "Evet" - Kalan ürünlerle devam et
@@ -368,8 +414,8 @@ export default function Checkout() {
     return sum + (isNaN(cleanPrice) ? 0 : cleanPrice);
   }, 0);
 
-  // ✅ Toplam (sayısal toplama)
-  const totalPrice = subtotal + (Number(shippingCost) || 0);
+  // ✅ Toplam (indirim varsa ürün ara toplamından düşülür; kargo her zaman tam)
+  const totalPrice = subtotal - couponDiscount + (Number(shippingCost) || 0);
 
   const storeAddress = {
     name: "Meryem Balkan Atölye",
@@ -1072,6 +1118,60 @@ export default function Checkout() {
                             : 'Seçiniz'}
                       </span>
                     </div>
+
+                    {/* Kupon giriş alanı */}
+                    <div className="pt-2">
+                      {appliedCouponCode ? (
+                        <div className={`flex items-center justify-between text-sm px-3 py-2 rounded-lg ${isDarkMode ? 'bg-green-900/30 border border-green-700/40' : 'bg-green-50 border border-green-200'}`}>
+                          <span className={isDarkMode ? 'text-green-400' : 'text-green-700'}>
+                            🎟 <span className="font-semibold">{appliedCouponCode}</span> uygulandı
+                          </span>
+                          <button
+                            onClick={handleRemoveCoupon}
+                            className={`ml-2 text-xs underline ${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-black'}`}
+                          >
+                            Kaldır
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={couponInput}
+                            onChange={e => { setCouponInput(e.target.value.toUpperCase()); setCouponError(''); }}
+                            onKeyDown={e => e.key === 'Enter' && handleApplyCoupon()}
+                            placeholder="Kupon kodu"
+                            className={`flex-1 px-3 py-2 text-sm rounded-lg border outline-none transition-colors ${isDarkMode
+                              ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-500 focus:border-gray-400'
+                              : 'bg-white border-gray-300 text-black placeholder-gray-400 focus:border-gray-500'}`}
+                          />
+                          <button
+                            onClick={handleApplyCoupon}
+                            disabled={couponLoading || !couponInput.trim()}
+                            className={`px-4 py-2 text-sm rounded-lg font-medium transition-colors ${couponLoading || !couponInput.trim()
+                              ? isDarkMode ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                              : isDarkMode ? 'bg-white text-black hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-800'}`}
+                          >
+                            {couponLoading ? '...' : 'Uygula'}
+                          </button>
+                        </div>
+                      )}
+                      {couponError && (
+                        <p className="mt-1 text-xs text-red-500">{couponError}</p>
+                      )}
+                    </div>
+
+                    {/* İndirim satırı */}
+                    {couponDiscount > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className={isDarkMode ? 'text-green-400' : 'text-green-600'}>
+                          İndirim ({appliedCouponCode})
+                        </span>
+                        <span className={isDarkMode ? 'text-green-400' : 'text-green-600'}>
+                          -{couponDiscount.toLocaleString('tr-TR')}TL
+                        </span>
+                      </div>
+                    )}
 
                     <div
                       className={`flex justify-between text-lg font-medium pt-3 border-t transition-colors ${isDarkMode

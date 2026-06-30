@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
+    const excludeStatus = searchParams.get('excludeStatus');
     const productName = searchParams.get('productName');
 
     const supabase = getSupabaseAdmin();
@@ -71,6 +72,9 @@ export async function GET(request: NextRequest) {
 
     if (status) {
       query = query.eq('status', status);
+    }
+    if (excludeStatus) {
+      query = query.neq('status', excludeStatus);
     }
     if (productName) {
       query = query.eq('product_name', productName);
@@ -107,6 +111,10 @@ export async function POST(request: NextRequest) {
 
     const conversationId = `admin-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
+    const rawPrice = typeof body.price === 'string'
+      ? parseFloat(body.price.replace(/[^0-9.]/g, '')) || 0
+      : Number(body.price) || 0;
+
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
@@ -118,7 +126,7 @@ export async function POST(request: NextRequest) {
         order_date: body.orderDate || new Date().toISOString().split('T')[0],
         payment_method: body.paymentMethod || 'Admin',
         shipping_cost: 0,
-        total_price: 0,
+        total_price: rawPrice,
       })
       .select('id')
       .single();
@@ -127,10 +135,6 @@ export async function POST(request: NextRequest) {
       console.error('Sipariş başlığı oluşturulamadı:', orderError);
       return NextResponse.json({ error: orderError.message }, { status: 500 });
     }
-
-    const rawPrice = typeof body.price === 'string'
-      ? parseFloat(body.price.replace(/[^0-9.]/g, '')) || 0
-      : Number(body.price) || 0;
 
     const { data, error } = await supabase
       .from('orders_items')

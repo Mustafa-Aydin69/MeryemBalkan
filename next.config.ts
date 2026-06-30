@@ -98,10 +98,19 @@ const nextConfig: NextConfig = {
               "media-src 'self' https://cdn.meryembalkan.com.tr",
               "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com",
               "frame-src https://www.google.com https://maps.google.com",
+              "frame-ancestors 'self'",
               "connect-src 'self' https://*.supabase.co https://fonts.googleapis.com",
               "object-src 'none'",
               "base-uri 'self'",
             ].join('; '),
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(), browsing-topics=()',
           },
           {
             key: 'X-Content-Type-Options',

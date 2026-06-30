@@ -19,6 +19,7 @@ export interface CacheEntry<T> {
 
 interface AdminCacheStore {
   orders: CacheEntry<any[]> | null;
+  orders_completed: CacheEntry<any[]> | null;
   products: CacheEntry<any[]> | null;
   rentals: CacheEntry<any[]> | null;
   messages: CacheEntry<any[]> | null;
@@ -36,6 +37,7 @@ function isFresh(key: CacheKey): boolean {
 // Module-level cache - persists across re-renders
 const cache: AdminCacheStore = {
   orders: null,
+  orders_completed: null,
   products: null,
   rentals: null,
   messages: null,
@@ -83,6 +85,7 @@ export function invalidateCache(key: CacheKey): void {
  */
 export function invalidateAllCaches(): void {
   cache.orders = null;
+  cache.orders_completed = null;
   cache.products = null;
   cache.rentals = null;
   cache.messages = null;

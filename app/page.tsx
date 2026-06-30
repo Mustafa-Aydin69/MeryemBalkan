@@ -413,22 +413,53 @@ export default function Home() {
         const r2Bucket = (process.env.NEXT_PUBLIC_R2_BUCKET_NAME || 'urunler').replace(/^\//, '');
 
         return (
-          <section className={`relative py-12 sm:py-16 transition-colors duration-300 overflow-hidden ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
-            {/* Dekoratif MB monogram — sadece masaüstü */}
-            <span
-              aria-hidden="true"
-              className={`hidden sm:block absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/4 font-serif italic leading-none select-none pointer-events-none ${isDarkMode ? 'text-white' : 'text-black'}`}
-              style={{ fontSize: '26vw', opacity: 0.04 }}
-            >
-              MB
-            </span>
-            <span
-              aria-hidden="true"
-              className={`hidden sm:block absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/4 font-serif italic leading-none select-none pointer-events-none ${isDarkMode ? 'text-white' : 'text-black'}`}
-              style={{ fontSize: '26vw', opacity: 0.04 }}
-            >
-              MB
-            </span>
+          <section
+            className="relative py-12 sm:py-16 overflow-hidden"
+            style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)' }}
+          >
+            {/* Dark overlay */}
+            <div className="absolute inset-0 bg-black/25 z-0 pointer-events-none" />
+
+            {/* Dantel SVG */}
+            <svg className="igbg-lace" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <defs>
+                <pattern id="igbg-lace-pattern" x="0" y="0" width="120" height="120" patternUnits="userSpaceOnUse">
+                  <circle cx="60" cy="60" r="28" fill="none" stroke="#D9A7A0" strokeWidth="0.6" />
+                  <circle cx="60" cy="60" r="14" fill="none" stroke="#D9A7A0" strokeWidth="0.5" />
+                  <circle cx="0"   cy="0"   r="14" fill="none" stroke="#D9A7A0" strokeWidth="0.5" />
+                  <circle cx="120" cy="0"   r="14" fill="none" stroke="#D9A7A0" strokeWidth="0.5" />
+                  <circle cx="0"   cy="120" r="14" fill="none" stroke="#D9A7A0" strokeWidth="0.5" />
+                  <circle cx="120" cy="120" r="14" fill="none" stroke="#D9A7A0" strokeWidth="0.5" />
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#igbg-lace-pattern)" />
+            </svg>
+
+            {/* Parıltı orbs */}
+            <div className="igbg-orb igbg-orb-1" />
+            <div className="igbg-orb igbg-orb-2" />
+
+            {/* Düşen yapraklar */}
+            {[...Array(22)].map((_, i) => (
+              <span
+                key={i}
+                className="igbg-petal"
+                style={{
+                  left: `${(i * 4.7 + 2) % 100}%`,
+                  animationDelay: `${(i * 1.3) % 24}s`,
+                  animationDuration: `${16 + (i % 5) * 3}s`,
+                  transform: `scale(${0.6 + (i % 4) * 0.18})`,
+                }}
+              />
+            ))}
+
+            {/* MB watermark */}
+            <div className="igbg-watermark" aria-hidden="true">
+              <span>M</span><span>B</span><span>M</span><span>B</span>
+            </div>
+
+            {/* İçerik */}
+            <div className="relative z-[2]">
 
             {/* Başlık */}
             <div className="text-center mb-8 sm:mb-10 px-4">
@@ -585,6 +616,8 @@ export default function Home() {
                 <i className="ri-instagram-line" /> INSTAGRAM'DA GÖR
               </a>
             </div>
+
+            </div>{/* /z-[2] içerik wrapper */}
           </section>
         );
       })()}

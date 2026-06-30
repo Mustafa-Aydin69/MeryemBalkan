@@ -2,15 +2,18 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from "sonner";
-import { 
-  getCache, 
-  setCache, 
-  hasCache, 
+import {
+  getCache,
+  setCache,
+  hasCache,
   updateCacheItem,
-  type CacheKey 
+  removeFromCache,
+  invalidateCache,
+  type CacheKey
 } from '../lib/adminCache';
 
 const CACHE_KEY: CacheKey = 'orders';
+const COMPLETED_CACHE_KEY: CacheKey = 'orders_completed';
 
 export interface Order {
   id: number;
@@ -31,7 +34,6 @@ export interface Order {
   paymentMethod: string;
 }
 
-// Transform raw data to Order format
 function transformOrderData(item: any): Order {
   return {
     id: item.id,
@@ -54,8 +56,17 @@ function transformOrderData(item: any): Order {
 }
 
 export function useOrders() {
+  // Genel tab (Tamamlandı hariç)
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Tamamlanan tab (lazy)
+  const [completedOrders, setCompletedOrders] = useState<Order[]>([]);
+  const [completedLoading, setCompletedLoading] = useState(false);
+  const [completedLoaded, setCompletedLoaded] = useState(false);
+
+  const [activeTab, setActiveTab] = useState<0 | 1>(0);
+
   const [searchTermOrders, setSearchTermOrders] = useState('');
   const [searchOpenOrders, setSearchOpenOrders] = useState(false);
   const [ordersCurrentPage, setOrdersCurrentPage] = useState(1);
@@ -64,9 +75,8 @@ export function useOrders() {
   const [viewingOrder, setViewingOrder] = useState<any>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  // Fetch orders with caching - API route üzerinden
-  const fetchOrders = useCallback(async (forceRefresh = false) => {
-    // Check cache first (unless force refresh)
+  // Genel siparişleri çek (Tamamlandı hariç)
+  const fetchGeneral = useCallback(async (forceRefresh = false) => {
     if (!forceRefresh && hasCache(CACHE_KEY)) {
       const cachedData = getCache<Order>(CACHE_KEY);
       if (cachedData) {
@@ -75,24 +85,18 @@ export function useOrders() {
         return;
       }
     }
-
     setLoading(true);
-    
     try {
-      const response = await fetch('/api/admin/siparisler', {
+      const params = new URLSearchParams({ excludeStatus: 'Tamamlandı' });
+      const response = await fetch(`/api/admin/siparisler?${params}`, {
         credentials: 'include',
       });
-
-      if (!response.ok) {
-        throw new Error('Siparişler alınamadı');
-      }
-
+      if (!response.ok) throw new Error('Siparişler alınamadı');
       const { data } = await response.json();
-      
       if (data) {
-        const transformedOrders = data.map(transformOrderData);
-        setOrders(transformedOrders);
-        setCache(CACHE_KEY, transformedOrders);
+        const transformed = data.map(transformOrderData);
+        setOrders(transformed);
+        setCache(CACHE_KEY, transformed);
       }
     } catch (error: any) {
       console.error("Siparişler alınamadı:", error.message);
@@ -102,29 +106,66 @@ export function useOrders() {
     }
   }, []);
 
-  // Initial fetch - uses cache if available
-  useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+  // Tamamlanan siparişleri çek (lazy)
+  const fetchCompleted = useCallback(async (forceRefresh = false) => {
+    if (!forceRefresh && hasCache(COMPLETED_CACHE_KEY)) {
+      const cachedData = getCache<Order>(COMPLETED_CACHE_KEY);
+      if (cachedData) {
+        setCompletedOrders(cachedData);
+        setCompletedLoaded(true);
+        return;
+      }
+    }
+    setCompletedLoading(true);
+    try {
+      const params = new URLSearchParams({ status: 'Tamamlandı' });
+      const response = await fetch(`/api/admin/siparisler?${params}`, {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Tamamlanan siparişler alınamadı');
+      const { data } = await response.json();
+      if (data) {
+        const transformed = data.map(transformOrderData);
+        setCompletedOrders(transformed);
+        setCache(COMPLETED_CACHE_KEY, transformed);
+        setCompletedLoaded(true);
+      }
+    } catch (error: any) {
+      console.error("Tamamlanan siparişler alınamadı:", error.message);
+      toast.error('Tamamlanan siparişler yüklenemedi');
+    } finally {
+      setCompletedLoading(false);
+    }
+  }, []);
 
-  // Filtered by search
-  const searchFilteredOrders = orders.filter(
+  // Tab değiştir — Tamamlanan ilk kez seçilince lazy fetch tetikler
+  const switchTab = useCallback((tab: 0 | 1) => {
+    setActiveTab(tab);
+    setStatusFilter('all');
+    setOrdersCurrentPage(1);
+    if (tab === 1 && !completedLoaded) {
+      fetchCompleted();
+    }
+  }, [completedLoaded, fetchCompleted]);
+
+  useEffect(() => {
+    fetchGeneral();
+  }, [fetchGeneral]);
+
+  const sourceOrders = activeTab === 0 ? orders : completedOrders;
+  const isLoading = activeTab === 0 ? loading : completedLoading;
+
+  const searchFilteredOrders = sourceOrders.filter(
     (order) =>
       order.customerName.toLowerCase().includes(searchTermOrders.toLowerCase()) ||
       order.email.toLowerCase().includes(searchTermOrders.toLowerCase()) ||
       order.phone.toLowerCase().includes(searchTermOrders.toLowerCase())
   );
 
-  // Filtered by status (Tamamlandı = Sipariş Tamamlandı in DB)
-  const filteredOrders = statusFilter === 'all'
+  const filteredOrders = activeTab === 1 || statusFilter === 'all'
     ? searchFilteredOrders
-    : searchFilteredOrders.filter((order) => {
-        const s = order.status;
-        if (statusFilter === 'Tamamlandı') return s === 'Tamamlandı' || s === 'Sipariş Tamamlandı';
-        return s === statusFilter;
-      });
+    : searchFilteredOrders.filter((order) => order.status === statusFilter);
 
-  // Pagination
   const totalOrdersPages = Math.ceil(filteredOrders.length / ordersPerPage);
   const indexOfLastOrder = ordersCurrentPage * ordersPerPage;
   const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
@@ -181,12 +222,10 @@ export function useOrders() {
   };
 
   const handleEditOrder = (order: Order) => {
-    // Veritabanından gelen status değerini UI'daki değere çevir
     let uiStatus = order.status;
     if (order.status === "Tamamlandı") {
       uiStatus = "Sipariş Tamamlandı";
     }
-
     setEditingOrder({
       ...order,
       status: uiStatus,
@@ -202,21 +241,16 @@ export function useOrders() {
   const handleUpdateOrder = async () => {
     if (!editingOrder) return;
 
-    // Status dönüşümü: UI'daki değeri veritabanı değerine çevir
     let dbStatus = editingOrder.status;
     if (editingOrder.status === "Sipariş Tamamlandı") {
       dbStatus = "Tamamlandı";
     }
 
-    const updateData: any = {
-      status: dbStatus,
-    };
-
+    const updateData: any = { status: dbStatus };
     if (editingOrder.status === "Kirada") {
-      updateData.shippingCode =
-        editingOrder.shippingCode !== undefined
-          ? editingOrder.shippingCode
-          : null;
+      updateData.shippingCode = editingOrder.shippingCode !== undefined
+        ? editingOrder.shippingCode
+        : null;
     }
 
     try {
@@ -224,17 +258,11 @@ export function useOrders() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          id: editingOrder.id,
-          updates: updateData,
-        }),
+        body: JSON.stringify({ id: editingOrder.id, updates: updateData }),
       });
 
-      if (!response.ok) {
-        throw new Error('Sipariş güncellenemedi');
-      }
+      if (!response.ok) throw new Error('Sipariş güncellenemedi');
 
-      // E-posta gönder (Kirada durumunda)
       if (editingOrder.status === "Kirada" && editingOrder.shippingCode) {
         try {
           await fetch("/api/send-shipment", {
@@ -251,19 +279,27 @@ export function useOrders() {
         }
       }
 
-      // Frontend listesini ve cache'i güncelle
-      const updatedOrder = { ...editingOrder, ...updateData };
-      setOrders((prev) =>
-        prev.map((order) =>
-          order.id === editingOrder.id ? updatedOrder : order
-        )
-      );
-      
-      // Update cache
-      updateCacheItem<Order>(CACHE_KEY, editingOrder.id, (item) => ({
-        ...item,
-        ...updateData,
-      }));
+      if (dbStatus === 'Tamamlandı' && activeTab === 0) {
+        // Genel tabda Tamamlandı yapılırsa listeden çıkar
+        setOrders(prev => prev.filter(o => o.id !== editingOrder.id));
+        removeFromCache(CACHE_KEY, editingOrder.id);
+        invalidateCache(COMPLETED_CACHE_KEY);
+        setCompletedLoaded(false);
+      } else if (activeTab === 1 && dbStatus !== 'Tamamlandı') {
+        // Tamamlanan tabda başka statüse alındıysa listeden çıkar
+        setCompletedOrders(prev => prev.filter(o => o.id !== editingOrder.id));
+        removeFromCache(COMPLETED_CACHE_KEY, editingOrder.id);
+        invalidateCache(CACHE_KEY);
+      } else {
+        const updatedOrder = { ...editingOrder, ...updateData };
+        if (activeTab === 0) {
+          setOrders(prev => prev.map(o => o.id === editingOrder.id ? updatedOrder : o));
+          updateCacheItem<Order>(CACHE_KEY, editingOrder.id, (item) => ({ ...item, ...updateData }));
+        } else {
+          setCompletedOrders(prev => prev.map(o => o.id === editingOrder.id ? updatedOrder : o));
+          updateCacheItem<Order>(COMPLETED_CACHE_KEY, editingOrder.id, (item) => ({ ...item, ...updateData }));
+        }
+      }
 
       setEditingOrder(null);
       toast.success("Sipariş başarıyla güncellendi ✅");
@@ -272,14 +308,19 @@ export function useOrders() {
     }
   };
 
-  // Force refresh function (for manual refresh)
-  const refreshOrders = () => fetchOrders(true);
+  const refreshOrders = () => {
+    if (activeTab === 0) fetchGeneral(true);
+    else fetchCompleted(true);
+  };
 
   return {
     orders,
     filteredOrders,
     currentOrders,
-    loading,
+    loading: isLoading,
+    completedLoading,
+    activeTab,
+    switchTab,
     searchTermOrders,
     setSearchTermOrders,
     searchOpenOrders,

@@ -25,7 +25,6 @@ const STATUS_FILTER_OPTIONS = [
   { key: 'all', label: 'Tümü' },
   { key: 'Hazırlanıyor', label: 'Hazırlanıyor' },
   { key: 'Kirada', label: 'Kirada' },
-  { key: 'Tamamlandı', label: 'Tamamlandı' },
   { key: 'İptal Edildi', label: 'İptal edildi' },
 ] as const;
 
@@ -75,6 +74,8 @@ export default function OrdersPage() {
     setViewingOrder,
     refreshOrders,
     loading,
+    activeTab,
+    switchTab,
   } = useOrders();
 
   useEffect(() => {
@@ -132,39 +133,65 @@ export default function OrdersPage() {
             Toplam: {filteredOrders.length} Sipariş
           </div>
 
-          {/* Durum filtresi - Tek buton, tıklanınca açılır menü (Trendyol/Hepsiburada tarzı) */}
-          <div className="relative" ref={statusDropdownRef}>
-            <button
-              type="button"
-              onClick={() => setStatusDropdownOpen((o) => !o)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-700 text-white hover:bg-gray-600 transition-colors text-sm font-medium border border-gray-600"
-            >
-              <i className="ri-filter-3-line"></i>
-              <span>Durum: {getStatusFilterLabel(statusFilter)}</span>
-              <i className={`ri-arrow-down-s-line text-lg transition-transform ${statusDropdownOpen ? 'rotate-180' : ''}`}></i>
-            </button>
-            {statusDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 min-w-[180px] rounded-lg border border-gray-600 bg-gray-800 shadow-xl z-50 py-1">
-                {STATUS_FILTER_OPTIONS.map(({ key, label }) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => {
-                      setStatusFilter(key);
-                      setStatusDropdownOpen(false);
-                    }}
-                    className={`w-full px-4 py-2.5 text-left text-sm flex items-center justify-between gap-2 hover:bg-gray-700 transition-colors ${
-                      statusFilter === key ? 'text-white bg-gray-700' : 'text-gray-300'
-                    }`}
-                  >
-                    <span>{label}</span>
-                    {statusFilter === key && <i className="ri-check-line text-green-400"></i>}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          {/* Durum filtresi — Tamamlanan tabında gizlenir */}
+          {activeTab === 0 && (
+            <div className="relative" ref={statusDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setStatusDropdownOpen((o) => !o)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-700 text-white hover:bg-gray-600 transition-colors text-sm font-medium border border-gray-600"
+              >
+                <i className="ri-filter-3-line"></i>
+                <span>Durum: {getStatusFilterLabel(statusFilter)}</span>
+                <i className={`ri-arrow-down-s-line text-lg transition-transform ${statusDropdownOpen ? 'rotate-180' : ''}`}></i>
+              </button>
+              {statusDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1 min-w-[180px] rounded-lg border border-gray-600 bg-gray-800 shadow-xl z-50 py-1">
+                  {STATUS_FILTER_OPTIONS.map(({ key, label }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => {
+                        setStatusFilter(key);
+                        setStatusDropdownOpen(false);
+                      }}
+                      className={`w-full px-4 py-2.5 text-left text-sm flex items-center justify-between gap-2 hover:bg-gray-700 transition-colors ${
+                        statusFilter === key ? 'text-white bg-gray-700' : 'text-gray-300'
+                      }`}
+                    >
+                      <span>{label}</span>
+                      {statusFilter === key && <i className="ri-check-line text-green-400"></i>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
+      </div>
+
+      {/* Genel / Tamamlanan tab butonları */}
+      <div className="flex gap-1 mb-6 bg-gray-800 rounded-lg p-1 w-fit">
+        <button
+          onClick={() => switchTab(0)}
+          className={`px-5 py-2 rounded-md text-sm font-medium transition-colors ${
+            activeTab === 0
+              ? 'bg-white text-black'
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          Genel
+        </button>
+        <button
+          onClick={() => switchTab(1)}
+          className={`px-5 py-2 rounded-md text-sm font-medium transition-colors ${
+            activeTab === 1
+              ? 'bg-white text-black'
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          Tamamlanan
+        </button>
       </div>
 
       {/* Müşteri Kartları */}

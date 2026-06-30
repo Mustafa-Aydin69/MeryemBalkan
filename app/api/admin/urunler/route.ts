@@ -76,10 +76,15 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
+    const ALLOWED_FIELDS = ['title', 'collection', 'category', 'price', 'description', 'size', 'colors', 'features', 'images', 'status', 'year'] as const;
+    const safeInsert = Object.fromEntries(
+      ALLOWED_FIELDS.filter(f => f in body).map(f => [f, body[f]])
+    );
+
     const supabase = getSupabaseAdmin();
     const { data, error } = await supabase
       .from('urunler')
-      .insert(body)
+      .insert(safeInsert)
       .select();
 
     if (error) {
@@ -107,14 +112,23 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { id, updates } = body;
 
-    if (!id || !updates) {
+    if (!id || !updates || typeof updates !== 'object') {
       return NextResponse.json({ error: 'Missing id or updates' }, { status: 400 });
+    }
+
+    const ALLOWED_FIELDS = ['title', 'collection', 'category', 'price', 'description', 'size', 'colors', 'features', 'images', 'status', 'year'] as const;
+    const safeUpdates = Object.fromEntries(
+      ALLOWED_FIELDS.filter(f => f in updates).map(f => [f, updates[f]])
+    );
+
+    if (Object.keys(safeUpdates).length === 0) {
+      return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
     }
 
     const supabase = getSupabaseAdmin();
     const { data, error } = await supabase
       .from('urunler')
-      .update(updates)
+      .update(safeUpdates)
       .eq('id', id)
       .select();
 

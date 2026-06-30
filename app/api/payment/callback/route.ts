@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, incrementRateLimit, getClientIP } from '@/app/lib/rate-limiter';
 import { processPayment } from '@/app/lib/processPayment';
+import { captureError } from '@/app/lib/error-tracking';
 
 function resultUrl(req: NextRequest, status: 'success' | 'failed' | 'error'): string {
   const proto = req.headers.get('x-forwarded-proto') || 'https';
@@ -40,6 +41,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.redirect(resultUrl(req, 'failed'), { status: 303 });
   } catch (err) {
     console.error('POST /api/payment/callback error:', err);
+    captureError({ error: err, source: 'callback', severity: 'fatal', requestPath: '/api/payment/callback' }).catch(() => {});
     return NextResponse.redirect(resultUrl(req, 'error'), { status: 303 });
   }
 }
