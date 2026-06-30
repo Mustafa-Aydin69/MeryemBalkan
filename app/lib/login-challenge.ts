@@ -18,6 +18,8 @@ export type LoginChallenge = {
   match_code: string;
   match_attempts: number;
   approved: boolean;
+  pre_approved: boolean;
+  browser_nonce_hash: string | null;
   ip_address: string | null;
   expires_at: string;
 };
