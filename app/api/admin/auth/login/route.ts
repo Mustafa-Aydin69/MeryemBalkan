@@ -76,8 +76,10 @@ export async function POST(request: NextRequest) {
 
     const { sessionId } = await createLoginChallenge(email, authUserId, ip, nonceHash);
 
-    // Push fire-and-forget — match_code payload'da gönderilmez (SEC-T05)
-    sendLoginApprovalPushToUser(authUserId, sessionId).catch((err: unknown) =>
+    // match_code payload'da gönderilmez (SEC-T05). Push await edilir:
+    // Vercel'de yanıt dönünce lambda donar, await edilmeyen gönderim kaybolur.
+    // Hata girişi bloklamaz (catch) — web zaten status polling ile bekler.
+    await sendLoginApprovalPushToUser(authUserId, sessionId).catch((err: unknown) =>
       console.error('FCM push hatası:', err)
     );
 

@@ -48,3 +48,6 @@ coverage/
 CLAUDE.md
 supabase
 yapilacaklar.txt
+
+.vercel
+.env*

@@ -495,23 +495,29 @@ async function _processPayment(token: string, ctx: { errorMsg?: string; conversa
       items: orderItems,
     };
 
-    sendAdminOrderNotification(adminNotifPayload)
-      .catch(e => console.error('[processPayment] admin bildirim e-postası gönderilemedi:', e));
-
-    sendNewOrderPushToAdmins(adminNotifPayload).catch(e => console.error('[fcm] sipariş push hatası:', e));
-
-    // Müşteri onay e-postası — yalnızca e-posta adresi mevcutsa
-    if (customer.email) {
-      sendCustomerOrderConfirmation({
-        conversationId,
-        customerName,
-        email: customer.email,
-        address: fullAddress,
-        totalPrice: expectedPrice,
-        shippingCost: Number(session.shipping_cost),
-        items: orderItems,
-      }).catch(e => console.error('[processPayment] müşteri onay e-postası gönderilemedi:', e));
-    }
+    // Vercel serverless: yanıt döndükten sonra lambda donar — await edilmeyen
+    // promise'ler (FCM push, e-postalar) hiç tamamlanmayabilir. Bu yüzden üçü de
+    // await edilir; başarısızlık siparişi etkilemez (allSettled + tekil catch).
+    await Promise.allSettled([
+      sendAdminOrderNotification(adminNotifPayload)
+        .catch(e => console.error('[processPayment] admin bildirim e-postası gönderilemedi:', e)),
+      sendNewOrderPushToAdmins(adminNotifPayload).catch(e => {
+        console.error('[fcm] sipariş push hatası:', e);
+        return captureError({ error: e, source: 'fcm', severity: 'error', context: { step: 'new_order_push', conversationId } }).catch(() => {});
+      }),
+      // Müşteri onay e-postası — yalnızca e-posta adresi mevcutsa
+      customer.email
+        ? sendCustomerOrderConfirmation({
+            conversationId,
+            customerName,
+            email: customer.email,
+            address: fullAddress,
+            totalPrice: expectedPrice,
+            shippingCost: Number(session.shipping_cost),
+            items: orderItems,
+          }).catch(e => console.error('[processPayment] müşteri onay e-postası gönderilemedi:', e))
+        : Promise.resolve(),
+    ]);
 
     return 'success';
   } catch (err) {
