@@ -40,9 +40,12 @@ export async function POST(request: NextRequest) {
     const { data: authData, error: authError } =
       await isolatedClient.auth.signInWithPassword({ email, password });
 
-    // Geçici oturumu hemen imha et — orphan session bırakılmaz
+    // Geçici oturumu hemen imha et — orphan session bırakılmaz.
+    // scope:'local' ŞART: varsayılan 'global', kullanıcının TÜM oturumlarını
+    // (telefondaki mobil oturum dahil) iptal ediyor ve onaylama sırasında
+    // 401 token_invalid döngüsüne yol açıyordu.
     if (authData?.session) {
-      await isolatedClient.auth.signOut();
+      await isolatedClient.auth.signOut({ scope: 'local' });
     }
 
     if (authError || !authData?.user) {

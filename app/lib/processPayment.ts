@@ -140,7 +140,7 @@ async function sendCustomerOrderConfirmation(params: {
   shippingCost: number;
   items: Array<{ product_name: string; color: string; size: string; event_date: string; price: number }>;
 }) {
-  const { conversationId, customerName, email, address, totalPrice, shippingCost, items } = params;
+  const { customerName, email, address, totalPrice, shippingCost, items } = params;
 
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -204,12 +204,6 @@ async function sendCustomerOrderConfirmation(params: {
     <div style="background:#f8f9fa;border-radius:8px;padding:16px 20px;margin-bottom:20px;">
       <p style="margin:0 0 6px;color:#666;font-size:13px;text-transform:uppercase;letter-spacing:1px;">Teslimat Adresi</p>
       <p style="margin:0;color:#333;font-size:14px;">${address}</p>
-    </div>
-
-    <!-- Sipariş referansı -->
-    <div style="background:#f8f9fa;border-radius:8px;padding:16px 20px;margin-bottom:20px;">
-      <p style="margin:0 0 6px;color:#666;font-size:13px;">Sipariş Referans No</p>
-      <p style="margin:0;color:#333;font-size:13px;font-family:monospace;">${conversationId}</p>
     </div>
 
     <p style="margin:0;color:#444;font-size:14px;line-height:1.7;">
