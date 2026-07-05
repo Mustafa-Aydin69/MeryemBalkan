@@ -80,6 +80,7 @@ export async function sendNewOrderPushToAdmins(payload: {
   conversationId: string;
   customerName: string;
   totalPrice: number;
+  items?: Array<{ product_name: string; event_date: string }>;
 }): Promise<void> {
   const { getAllActiveFcmTokens, clearFcmToken } = await import('./devices');
   const devices = await getAllActiveFcmTokens();
@@ -87,11 +88,21 @@ export async function sendNewOrderPushToAdmins(payload: {
 
   getFirebaseApp();
 
-  const body = `${payload.customerName} · ${Math.round(payload.totalPrice)} TL`;
+  // 'YYYY-MM-DD' → 'DD.MM.YYYY' (geçersiz format olduğu gibi bırakılır)
+  const fmtDate = (iso: string) => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+    return m ? `${m[3]}.${m[2]}.${m[1]}` : iso;
+  };
+
+  const itemLines = (payload.items ?? []).map(
+    (it) => `${it.product_name} — ${fmtDate(it.event_date)}`
+  );
+  const body = [payload.customerName, ...itemLines].join('\n');
+  const title = `🛍 Yeni Sipariş · ${Math.round(payload.totalPrice)} TL`;
 
   const message = (token: string) => ({
     token,
-    notification: { title: '🛍 Yeni Sipariş', body },
+    notification: { title, body },
     data: {
       type: 'new_order',
       conversationId: payload.conversationId,
