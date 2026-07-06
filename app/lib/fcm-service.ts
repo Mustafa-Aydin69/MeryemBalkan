@@ -113,7 +113,13 @@ export async function sendNewOrderPushToAdmins(payload: {
     },
     android: {
       priority: 'high' as const,
-      notification: { sound: 'default', priority: 'high' as const },
+      // Uygulamanın oluşturduğu özel sesli kanal (ipek arp) — arka planda
+      // OS bildirimi bu kanaldan gösterir; kanal yoksa varsayılana düşer.
+      notification: {
+        sound: 'siparis_bildirim',
+        channelId: 'orders_channel_v2',
+        priority: 'high' as const,
+      },
     },
   });
 
