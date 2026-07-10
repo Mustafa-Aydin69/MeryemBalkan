@@ -109,7 +109,12 @@ export async function sendNewOrderPushToAdmins(payload: {
       customerName: payload.customerName,
     },
     apns: {
-      payload: { aps: { sound: 'default', badge: 1, contentAvailable: true } },
+      // Android'deki özel sesli kanalın (ipek arp) iOS karşılığı — ses dosyası
+      // Uygulama/ios/Runner/siparis_bildirim.wav olarak bundle'a eklendi.
+      headers: { 'apns-push-type': 'alert', 'apns-priority': '10' },
+      payload: {
+        aps: { sound: 'siparis_bildirim.wav', badge: 1, contentAvailable: true },
+      },
     },
     android: {
       priority: 'high' as const,
