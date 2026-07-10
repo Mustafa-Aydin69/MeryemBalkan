@@ -31,7 +31,6 @@ function formatTr(date: Date): string {
 function getThankYouContent(data: {
   customerName: string;
   productName: string;
-  orderId: string | number;
   returnDateText: string | null;
 }): string {
   return `
@@ -40,8 +39,10 @@ function getThankYouContent(data: {
     </h2>
 
     <p style="margin: 0 0 15px; color: #444; font-size: 15px; line-height: 1.7;">
-      <strong style="color: #d4af37;">${data.productName}</strong> kiralama siparişiniz için
-      bizi tercih ettiğiniz için teşekkür ederiz. Bu özel ve mutlu gününüzü şimdiden kutlarız! 💜
+      En özel anlarınıza eşlik etmek üzere seçtiğiniz <strong style="color: #d4af37;">${data.productName}</strong>
+      tasarımımızın kiralama siparişi onaylanmıştır. Bu heyecan dolu yolculukta büyüleyici zarafetinizi
+      tamamlamak için bizi tercih ettiğiniz için teşekkür ederiz. Şimdiden harika ve unutulmaz bir gün
+      geçirmenizi dileriz! ✨
     </p>
 
     ${data.returnDateText ? `
@@ -53,16 +54,11 @@ function getThankYouContent(data: {
         ${data.returnDateText}
       </p>
       <p style="margin: 0; color: #8a6d1f; font-size: 13px; line-height: 1.5;">
-        Ürünü etkinlik tarihinizin bir gün sonrasına kadar mağazamıza teslim etmenizi rica ederiz.
+        Küçük bir hatırlatma: en az sizin kadar heyecanla bu tasarımı bekleyen diğer misafirlerimizi de
+        düşünerek, ürünü etkinlik tarihinizin bir gün sonrasına kadar mağazamıza teslim etmenizi rica ederiz.
       </p>
     </div>
     ` : ""}
-
-    <div style="background-color: #f8f9fa; border-radius: 8px; padding: 16px 20px; margin: 20px 0;">
-      <p style="margin: 0; color: #666; font-size: 13px;">
-        📦 Sipariş No: <strong>#${data.orderId}</strong>
-      </p>
-    </div>
 
     <p style="margin: 20px 0 0; color: #444; font-size: 15px; line-height: 1.7;">
       Herhangi bir sorunuz olursa bizimle iletişime geçmekten çekinmeyin.
@@ -86,7 +82,6 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const {
-      orderId,
       customerEmail,
       customerName = "Değerli Müşterimiz",
       productName = "Siparişiniz",
@@ -109,7 +104,7 @@ export async function POST(req: NextRequest) {
       to: customerEmail,
       subject: "💜 Bizi Tercih Ettiğiniz İçin Teşekkür Ederiz - Meryem Balkan",
       html: renderEmailShell(
-        getThankYouContent({ customerName, productName, orderId: orderId ?? "", returnDateText })
+        getThankYouContent({ customerName, productName, returnDateText })
       ),
       fromName: "Meryem Balkan Tasarım Atölyesi",
     });
