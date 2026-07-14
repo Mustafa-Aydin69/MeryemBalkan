@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 
@@ -26,10 +26,32 @@ export default function LoginModal({ isOpen, onClose, isDarkMode }: LoginModalPr
   const [step, setStep] = useState<'email' | 'verification' | 'orders'>('email');
   const [email, setEmail] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
+  const [codeDigits, setCodeDigits] = useState<string[]>(Array(6).fill(''));
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [orders, setOrders] = useState<Order[]>([]);
   const router = useRouter();
+  const codeInputRefs = useRef<Array<HTMLInputElement | null>>([]);
+
+  useEffect(() => {
+    setVerificationCode(codeDigits.join(''));
+  }, [codeDigits]);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
+  useEffect(() => {
+    if (step === 'verification') {
+      codeInputRefs.current[0]?.focus();
+    }
+  }, [step]);
 
   useEffect(() => {
     if (isOpen) {
@@ -48,9 +70,53 @@ export default function LoginModal({ isOpen, onClose, isDarkMode }: LoginModalPr
     setStep('email');
     setEmail('');
     setVerificationCode('');
+    setCodeDigits(Array(6).fill(''));
+    setResendCooldown(0);
     setError('');
     setIsLoading(false);
     setOrders([]);
+  };
+
+  const handleCodeDigitChange = (index: number, rawValue: string) => {
+    const digit = rawValue.replace(/\D/g, '').slice(-1);
+    setCodeDigits((prev) => {
+      const next = [...prev];
+      next[index] = digit;
+      return next;
+    });
+
+    if (digit && index < 5) {
+      codeInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleCodeKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace') {
+      if (!codeDigits[index] && index > 0) {
+        codeInputRefs.current[index - 1]?.focus();
+        setCodeDigits((prev) => {
+          const next = [...prev];
+          next[index - 1] = '';
+          return next;
+        });
+        e.preventDefault();
+      }
+    } else if (e.key === 'ArrowLeft' && index > 0) {
+      codeInputRefs.current[index - 1]?.focus();
+    } else if (e.key === 'ArrowRight' && index < 5) {
+      codeInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleCodePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (!pasted) return;
+    e.preventDefault();
+    const next = Array(6).fill('');
+    for (let i = 0; i < pasted.length; i++) next[i] = pasted[i];
+    setCodeDigits(next);
+    const focusIndex = Math.min(pasted.length, 5);
+    codeInputRefs.current[focusIndex]?.focus();
   };
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
@@ -76,6 +142,8 @@ export default function LoginModal({ isOpen, onClose, isDarkMode }: LoginModalPr
 
       if (response.ok) {
         setStep('verification');
+        setCodeDigits(Array(6).fill(''));
+        setResendCooldown(30);
       } else {
         const data = await response.json();
         setError(data.error || 'Kod gönderilemedi, lütfen tekrar deneyin');
@@ -83,8 +151,36 @@ export default function LoginModal({ isOpen, onClose, isDarkMode }: LoginModalPr
     } catch (error) {
       // Demo için direkt ikinci adıma geç
       setStep('verification');
+      setCodeDigits(Array(6).fill(''));
+      setResendCooldown(30);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (resendCooldown > 0 || isResending) return;
+    setError('');
+    setIsResending(true);
+
+    try {
+      const response = await fetch('/api/send-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        setError(data.error || 'Kod gönderilemedi, lütfen tekrar deneyin');
+      }
+    } catch (error) {
+      // Demo modunda sessizce devam et
+    } finally {
+      setCodeDigits(Array(6).fill(''));
+      setResendCooldown(30);
+      setIsResending(false);
+      codeInputRefs.current[0]?.focus();
     }
   };
 
@@ -251,37 +347,61 @@ export default function LoginModal({ isOpen, onClose, isDarkMode }: LoginModalPr
                 </div>
               )}
 
-              <div>
-                <p className={`text-sm mb-4 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                  <strong>{email}</strong> adresine gönderilen 6 haneli doğrulama kodunu girin.
+              <div className="text-center">
+                <div className={`w-14 h-14 mx-auto mb-4 rounded-full flex items-center justify-center transition-colors ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                  <i className={`ri-mail-check-line text-2xl ${isDarkMode ? 'text-white' : 'text-black'}`}></i>
+                </div>
+                <p className={`text-sm mb-6 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  <strong className={isDarkMode ? 'text-white' : 'text-black'}>{email}</strong> adresine gönderilen 6 haneli kodu girin
                 </p>
-                <label htmlFor="code" className={`block text-sm font-medium mb-2 transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                  Doğrulama Kodu *
-                </label>
-                <input
-                  type="text"
-                  id="code"
-                  value={verificationCode}
-                  onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  required
-                  maxLength={6}
-                  placeholder="6 haneli kod"
-                  className={`w-full px-4 py-3 border focus:outline-none text-sm text-center tracking-widest text-lg transition-colors ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-white placeholder-gray-400' : 'bg-white border-gray-300 text-black focus:border-black placeholder-gray-500'}`}
-                />
+              </div>
+
+              <div className="flex justify-center gap-2 sm:gap-3" onPaste={handleCodePaste}>
+                {codeDigits.map((digit, index) => (
+                  <input
+                    key={index}
+                    ref={(el) => { codeInputRefs.current[index] = el; }}
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handleCodeDigitChange(index, e.target.value)}
+                    onKeyDown={(e) => handleCodeKeyDown(index, e)}
+                    aria-label={`Doğrulama kodu ${index + 1}. hane`}
+                    className={`w-11 h-12 sm:w-12 sm:h-14 text-center text-xl font-semibold border rounded-lg focus:outline-none transition-colors ${isDarkMode ? 'bg-gray-700 text-white focus:border-white' : 'bg-white text-black focus:border-black'} ${digit ? (isDarkMode ? 'border-white' : 'border-black') : (isDarkMode ? 'border-gray-600' : 'border-gray-300')}`}
+                  />
+                ))}
               </div>
 
               <button
                 type="submit"
-                disabled={isLoading}
-                className={`w-full py-4 tracking-wide font-medium transition-colors whitespace-nowrap rounded-full ${isLoading ? 'bg-gray-400 text-white cursor-not-allowed' : (isDarkMode ? 'bg-white text-black hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-800')}`}
+                disabled={isLoading || verificationCode.length !== 6}
+                className={`w-full py-4 tracking-wide font-medium transition-colors whitespace-nowrap rounded-full ${isLoading || verificationCode.length !== 6 ? 'bg-gray-400 text-white cursor-not-allowed' : (isDarkMode ? 'bg-white text-black hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-800')}`}
               >
                 {isLoading ? 'DOĞRULANIYOR...' : 'DOĞRULA VE GİRİŞ YAP'}
               </button>
 
+              <div className="flex items-center justify-center gap-1.5 text-sm">
+                <span className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>Kod gelmedi mi?</span>
+                <button
+                  type="button"
+                  onClick={handleResendCode}
+                  disabled={resendCooldown > 0 || isResending}
+                  className={`font-medium underline ${resendCooldown > 0 || isResending ? `cursor-not-allowed ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}` : `cursor-pointer ${isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-600'}`}`}
+                >
+                  {isResending ? 'Gönderiliyor...' : resendCooldown > 0 ? `Tekrar gönder (${resendCooldown}s)` : 'Tekrar gönder'}
+                </button>
+              </div>
+
               <div className="text-center">
                 <button
                   type="button"
-                  onClick={() => setStep('email')}
+                  onClick={() => {
+                    setStep('email');
+                    setCodeDigits(Array(6).fill(''));
+                    setResendCooldown(0);
+                  }}
                   className={`text-sm underline cursor-pointer transition-colors ${isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-black'}`}
                 >
                   E-posta Adresini Değiştir

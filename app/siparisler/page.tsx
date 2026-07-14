@@ -88,7 +88,7 @@ export default function OrdersPage() {
         localStorage.removeItem('verificationCodeVerified');
         setIsLoggedIn(false);
         setOrders([]);
-        setIsLoginModalOpen(true);
+        router.push('/');
     };
 
     const toggleTheme = () => {
@@ -237,6 +237,12 @@ export default function OrdersPage() {
                                                 >
                                                     {formatDate(order.orderDate)}
                                                 </p>
+                                                <p
+                                                    className={`text-xs sm:text-sm font-mono ${isDarkMode ? 'text-gray-500' : 'text-gray-500'
+                                                        }`}
+                                                >
+                                                    Sipariş No: #{order.id}
+                                                </p>
                                             </div>
                                         </div>
 
@@ -303,7 +309,7 @@ export default function OrdersPage() {
                                                     ? (isDarkMode ? 'text-blue-400' : 'text-blue-600') 
                                                     : (isDarkMode ? 'text-gray-500' : 'text-gray-400')
                                                 }>
-                                                    {order.shippingCode ? `Yurtiçi Kargo → ${order.shippingCode}` : 'Henüz kargoya verilmedi'}
+                                                    {order.shippingCode ? `DHL → ${order.shippingCode}` : 'Henüz kargoya verilmedi'}
                                                 </span>
                                             </p>
                                         </div>

@@ -30,6 +30,10 @@ export default function Home() {
   const observerRef = useRef<IntersectionObserver | null>(null);
   const productObserverRef = useRef<IntersectionObserver | null>(null);
   const touchStartX = useRef(0);
+  const dragStartX = useRef(0);
+  const isDragging = useRef(false);
+  const wheelLock = useRef(false);
+  const coverflowRef = useRef<HTMLDivElement>(null);
   
 
   const typingWords = [
@@ -252,6 +256,29 @@ export default function Home() {
     };
   }, [isClient]);
 
+  // Touchpad'de yatay kaydırma tarayıcının "geri git" jestini tetiklemesin diye
+  // native, passive olmayan bir wheel listener kullanıyoruz (React'in onWheel'i passive).
+  useEffect(() => {
+    const el = coverflowRef.current;
+    const total = instagramPosts.length;
+    if (!el || total === 0) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+      // Jestin en küçük "başlangıç" tiklerinde bile preventDefault çağırmazsak
+      // Chrome/Edge geri-navigasyon animasyonunu daha eşiğe ulaşmadan başlatıyor.
+      e.preventDefault();
+      if (Math.abs(e.deltaX) < 10 || wheelLock.current) return;
+      wheelLock.current = true;
+      if (e.deltaX > 0) setInstagramIndex((p) => (p + 1) % total);
+      else setInstagramIndex((p) => (p - 1 + total) % total);
+      setTimeout(() => { wheelLock.current = false; }, 400);
+    };
+
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, [instagramPosts.length]);
+
   useEffect(() => {
     if (!isClient) return;
     const check = () => setSliderMode(window.innerWidth < 640 ? 'mobile' : 'desktop');
@@ -334,7 +361,7 @@ export default function Home() {
           >
             <div className="absolute inset-0">
               <div
-                className={`absolute inset-0 bg-black transition-all duration-[4000ms] ease-out z-10 ${visibleImages.has(image.id) ? 'opacity-0' : 'opacity-100'}`}
+                className={`absolute inset-0 bg-black transition-all duration-700 ease-out z-10 ${visibleImages.has(image.id) ? 'opacity-0' : 'opacity-100'}`}
               ></div>
               {image.video ? (
                 <video
@@ -343,20 +370,20 @@ export default function Home() {
                   muted
                   loop
                   playsInline
-                  className={`w-full h-full object-cover object-center transition-all duration-[4000ms] ease-out ${visibleImages.has(image.id) ? 'opacity-100 scale-100' : 'opacity-0 scale-110'}`}
+                  className={`w-full h-full object-cover object-center transition-all duration-700 ease-out ${visibleImages.has(image.id) ? 'opacity-100 scale-100' : 'opacity-0 scale-110'}`}
                 />
               ) : (
                 <img
                   src={image.image}
                   alt={image.title}
-                  className={`w-full h-full object-cover object-center transition-all duration-[4000ms] ease-out ${visibleImages.has(image.id) ? 'opacity-100 scale-100' : 'opacity-0 scale-110'}`}
+                  className={`w-full h-full object-cover object-center transition-all duration-700 ease-out ${visibleImages.has(image.id) ? 'opacity-100 scale-100' : 'opacity-0 scale-110'}`}
                 />
               )}
               <div className="absolute inset-0 bg-black/40 sm:bg-black/30"></div>
             </div>
 
             <div className="relative z-10 flex items-center justify-center h-full px-4 sm:px-6 md:px-8">
-              <div className={`text-center text-white max-w-[90%] sm:max-w-2xl mx-auto px-0 sm:px-2 md:px-4 transition-all duration-[4000ms] delay-[1000ms] ease-out ${visibleImages.has(image.id) ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'} break-words`}>
+              <div className={`text-center text-white max-w-[90%] sm:max-w-2xl mx-auto px-0 sm:px-2 md:px-4 transition-all duration-700 delay-150 ease-out ${visibleImages.has(image.id) ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'} break-words`}>
                 {image.id === 0 ? (
                   <>
                     <h2 className="text-3xl sm:text-4xl lg:text-6xl font-light tracking-wide mb-2 font-serif transform -skew-x-[20deg] sm:transform-none text-left italic leading-tight">
@@ -488,15 +515,32 @@ export default function Home() {
                 <i className="ri-arrow-left-s-line text-xl" />
               </button>
 
-              {/* Kartlar — mobilde swipe ile kaydırma */}
+              {/* Kartlar — mobilde swipe, masaüstünde sürükle veya touchpad ile kaydırma */}
               <div
-                className="relative w-full h-full flex items-center justify-center"
+                ref={coverflowRef}
+                className="relative w-full h-full flex items-center justify-center cursor-grab active:cursor-grabbing select-none overscroll-x-none"
                 onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
                 onTouchEnd={(e) => {
                   const delta = e.changedTouches[0].clientX - touchStartX.current;
                   if (delta < -50) setInstagramIndex((p) => (p + 1) % total);
                   else if (delta > 50) setInstagramIndex((p) => (p - 1 + total) % total);
                 }}
+                onMouseDown={(e) => {
+                  isDragging.current = true;
+                  dragStartX.current = e.clientX;
+                }}
+                onMouseMove={(e) => {
+                  if (!isDragging.current) return;
+                  e.preventDefault();
+                }}
+                onMouseUp={(e) => {
+                  if (!isDragging.current) return;
+                  isDragging.current = false;
+                  const delta = e.clientX - dragStartX.current;
+                  if (delta < -50) setInstagramIndex((p) => (p + 1) % total);
+                  else if (delta > 50) setInstagramIndex((p) => (p - 1 + total) % total);
+                }}
+                onMouseLeave={() => { isDragging.current = false; }}
               >
                 {instagramPosts.map((post, index) => {
                   let offset = index - instagramIndex;
@@ -561,9 +605,10 @@ export default function Home() {
                           loop
                           playsInline
                           autoPlay
+                          draggable={false}
                         />
                       ) : (
-                        <img src={src} alt="" className="w-full h-full object-cover" />
+                        <img src={src} alt="" className="w-full h-full object-cover" draggable={false} />
                       )}
                       {/* Merkez kart — Instagram linkine yönlendir */}
                       {isCenter && (

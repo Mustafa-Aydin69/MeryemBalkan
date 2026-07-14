@@ -75,7 +75,7 @@ function getOverdueReminderContent(data: {
   const isSunday = today.getDay() === 0;
   const shippingInstruction = isSunday
     ? "Kargo şirketleri bugün kapalı olduğundan, <strong>yarın (Pazartesi) ilk iş olarak</strong> göndermenizi rica ederiz."
-    : "Yurtiçi Kargo üzerinden <strong>BUGÜN</strong> kargo ile göndermenizi rica ederiz.";
+    : "DHL üzerinden <strong>BUGÜN</strong> kargo ile göndermenizi rica ederiz.";
 
   return `
     <h2 style="margin: 0 0 20px; color: #1a1a2e; font-size: 22px; font-weight: 500;">

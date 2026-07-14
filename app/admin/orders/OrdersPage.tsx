@@ -471,7 +471,7 @@ export default function OrdersPage() {
                     type="text"
                     value={editingOrder.shippingCode || ''}
                     onChange={(e) => handleOrderInputChange('shippingCode', e.target.value)}
-                    placeholder="Örn: YURTICI12345"
+                    placeholder="Örn: DHL12345"
                     className="w-full px-4 py-3 rounded-lg border text-sm bg-gray-700 text-white border-gray-600 focus:border-gray-400 focus:outline-none"
                   />
                 </div>
