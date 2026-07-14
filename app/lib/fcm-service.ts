@@ -44,7 +44,11 @@ export async function sendLoginApprovalPushToUser(
     },
     data: { sessionId, type: 'login_approval' },
     apns: {
-      payload: { aps: { sound: 'default', badge: 1, contentAvailable: true } },
+      // apns-priority 10 + push-type alert şart: contentAvailable ile başlıksız
+      // gönderimde FCM önceliği 5'e düşürür ve iOS bildirimi erteler/eler
+      // (Android'e düşüp iOS'a düşmeyen giriş bildirimlerinin nedeni buydu).
+      headers: { 'apns-push-type': 'alert', 'apns-priority': '10' },
+      payload: { aps: { sound: 'default', badge: 1 } },
     },
     android: {
       priority: 'high' as const,
@@ -160,11 +164,13 @@ export async function sendLoginApprovalPush(fcmToken: string, sessionId: string)
       type: 'login_approval',
     },
     apns: {
+      // bkz. sendLoginApprovalPushToUser — başlıksız contentAvailable iOS'ta
+      // önceliği 5'e düşürüp bildirimi ertelettiriyordu.
+      headers: { 'apns-push-type': 'alert', 'apns-priority': '10' },
       payload: {
         aps: {
           sound: 'default',
           badge: 1,
-          contentAvailable: true,
         },
       },
     },
