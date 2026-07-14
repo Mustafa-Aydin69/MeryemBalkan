@@ -13,7 +13,9 @@ export const ADMIN_CONFIG = {
       WINDOW_MS: 5 * 60 * 1000, // 5 dakika
     },
     LOGIN: {
-      MAX_ATTEMPTS: 5,
+      // Başarılı girişler de sayaca işlediği için 5 çok dardı; kilit
+      // mekanizması (LOCKOUT) brute-force korumasını zaten sağlıyor.
+      MAX_ATTEMPTS: 10,
       WINDOW_MS: 10 * 60 * 1000, // 10 dakika
     },
     ADMIN_API: {
@@ -45,8 +47,11 @@ export const ADMIN_CONFIG = {
       WINDOW_MS: 60 * 1000, // 1 dakikada 150 poll (session_id + IP)
     },
     REGISTER_DEVICE: {
-      MAX_ATTEMPTS: 5,
-      WINDOW_MS: 60 * 60 * 1000, // 1 saatte 5 kayıt (auth_user_id bazlı)
+      // Her uygulama açılışı/girişi cihaz kaydı çağırır; endpoint zaten
+      // Bearer + aktif admin kontrolü arkasında — 5/saat meşru kullanımı
+      // (çoklu cihaz, tanılama, tekrar girişler) engelliyordu.
+      MAX_ATTEMPTS: 30,
+      WINDOW_MS: 60 * 60 * 1000, // 1 saatte 30 kayıt (auth_user_id bazlı)
     },
     COUPON_VALIDATE: {
       MAX_ATTEMPTS: 20,
