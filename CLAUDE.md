@@ -258,3 +258,9 @@ After successful DB insert, if `konu === 'İade Talebi'`, a fire-and-forget POST
 - Text sizes: use `text-2xl sm:text-3xl`, `text-base sm:text-lg` etc. — never bare large sizes without a mobile fallback.
 - iframes (e.g. Google Maps): set `height="100%"` and control height via the container div's Tailwind class (`h-64 sm:h-80 lg:h-96`).
 - All SEO landing pages (`/erzincan-*`, `/gelinlik-kiralama`, `/abiye-kiralama`, `/nisanlik-kiralama`) intentionally have no nav/footer — keep it that way. `MobileBottomNav` is also excluded from these pages.
+
+---
+
+## Notlar
+
+- `gelinlik_video_rehberi.md` — Seedance 2.0 (Higgsfield) ile 3 klip halinde üretilecek "abiye koridoru → gelinlik reveal" videosu için adım adım rehber ve klip başına detaylı prompt/negatif prompt. Klipler üretildikten sonra ffmpeg ile crossfade geçişli tek video haline getirilecek.
