@@ -55,7 +55,8 @@ export default function Home() {
       buttonLink: "/portfolio",
       secondButtonText: "İletişime Geç",
       secondButtonLink: "/iletisim",
-      video: "images/Anasayfa/Giris_Kismi_Video.mp4"
+      video: "https://cdn.meryembalkan.com.tr/urunler/Giris_Kismi_Video_4k_h264.mp4",
+      videoHevc: "https://cdn.meryembalkan.com.tr/urunler/Giris_Kismi_Video_4k_hevc.mp4"
     },
     {
       id: 1,
@@ -79,7 +80,7 @@ export default function Home() {
       description: "Özel tasarımlar, zarif detaylarla birleşiyor. Kına gecenizde sizi yansıtan benzersiz parçalar.",
       buttonText: "Hemen İncele",
       buttonLink: "/portfolio?category=kinalik",
-      image: "images/Anasayfa/Kinalik.jpg"
+      image: "images/hf_20260806_205619_c497b454-bb51-474e-93cf-00705dd8469a.png"
     },
     {
       id: 4,
@@ -365,13 +366,17 @@ export default function Home() {
               ></div>
               {image.video ? (
                 <video
-                  src={image.video}
                   autoPlay
                   muted
                   loop
                   playsInline
                   className={`w-full h-full object-cover object-center transition-all duration-700 ease-out ${visibleImages.has(image.id) ? 'opacity-100 scale-100' : 'opacity-0 scale-110'}`}
-                />
+                >
+                  {image.videoHevc && (
+                    <source src={image.videoHevc} type="video/mp4; codecs=hvc1" />
+                  )}
+                  <source src={image.video} type="video/mp4; codecs=avc1.640033" />
+                </video>
               ) : (
                 <img
                   src={image.image}
